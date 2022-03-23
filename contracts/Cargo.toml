@@ -10,5 +10,6 @@ overflow-checks = true
 
 [workspace]
 members = [
-    "wtoken",
+    "transfer",
+    "wtoken"
 ]

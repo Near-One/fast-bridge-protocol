@@ -1,5 +1,5 @@
 [package]
-name = "test-utoken"
+name = "transfer"
 version = "0.0.1"
 authors = ["mark.ts@blaize.tech", "tymofii.s@blaize.tech"]
 edition = "2018"
