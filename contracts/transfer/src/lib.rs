@@ -3,7 +3,6 @@ use near_sdk::AccountId;
 use near_sdk::env::block_timestamp;
 use near_sdk::serde_json::json;
 use near_sdk_sim::lazy_static_include::syn::Meta;
-use serde_json::json;
 
 pub type Metadata = json;
 const AVAILABLE_TOKEN_ADDRESS: LookupSet<String> = LookupSet!["FIRST_ADDRESS".to_string(), "SECOND_ADDRESS".to_string()];
@@ -39,11 +38,11 @@ impl Transfer {
             panic!("Transfer valid time not correct.");
         }
 
-        if !AVAILABLE_TOKEN_ADDRESS.get(metadata["transfer"]["token"]) {
+        if !AVAILABLE_TOKEN_ADDRESS.contains(metadata["transfer"]["token"]) {
             panic!("This transfer token not available.")
         }
 
-        if !AVAILABLE_TOKEN_ADDRESS.get(metadata["fee"]["token"]) {
+        if !AVAILABLE_TOKEN_ADDRESS.contains(metadata["fee"]["token"]) {
             panic!("This fee token not available.")
         }
         is_correct

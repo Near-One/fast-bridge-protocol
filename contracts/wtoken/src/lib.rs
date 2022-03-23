@@ -67,19 +67,6 @@ impl Contract {
         self.token
             .internal_withdraw(&account_id, amount.into());
     }
-
-    pub fn ft_on_transfer(&mut self, account_id: AccountId) {
-        //TODO check metadata and lock
-    }
-
-    pub fn lock(&mut self, account_id: AccountId){
-        //TODO lock functionality
-    }
-
-    pub fn is_metadata_correct(&mut self, metadata: LazyOption<FungibleTokenMetadata>) -> bool {
-        //TODO check fields
-        true
-    }
 }
 
 // main implementation for token and storage
