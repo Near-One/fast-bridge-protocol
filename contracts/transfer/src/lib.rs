@@ -8,7 +8,6 @@ use near_sdk::serde_json::from_str;
 
 const LOCK_TIME_MIN: u64 = 3600;
 const LOCK_TIME_MAX: u64 = 7200;
-const AVAILABLE_TOKEN_ADDRESS: LookupSet<String> = ["FIRST_ADDRESS".to_string(), "SECOND_ADDRESS".to_string()];
 
 pub struct TransferData {
     token: String,
@@ -29,6 +28,7 @@ pub struct TokenMsg {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Transfer {
     locked_accounts: LookupMap<AccountId, String>,
+    available_tokens: LookupSet<String>,
 }
 
 #[near_bindgen]
@@ -39,7 +39,7 @@ impl Transfer {
         amount: u128,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        if !self.is_metadata_correct( msg.clone()) {
+        if !self.is_metadata_correct(msg.clone()) {
             log!("Something wrong with message, metadata not correct.");
             PromiseOrValue::Value(0);
         }
@@ -102,7 +102,16 @@ impl Transfer {
         }
         is_correct
     }
+
+    pub fn add_available_token(
+        &mut self,
+        &token: String
+    ) {
+        self.available_tokens.insert(token);
+    }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+
+}
