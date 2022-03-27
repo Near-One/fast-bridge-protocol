@@ -54,6 +54,7 @@ impl Contract {
         };
         this.token.internal_register_account(&owner_id);
         this.token.internal_deposit(&owner_id, total_supply.into());
+        this
     }
 
 
