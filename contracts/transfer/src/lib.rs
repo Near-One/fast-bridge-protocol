@@ -1,3 +1,9 @@
+#[path = "events/event.rs"] mod event ;
+mod transfer_data;
+mod types;
+
+use event :: * ;
+use transfer_data:: *;
 use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{near_bindgen, AccountId, log, PromiseOrValue, serde_json};
@@ -5,6 +11,7 @@ use near_sdk::env::block_timestamp;
 use near_sdk::json_types::U128;
 use std::time::{SystemTime, UNIX_EPOCH};
 use near_sdk::serde::{Deserialize, Serialize};
+
 
 const LOCK_TIME_MIN: u64 = 3600;
 const LOCK_TIME_MAX: u64 = 7200;
