@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::str::FromStr;
 use near_sdk::AccountId;
 
 #[derive(Serialize, Deserialize)]
@@ -10,7 +11,9 @@ pub struct SpectreBridgeTransferFailedEvent {
 
 impl Default for SpectreBridgeTransferFailedEvent {
     fn default() -> Self {
-        nonce: 0,
-        account: AccountId::from("".to_string()),
+        SpectreBridgeTransferFailedEvent {
+            nonce: 0,
+            account: AccountId::from_str("").unwrap(),
+        }
     }
 }

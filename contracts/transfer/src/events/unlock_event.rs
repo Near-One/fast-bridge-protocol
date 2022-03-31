@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use near_sdk::AccountId;
 use crate::{TransferDataEthereum, TransferDataNear};
 
@@ -12,9 +13,11 @@ pub struct SpectreBridgeUnlockEvent {
 
 impl Default for SpectreBridgeUnlockEvent {
     fn default() -> Self {
-        nonce: 0,
-        account: AccountId,
-        transfer: TransferDataEthereum::default(),
-        fee: TransferDataNear::default(),
+        SpectreBridgeUnlockEvent {
+            nonce: 0,
+            account: AccountId::from_str("").unwrap(),
+            transfer: TransferDataEthereum::default(),
+            fee: TransferDataNear::default(),
+        }
     }
 }

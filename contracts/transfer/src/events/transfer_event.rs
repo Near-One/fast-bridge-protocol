@@ -13,10 +13,12 @@ pub struct SpectreBridgeTransferEvent {
 
 impl Default for SpectreBridgeTransferEvent {
     fn default() -> Self {
-        nonce: 0,
-        valid_till: 0,
-        transfer: TransferDataEthereum::default(),
-        fee: TransferDataNear::default(),
-        recipient: Address::new(),
+        SpectreBridgeTransferEvent {
+            nonce: 0,
+            valid_till: 0,
+            transfer: TransferDataEthereum::default(),
+            fee: TransferDataNear::default(),
+            recipient: Address,
+        }
     }
 }

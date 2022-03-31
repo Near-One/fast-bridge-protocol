@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use near_sdk::AccountId;
 use crate::TransferDataEthereum;
 use crate::types::Address;
@@ -15,7 +16,7 @@ impl Default for SpectreBridgeNonceEvent {
     fn default() -> Self {
         SpectreBridgeNonceEvent {
             nonce: 0,
-            account: AccountId::from("".to_string()),
+            account: AccountId::from_str("").unwrap(),
             transfer: TransferDataEthereum::default(),
             recipient: Address,
         }
