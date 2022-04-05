@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use near_sdk::AccountId;
-use crate::types::Address;
+use web3::types::Address;
+use near_sdk::serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]

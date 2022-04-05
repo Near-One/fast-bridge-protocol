@@ -1,1 +1,0 @@
-pub type Address = H160;
