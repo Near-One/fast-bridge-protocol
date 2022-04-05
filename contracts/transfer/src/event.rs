@@ -1,4 +1,6 @@
-use near_sdk::{serde_json};
+use std::fmt;
+use near_sdk::{log, serde_json};
+use serde_json::json;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use crate::AccountId;
@@ -92,6 +94,17 @@ enum Events {
     SpectreBridgeUnlockEvent,
 }
 
+impl fmt::Display for Events {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Events::SpectreBridgeNonceEvent => write!(f, "SpectreBridgeNonceEvent"),
+            Events::SpectreBridgeTransferEvent => write!(f, "SpectreBridgeTransferEvent"),
+            Events::SpectreBridgeTransferFailedEvent => write!(f, "SpectreBridgeTransferFailedEvent"),
+            Events::SpectreBridgeUnlockEvent => write!(f, "SpectreBridgeUnlockEvent"),
+        }
+    }
+}
+
 pub struct Event {
     nonce: SpectreBridgeNonceEvent,
     transfer: SpectreBridgeTransferEvent,
@@ -120,13 +133,13 @@ impl Event {
             Events::SpectreBridgeTransferFailedEvent => { data = serde_json::to_string(&self.transfer_failed) }
             Events::SpectreBridgeNonceEvent => { data = serde_json::to_string(&self.nonce) }
         }
-        /*log!(
-             r#"EVENT_JSON:{"standard": "{}", "version": "{}", "events": "{}", "data": {}}"#,
-            STANDARD,
-            VERSION,
-            event,
-            data.unwrap()
-        );*/
+        let message = json!({
+            "standard": STANDARD,
+            "version": VERSION,
+            "event": event.to_string(),
+            "data": data.unwrap()
+        });
+        log!(r#"EVENT_JSON:"#.to_owned()+&message.to_string()+"r#");
     }
 }
 
