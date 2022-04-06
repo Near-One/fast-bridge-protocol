@@ -7,8 +7,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js"
+    "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
+    "test": "brownie test"
   },
   "author": "",
   "license": "ISC",
