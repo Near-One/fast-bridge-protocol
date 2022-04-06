@@ -1,0 +1,22 @@
+from lib2to3.pgen2 import token
+from secrets import token_bytes
+import brownie 
+
+
+def test_add_tokens_to_whitelist(owner, bridge) -> None:
+    tokens_addresses = [
+        '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+        '0xB8c77482e45F1F44dE1745F52C74426C631bDD52',
+        '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+    ]
+    tokens_states = [
+        True,
+        True,
+        False
+    ]
+
+    bridge.setTokens(tokens_addresses, tokens_states, {'from': owner})
+
+    assert bridge.isTokenInWhitelist('0xdAC17F958D2ee523a2206206994597C13D831ec7').return_value == True
+    assert bridge.isTokenInWhitelist('0xB8c77482e45F1F44dE1745F52C74426C631bDD52').return_value == True
+    assert bridge.isTokenInWhitelist('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48').return_value == False
