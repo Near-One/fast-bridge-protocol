@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
-    "test": "brownie test"
+    "test": "brownie test",
+    "test:mainnet-fork": "brownie test --network mainnet-fork"
   },
   "author": "",
   "license": "ISC",
