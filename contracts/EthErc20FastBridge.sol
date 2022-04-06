@@ -5,6 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract EthErc20FastBridge is Ownable {
     mapping (address => bool) public whitelistedTokens;
+    
+    event SetTokens(
+        address[] _tokens,
+        bool[] _states
+    );
 
     modifier isWhitelisted(address _token) {
         require(whitelistedTokens[_token], "Token not whitelisted!");
@@ -15,7 +20,7 @@ contract EthErc20FastBridge is Ownable {
         return whitelistedTokens[_token];
     }
 
-    function setTokens(
+    function setWhitelistedTokens(
         address[] memory _tokens,
         bool[] memory _states
     ) 
@@ -27,6 +32,8 @@ contract EthErc20FastBridge is Ownable {
         for (uint256 i = 0; i < _tokens.length; i++) {
             whitelistedTokens[_tokens[i]] = _states[i];
         }
+
+        emit SetTokens(_tokens, _states);
     }   
     
 }

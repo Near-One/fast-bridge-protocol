@@ -13,7 +13,7 @@ def test_add_tokens_to_whitelist(owner, bridge) -> None:
         False
     ]
 
-    bridge.setTokens(tokens_addresses, tokens_states, {'from': owner})
+    bridge.setWhitelistedTokens(tokens_addresses, tokens_states, {'from': owner})
 
     assert bridge.isTokenInWhitelist('0xdAC17F958D2ee523a2206206994597C13D831ec7').return_value == True
     assert bridge.isTokenInWhitelist('0xB8c77482e45F1F44dE1745F52C74426C631bDD52').return_value == True
@@ -31,4 +31,4 @@ def test_access_control(someone, bridge) -> None:
         False
     ]
     with brownie.reverts():
-        bridge.setTokens(tokens_addresses, tokens_states, {'from': someone})
+        bridge.setWhitelistedTokens(tokens_addresses, tokens_states, {'from': someone})
