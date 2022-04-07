@@ -1,13 +1,6 @@
 import brownie 
 
 
-def test_receive(bridge, someone) -> None:
-    someone_balance_before = someone.balance()
-    bridge_balance_before = bridge.balance()
-    someone.transfer(bridge, "1 ether")
-    assert someone_balance_before == someone.balance()
-    assert bridge_balance_before == bridge.balance()
-
 def test_withdraw_stuck_tokens(bridge, someone, owner, token, someone_with_tokens) -> None:
     token.transfer(
         bridge, 

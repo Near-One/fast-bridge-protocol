@@ -7,12 +7,13 @@
     "test": "tests"
   },
   "scripts": {
+    "preinstall": "pip3 install -r requirements-dev.txt",
     "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
     "test": "brownie test",
     "test:mainnet-fork": "brownie test --network mainnet-fork"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",
     "solidity-docgen": "^0.5.16",

@@ -60,13 +60,14 @@ def test_two_equal_transfers(
     
     assert token.balanceOf(someone) == relayer_balance_before
 
-    bridge.transferTokens(
-        token, 
-        someone, 
-        11231231, 
-        relayer_balance_before, 
-        {'from': another_relayer}
-    )
+    with brownie.reverts("This transaction has already been processed!"):
+        bridge.transferTokens(
+            token, 
+            someone, 
+            11231231, 
+            relayer_balance_before, 
+            {'from': another_relayer}
+        )
     # Check that transfer not happend.
     assert token.balanceOf(someone) == relayer_balance_before
 

@@ -58,12 +58,12 @@ contract EthErc20FastBridge is Ownable {
         bytes32 processedHash = keccak256(
             abi.encodePacked(_token, _recipient, _nonce, _amount));
         
-        if (!processedHashes[processedHash]) {
-            token.safeTransferFrom(msg.sender, _recipient, _amount);
-            processedHashes[processedHash] = true;
+        require(!processedHashes[processedHash], "This transaction has already been processed!");
 
-            emit TransferTokens(msg.sender, processedHash);
-        }
+        token.safeTransferFrom(msg.sender, _recipient, _amount);
+        processedHashes[processedHash] = true;
+
+        emit TransferTokens(msg.sender, processedHash);
     }
 
     function withdrawStuckTokens(address _token) external onlyOwner {
@@ -72,9 +72,5 @@ contract EthErc20FastBridge is Ownable {
             msg.sender, 
             token.balanceOf(address(this))
         );
-    }
-
-    receive() external payable {
-        payable(msg.sender).transfer(msg.value);
     }
 }
