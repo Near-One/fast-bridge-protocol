@@ -25,6 +25,14 @@ contract EthErc20FastBridge is Ownable {
         _;
     }
 
+    constructor(
+        address[] memory _tokens,
+        bool[] memory _states
+    ) 
+    {
+        setWhitelistedTokens(_tokens, _states);
+    }
+
     function isTokenInWhitelist(address _token) external returns(bool) {
         return whitelistedTokens[_token];
     }

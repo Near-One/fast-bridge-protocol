@@ -73,6 +73,6 @@ def someone_with_tokens(accounts, token, relayer):
 
 @pytest.fixture
 def bridge(owner, EthErc20FastBridge): 
-    bridge = EthErc20FastBridge.deploy({'from': owner})
+    bridge = EthErc20FastBridge.deploy([], [], {'from': owner})
     return bridge
 
