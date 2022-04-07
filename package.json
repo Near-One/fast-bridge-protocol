@@ -7,6 +7,7 @@
     "test": "tests"
   },
   "scripts": {
+    "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin",
     "preinstall": "pip3 install -r requirements-dev.txt",
     "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
     "test": "brownie test",

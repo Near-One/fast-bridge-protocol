@@ -33,7 +33,7 @@ contract EthErc20FastBridge is Ownable {
         setWhitelistedTokens(_tokens, _states);
     }
 
-    function isTokenInWhitelist(address _token) external returns(bool) {
+    function isTokenInWhitelist(address _token) external view returns(bool) {
         return whitelistedTokens[_token];
     }
 
@@ -65,11 +65,11 @@ contract EthErc20FastBridge is Ownable {
         IERC20 token = IERC20(_token);
         bytes32 processedHash = keccak256(
             abi.encodePacked(_token, _recipient, _nonce, _amount));
-        
+
         require(!processedHashes[processedHash], "This transaction has already been processed!");
+        processedHashes[processedHash] = true;
 
         token.safeTransferFrom(msg.sender, _recipient, _amount);
-        processedHashes[processedHash] = true;
 
         emit TransferTokens(msg.sender, processedHash);
     }
