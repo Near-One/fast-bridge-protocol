@@ -117,7 +117,7 @@ impl Transfer {
     ) -> PromiseOrValue<U128> {
         let transaction_id = "asd";
             //str::from_utf8(&sha256(&nonce.to_string().as_bytes())).unwrap();
-        if let Some(transfer) = self.pending_transfers.get(&transaction_id.clone().to_string()) {
+        if let Some(transfer) = self.pending_transfers.get(&transaction_id.to_string().clone()) {
             if let Some(transfer_data) = transfer.get(&signer_account_id()) {
                 if block_timestamp() < transfer_data.valid_till {
                     self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
