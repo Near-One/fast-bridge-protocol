@@ -4,7 +4,7 @@ use near_sdk::{near_bindgen, ext_contract, AccountId, log, PromiseOrValue, serde
 use near_sdk::env::{block_timestamp, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::env::sha256;
+
 use std::str;
 
 
@@ -69,18 +69,18 @@ impl Transfer {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        if self.available_tokens.contains(&token_id.clone().to_string()) {
+        if self.available_tokens.contains(&token_id.to_string()) {
             return self.update_balance(token_id, amount);
         }
-        return PromiseOrValue::Value(U128::from(amount));
+        PromiseOrValue::Value(U128::from(amount))
     }
 
     pub fn lock(
         &mut self,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        let mut transfer_message: TransferMessage;
-        match self.is_metadata_correct(msg.clone()) {
+        let transfer_message: TransferMessage;
+        match self.is_metadata_correct(msg) {
             Ok(tm) => { transfer_message = tm }
             Err(err) => {
                 log!("Metadata not correct: {}", err);
@@ -113,7 +113,7 @@ impl Transfer {
 
     pub fn unlock(
         &mut self,
-        nonce: u64,
+        _nonce: u64,
     ) -> PromiseOrValue<U128> {
         let transaction_id = "asd";
             //str::from_utf8(&sha256(&nonce.to_string().as_bytes())).unwrap();
@@ -125,7 +125,7 @@ impl Transfer {
 
                     self.pending_transfers.remove(&transaction_id.to_string());
 
-                    return self.withdraw(transfer_data);
+                    self.withdraw(transfer_data)
                 } else {
                     panic!("Valid time is not correct.");
                 }
@@ -143,8 +143,8 @@ impl Transfer {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        if let mut user_balances = self.user_balances.get(&signer_account_id()).unwrap() {
-            if let mut token_amount = user_balances.get(&token_id).unwrap() {
+        if let Some(mut user_balances) = self.user_balances.get(&signer_account_id()) {
+            if let Some(mut token_amount) = user_balances.get(&token_id) {
                 token_amount += amount;
                 user_balances.insert(&token_id, &token_amount);
             } else {
@@ -156,7 +156,7 @@ impl Transfer {
             token_balance.insert(&token_id, &amount);
             self.user_balances.insert(&signer_account_id(), &token_balance);
         }
-        return PromiseOrValue::Value(U128::from(0));
+        PromiseOrValue::Value(U128::from(0))
     }
 
     #[private]
@@ -166,8 +166,8 @@ impl Transfer {
         amount: &u128,
     ) {
         let mut user_token_balance = self.user_balances.get(&env::signer_account_id()).unwrap();
-        let balance = user_token_balance.get(&token_id).unwrap() - amount;
-        user_token_balance.insert(&token_id, &balance);
+        let balance = user_token_balance.get(token_id).unwrap() - amount;
+        user_token_balance.insert(token_id, &balance);
         self.user_balances.insert(&env::signer_account_id(), &user_token_balance);
     }
 
@@ -179,8 +179,8 @@ impl Transfer {
         amount: &u128,
     ) {
         let mut user_token_balance = self.user_balances.get(&env::signer_account_id()).unwrap();
-        let balance = user_token_balance.get(&token_id).unwrap() + amount;
-        user_token_balance.insert(&token_id, &balance);
+        let balance = user_token_balance.get(token_id).unwrap() + amount;
+        user_token_balance.insert(token_id, &balance);
         self.user_balances.insert(&env::signer_account_id(), &user_token_balance);
     }
 
@@ -196,8 +196,7 @@ impl Transfer {
         }
 
         let lock_period = transfer_message.valid_till - block_timestamp();
-        if lock_period > LOCK_TIME_MAX ||
-            lock_period < LOCK_TIME_MIN {
+        if !(LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period) {
             return Err("Lock period does not fit the terms of the contract.");
         }
 
@@ -209,7 +208,7 @@ impl Transfer {
             return Err("This fee token not available.");
         }
 
-        return Ok(transfer_message);
+        Ok(transfer_message)
     }
 
     #[private]
@@ -239,7 +238,7 @@ impl Transfer {
         &mut self,
         transfer_message: TransferMessage,
     ) -> PromiseOrValue<U128> {
-        return ext_token::ft_transfer(
+        ext_token::ft_transfer(
             env::signer_account_id(),
             transfer_message.transfer.amount,
             env::current_account_id(),
@@ -249,7 +248,7 @@ impl Transfer {
             transfer_message,
             env::current_account_id(),
             NO_DEPOSIT,
-            self.terra_gas(40))).into();
+            self.terra_gas(40))).into()
     }
 
     #[allow(dead_code)]
@@ -263,7 +262,7 @@ impl Transfer {
             "Withdraw amount callback."
         );
 
-        return ext_token::ft_transfer(
+        ext_token::ft_transfer(
             env::signer_account_id(),
             transfer_message.fee.amount,
             env::current_account_id(),
@@ -274,7 +273,7 @@ impl Transfer {
             env::current_account_id(),
             NO_DEPOSIT,
             self.terra_gas(5),
-        )).into();
+        )).into()
     }
 
     #[allow(dead_code)]
@@ -292,7 +291,7 @@ impl Transfer {
         self.substract_balance(&transfer_message.fee.token, &transfer_message.fee.amount);
 
         //TODO: emit event
-        return PromiseOrValue::Value(U128::from(0));
+        PromiseOrValue::Value(U128::from(0))
     }
 
     #[private]
