@@ -115,9 +115,9 @@ impl Transfer {
         &mut self,
         nonce: u64,
     ) -> PromiseOrValue<U128> {
-        let sh = sha256(&nonce.to_string().as_bytes());
+        let sh = sha256(nonce.to_string().as_bytes());
         let transaction_id = str::from_utf8(&sh).unwrap();
-        if let Some(transfer) = self.pending_transfers.get(&transaction_id.to_string().clone()) {
+        if let Some(transfer) = self.pending_transfers.get(&transaction_id.to_string()) {
             if let Some(transfer_data) = transfer.get(&signer_account_id()) {
                 if block_timestamp() < transfer_data.valid_till {
                     self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
