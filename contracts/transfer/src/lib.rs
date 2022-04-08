@@ -16,7 +16,7 @@ pub const TGAS: Gas = near_sdk::Gas::ONE_TERA;
 #[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
-struct TransferData {
+pub struct TransferData {
     token: AccountId,
     amount: u128,
 }
@@ -24,7 +24,7 @@ struct TransferData {
 #[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
-struct TransferMessage {
+pub struct TransferMessage {
     valid_till: u64,
     transfer: TransferData,
     fee: TransferData,
@@ -89,7 +89,7 @@ impl Transfer {
         }
 
         let user_token_balance = self.user_balances.get(&env::signer_account_id()).unwrap();
-        if let token_tr_balance = user_token_balance.get(&transfer_message.transfer.token).unwrap() {
+        if let Some(token_tr_balance) = user_token_balance.get(&transfer_message.transfer.token) {
             if token_tr_balance < transfer_message.transfer.amount {
                 log!("Not enough transfer token balance.");
                 //TODO: place for emit event
@@ -97,7 +97,7 @@ impl Transfer {
             }
         }
 
-        if let token_fee_balance = user_token_balance.get(&transfer_message.fee.token).unwrap() {
+        if let Some(token_fee_balance) = user_token_balance.get(&transfer_message.fee.token) {
             if token_fee_balance < transfer_message.fee.amount {
                 log!("Not enough fee token balance.");
                 //TODO: place for emit event
@@ -115,9 +115,10 @@ impl Transfer {
         &mut self,
         nonce: u64,
     ) -> PromiseOrValue<U128> {
-        let transaction_id = str::from_utf8(&sha256(&nonce.to_string().as_bytes())).unwrap();
-        if let transfer = self.pending_transfers.get(&transaction_id.clone().to_string()).unwrap() {
-            if let transfer_data = transfer.get(&signer_account_id()).unwrap() {
+        let transaction_id = "asd";
+            //str::from_utf8(&sha256(&nonce.to_string().as_bytes())).unwrap();
+        if let Some(transfer) = self.pending_transfers.get(&transaction_id.clone().to_string()) {
+            if let Some(transfer_data) = transfer.get(&signer_account_id()) {
                 if block_timestamp() < transfer_data.valid_till {
                     self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
                     self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
@@ -225,7 +226,8 @@ impl Transfer {
         transfer_message: TransferMessage,
     ) -> u64 {
         self.transactions += 1;
-        let transaction_id = str::from_utf8(&sha256(&self.transactions.to_string().as_bytes())).unwrap();
+        let transaction_id = "asd";
+        //str::from_utf8(&sha256(&self.transactions.to_string().as_bytes())).unwrap();
         let mut account_pending = LookupMap::new(b"pt".to_vec());
         account_pending.insert(&signer_account_id(), &transfer_message);
         self.pending_transfers.insert(&transaction_id.to_string(), &account_pending);
@@ -238,12 +240,14 @@ impl Transfer {
         transfer_message: TransferMessage,
     ) -> PromiseOrValue<U128> {
         return ext_token::ft_transfer(
-            &transfer_message.transfer.token,
-            &transfer_message.transfer.amount,
+            env::signer_account_id(),
+            transfer_message.transfer.amount,
+            env::current_account_id(),
             NO_DEPOSIT,
             TGAS,
         ).then(ext_self::withdraw_amount_callback(
             transfer_message,
+            env::current_account_id(),
             NO_DEPOSIT,
             self.terra_gas(40))).into();
     }
@@ -260,12 +264,14 @@ impl Transfer {
         );
 
         return ext_token::ft_transfer(
-            &transfer_message.fee.token,
-            &transfer_message.fee.amount,
+            env::signer_account_id(),
+            transfer_message.fee.amount,
+            env::current_account_id(),
             NO_DEPOSIT,
             self.terra_gas(5),
         ).then(ext_self::update_balance_callback(
             transfer_message,
+            env::current_account_id(),
             NO_DEPOSIT,
             self.terra_gas(5),
         )).into();
