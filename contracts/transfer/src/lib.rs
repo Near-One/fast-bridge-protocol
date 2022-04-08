@@ -1,7 +1,7 @@
 use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{near_bindgen, ext_contract, AccountId, log, PromiseOrValue, serde_json, env, Gas};
-use near_sdk::env::{block_timestamp, signer_account_id};
+use near_sdk::env::{block_timestamp, sha256, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 
@@ -113,10 +113,10 @@ impl Transfer {
 
     pub fn unlock(
         &mut self,
-        _nonce: u64,
+        nonce: u64,
     ) -> PromiseOrValue<U128> {
-        let transaction_id = "asd";
-            //str::from_utf8(&sha256(&nonce.to_string().as_bytes())).unwrap();
+        let sh = sha256(&nonce.to_string().as_bytes());
+        let transaction_id = str::from_utf8(&sh).unwrap();
         if let Some(transfer) = self.pending_transfers.get(&transaction_id.to_string().clone()) {
             if let Some(transfer_data) = transfer.get(&signer_account_id()) {
                 if block_timestamp() < transfer_data.valid_till {
