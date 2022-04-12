@@ -9,7 +9,7 @@
   "scripts": {
     "flatten:bridge": "./node_modules/.bin/poa-solidity-flattener ./contracts/EthErc20FastBridge.sol",
     "flatten:token": "./node_modules/.bin/poa-solidity-flattener ./contracts/TestToken.sol",
-    "env": "export $(cat .env | xargs)",
+    "env": "source .env",
     "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin",
     "preinstall": "pip3 install -r requirements-dev.txt",
     "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
@@ -22,6 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.5.2",
     "@poanet/solidity-flattener": "^3.0.7",
     "solc": "0.8.11",
     "solidity-docgen": "^0.5.16"
