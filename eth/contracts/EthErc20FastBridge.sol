@@ -60,8 +60,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         address[] memory _tokens,
         bool[] memory _states
     ) 
-        public
-        whenNotPaused 
+        public 
         onlyRole(ADMIN_ROLE) 
     {
         require(_tokens.length == _states.length, "Arrays must be equal");
@@ -99,7 +98,6 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         address _token
     ) 
         external 
-        whenNotPaused
         onlyRole(ADMIN_ROLE) 
     {
         IERC20 token = IERC20(_token);
