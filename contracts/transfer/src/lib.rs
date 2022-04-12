@@ -4,7 +4,6 @@ use near_sdk::{near_bindgen, ext_contract, AccountId, log, PromiseOrValue, serde
 use near_sdk::env::{block_timestamp, sha256, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-
 use std::str;
 
 
@@ -89,8 +88,8 @@ impl Transfer {
         }
 
         let user_token_balance = self.user_balances.get(&env::signer_account_id()).unwrap();
-        if let Some(token_tr_balance) = user_token_balance.get(&transfer_message.transfer.token) {
-            if token_tr_balance < transfer_message.transfer.amount {
+        if let Some(token_transfer_balance) = user_token_balance.get(&transfer_message.transfer.token) {
+            if token_transfer_balance < transfer_message.transfer.amount {
                 log!("Not enough transfer token balance.");
                 //TODO: place for emit event
                 return PromiseOrValue::Value(U128::from(0));
@@ -225,8 +224,10 @@ impl Transfer {
         transfer_message: TransferMessage,
     ) -> u64 {
         self.transactions += 1;
-        let transaction_id = "asd";
-        //str::from_utf8(&sha256(&self.transactions.to_string().as_bytes())).unwrap();
+        let t = self.transactions.to_string();
+        let buf = t.as_bytes();
+        let sh = sha256(buf);
+        let transaction_id = String::from_utf8(sh.to_vec()).unwrap();
         let mut account_pending = LookupMap::new(b"pt".to_vec());
         account_pending.insert(&signer_account_id(), &transfer_message);
         self.pending_transfers.insert(&transaction_id.to_string(), &account_pending);
@@ -313,7 +314,7 @@ mod tests {
             .signer_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
             .predecessor_account_id(AccountId::try_from("carol_near".to_string()).unwrap())
             .block_index(101)
-            .block_timestamp(0)
+            .block_timestamp(1649402222)
             .is_view(is_view)
             .build()
     }
@@ -328,43 +329,85 @@ mod tests {
         assert!(contract.available_tokens.contains(&test_token));
     }
 
-    /*#[test]
+    #[test]
     fn is_metadata_correct_test() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = Transfer::default();
-        let test_token: String = "AKSJDHF34JDHRYUIKKO83UNMNX1".to_string();
-        let test_token2: String = "AKSJDHF34JDHRYUIKKO83UNMNX2".to_string();
+        let test_token: String = "alice_near".to_string();
         contract.add_available_token(test_token.clone());
-        contract.add_available_token(test_token2.clone());
         assert!(contract.available_tokens.contains(&test_token));
-        assert!(contract.available_tokens.contains(&test_token2));
 
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
             "valid_till": "#.to_owned();
-        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(&current_timestamp.to_string().to_owned());
         msg.push_str(r#",
             "transfer": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX1",
+                "token": "alice_near",
                 "amount": 100
             },
             "fee": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX2",
+                "token": "alice_near",
                 "amount": 100
             },
-            "recipient": "RESJDHF34JDHRYUIKKO83UNMNX2"
+            "recipient": "bob_near"
         }"#);
-        assert!(contract.is_metadata_correct(String::from(msg)));
+
+        let transfer_message = contract.is_metadata_correct(String::from(msg)).unwrap();
+
+        let original = TransferMessage {
+            valid_till: current_timestamp,
+            transfer: TransferData {
+                token: AccountId::try_from("alice_near".to_string()).unwrap(),
+                amount: 100,
+            },
+            fee: TransferData {
+                token: AccountId::try_from("alice_near".to_string()).unwrap(),
+                amount: 100,
+            },
+            recipient: "bob_near".to_string(),
+        };
+        assert_eq!(serde_json::to_string(&original).unwrap(), serde_json::to_string(&transfer_message).unwrap());
     }
 
     #[test]
-    fn metadata_not_correct_test() {
+    fn metadata_not_correct_valid_time_test() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = Transfer::default();
-        let test_token: String = "AKSJDHF34JDHRYUIKKO83UNMNX1".to_string();
+        let test_token: String = "alice_near".to_string();
+        contract.add_available_token(test_token.clone());
+        assert!(contract.available_tokens.contains(&test_token));
+
+        let current_timestamp = block_timestamp() - 20;
+        let mut msg: String = r#"
+        {
+            "valid_till": "#.to_owned();
+        msg.push_str(&current_timestamp.to_string().to_owned());
+        msg.push_str(r#",
+            "transfer": {
+                "token": "alice_near",
+                "amount": 100
+            },
+            "fee": {
+                "token": "alice_near",
+                "amount": 100
+            },
+            "recipient": "bob_near"
+        }"#);
+        let transfer_message = contract.is_metadata_correct(String::from(msg));
+        let err: Result<TransferMessage, &'static str> = Err("Transfer valid time not correct.");
+        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+    }
+
+    #[test]
+    fn metadata_lock_period_not_correct_test() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = Transfer::default();
+        let test_token: String = "alice_near".to_string();
         contract.add_available_token(test_token.clone());
         assert!(contract.available_tokens.contains(&test_token));
 
@@ -372,19 +415,128 @@ mod tests {
         let mut msg: String = r#"
         {
             "valid_till": "#.to_owned();
-        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(&current_timestamp.to_string().to_owned());
         msg.push_str(r#",
             "transfer": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX1",
+                "token": "alice_near",
                 "amount": 100
             },
             "fee": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX2",
+                "token": "alice_near",
                 "amount": 100
             },
-            "recipient": "RESJDHF34JDHRYUIKKO83UNMNX2"
+            "recipient": "bob_near"
         }"#);
-        assert!(!contract.is_metadata_correct(String::from(msg)));
+        let transfer_message = contract.is_metadata_correct(String::from(msg));
+        let err: Result<TransferMessage, &'static str> = Err("Lock period does not fit the terms of the contract.");
+        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+    }
+
+    #[test]
+    fn metadata_transfer_token_not_available_test() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = Transfer::default();
+        let transfer_token: String = "token1_near".to_string();
+        let fee_token: String = "token2_near".to_string();
+        contract.add_available_token(transfer_token.clone());
+        contract.add_available_token(fee_token.clone());
+        assert!(contract.available_tokens.contains(&transfer_token));
+        assert!(contract.available_tokens.contains(&fee_token));
+
+        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let mut msg: String = r#"
+        {
+            "valid_till": "#.to_owned();
+        msg.push_str(&current_timestamp.to_string().to_owned());
+        msg.push_str(r#",
+            "transfer": {
+                "token": "token3_near",
+                "amount": 100
+            },
+            "fee": {
+                "token": "token4_near",
+                "amount": 100
+            },
+            "recipient": "bob_near"
+        }"#);
+        let transfer_message = contract.is_metadata_correct(String::from(msg));
+        let err: Result<TransferMessage, &'static str> = Err("This transfer token not available.");
+        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+    }
+
+    #[test]
+    fn metadata_fee_token_not_available_test() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = Transfer::default();
+        let transfer_token: String = "token1_near".to_string();
+        let fee_token: String = "token2_near".to_string();
+        contract.add_available_token(transfer_token.clone());
+        contract.add_available_token(fee_token.clone());
+        assert!(contract.available_tokens.contains(&transfer_token));
+        assert!(contract.available_tokens.contains(&fee_token));
+
+        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let mut msg: String = r#"
+        {
+            "valid_till": "#.to_owned();
+        msg.push_str(&current_timestamp.to_string().to_owned());
+        msg.push_str(r#",
+            "transfer": {
+                "token": "token1_near",
+                "amount": 100
+            },
+            "fee": {
+                "token": "token3_near",
+                "amount": 100
+            },
+            "recipient": "bob_near"
+        }"#);
+        let transfer_message = contract.is_metadata_correct(String::from(msg));
+        let err: Result<TransferMessage, &'static str> = Err("This fee token not available.");
+        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+    }
+
+    #[test]
+    fn increase_balance_test() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = Transfer::default();
+        let transfer_token: String = "token_near".to_string();
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        contract.add_available_token(transfer_token.clone());
+        assert!(contract.available_tokens.contains(&transfer_token.clone()));
+
+        let balance: u128 = 100;
+
+        contract.ft_on_transfer(AccountId::try_from(transfer_token.clone()).unwrap(), balance);
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let amount = user_balance.get(&AccountId::try_from(transfer_token).unwrap()).unwrap();
+        assert_eq!(100, amount);
+    }
+
+    #[test]
+    fn substract_balance_test() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = Transfer::default();
+        let transfer_token: String = "token_near".to_string();
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        contract.add_available_token(transfer_token.clone());
+        assert!(contract.available_tokens.contains(&transfer_token.clone()));
+
+        let balance: u128 = 100;
+
+        contract.ft_on_transfer(AccountId::try_from(transfer_token.clone()).unwrap(), balance);
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let amount = user_balance.get(&AccountId::try_from(transfer_token.clone()).unwrap()).unwrap();
+        assert_eq!(100, amount);
+
+        contract.substract_balance(&AccountId::try_from(transfer_token.clone()).unwrap(), &balance);
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let amount = user_balance.get(&AccountId::try_from(transfer_token.clone()).unwrap()).unwrap();
+        assert_eq!(0, amount);
     }
 
     #[test]
@@ -392,77 +544,48 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = Transfer::default();
-        let test_token: String = "AKSJDHF34JDHRYUIKKO83UNMNX1".to_string();
-        let test_token2: String = "AKSJDHF34JDHRYUIKKO83UNMNX2".to_string();
-        contract.add_available_token(test_token.clone());
-        contract.add_available_token(test_token2.clone());
-        assert!(contract.available_tokens.contains(&test_token));
-        assert!(contract.available_tokens.contains(&test_token2));
+        let transfer_token: String = "token_near".to_string();
+        let transfer_token2: String = "token2_near".to_string();
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance: u128 = 100;
+
+        contract.add_available_token(transfer_token.clone());
+        contract.add_available_token(transfer_token2.clone());
+        assert!(contract.available_tokens.contains(&transfer_token.clone()));
+        assert!(contract.available_tokens.contains(&transfer_token2.clone()));
+
+        contract.ft_on_transfer(AccountId::try_from(transfer_token.clone()).unwrap(), balance);
+        contract.ft_on_transfer(AccountId::try_from(transfer_token2.clone()).unwrap(), balance);
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&AccountId::try_from(transfer_token.clone()).unwrap()).unwrap();
+        assert_eq!(100, transfer_token_amount);
+        let transfer_token2_amount = user_balance.get(&AccountId::try_from(transfer_token2.clone()).unwrap()).unwrap();
+        assert_eq!(100, transfer_token2_amount);
 
 
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
             "valid_till": "#.to_owned();
-        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(&current_timestamp.to_string().to_owned());
         msg.push_str(r#",
             "transfer": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX1",
-                "amount": 100
+                "token": "token_near",
+                "amount": 50
             },
             "fee": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX2",
-                "amount": 100
+                "token": "token2_near",
+                "amount": 50
             },
-            "recipient": "RESJDHF34JDHRYUIKKO83UNMNX2"
+            "recipient": "bob_near"
         }"#);
-        assert!(contract.is_metadata_correct(String::from(msg.clone())));
-        contract.lock(AccountId::try_from("alice_near".to_string()).unwrap(), 200, msg);
-        assert!(contract.locked_accounts.contains_key(&AccountId::try_from("alice_near".to_string()).unwrap()));
+        contract.lock(msg);
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&AccountId::try_from(transfer_token.clone()).unwrap()).unwrap();
+        assert_eq!(50, transfer_token_amount);
+        let transfer_token2_amount = user_balance.get(&AccountId::try_from(transfer_token2.clone()).unwrap()).unwrap();
+        assert_eq!(50, transfer_token2_amount);
     }
-
-    #[test]
-    fn account_not_locked_test() {
-        let context = get_context(false);
-        testing_env!(context);
-        let contract = Transfer::default();
-        assert!(!contract.locked_accounts.contains_key(&AccountId::try_from("alice_near".to_string()).unwrap()));
-    }
-
-    #[test]
-    fn unlock_test() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = Transfer::default();
-        let test_token: String = "AKSJDHF34JDHRYUIKKO83UNMNX1".to_string();
-        let test_token2: String = "AKSJDHF34JDHRYUIKKO83UNMNX2".to_string();
-        contract.add_available_token(test_token.clone());
-        contract.add_available_token(test_token2.clone());
-        assert!(contract.available_tokens.contains(&test_token));
-        assert!(contract.available_tokens.contains(&test_token2));
-
-
-        // Time suits the conditions
-        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
-        let mut msg: String = r#"
-        {
-            "valid_till": "#.to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
-            "transfer": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX1",
-                "amount": 100
-            },
-            "fee": {
-                "token": "AKSJDHF34JDHRYUIKKO83UNMNX2",
-                "amount": 100
-            },
-            "recipient": "RESJDHF34JDHRYUIKKO83UNMNX2"
-        }"#);
-        assert!(contract.is_metadata_correct(String::from(msg.clone())));
-        contract.lock(AccountId::try_from("alice_near".to_string()).unwrap(), 200, msg);
-        assert!(contract.locked_accounts.contains_key(&AccountId::try_from("alice_near".to_string()).unwrap()));
-        contract.unlock(AccountId::try_from("alice_near".to_string()).unwrap());
-        assert!(!contract.locked_accounts.contains_key(&AccountId::try_from("alice_near".to_string()).unwrap()));
-    }*/
 }
