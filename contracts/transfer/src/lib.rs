@@ -5,7 +5,9 @@ use near_sdk::env::{block_timestamp, sha256, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
+use lp_relayer::Proof;
 
+mod lp_relayer;
 
 const LOCK_TIME_MIN: u64 = 3600;
 const LOCK_TIME_MAX: u64 = 7200;
@@ -48,6 +50,7 @@ pub struct Transfer {
     available_tokens: LookupSet<String>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     transactions: u64,
+    lp_relayer: Relayer,
 }
 
 impl Default for Transfer {
@@ -57,6 +60,7 @@ impl Default for Transfer {
             available_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             transactions: 0,
+            lp_relayer: Relayer::default,
         }
     }
 }
@@ -135,6 +139,34 @@ impl Transfer {
             panic!("Transaction id not correct");
         }
     }
+
+    pub fn lp_unlock(
+        &mut self,
+        #[serializer(borsh)] proof: Proof
+    ) -> PromiseOrValue<U128> {
+        let nonce = self.lp_relayer.get_nonce(proof);
+        let sh = sha256(nonce.to_string().as_bytes());
+        let transaction_id = str::from_utf8(&sh).unwrap();
+        if let Some(transfer) = self.pending_transfers.get(&transaction_id.to_string()) {
+            if let Some(transfer_data) = transfer.get(&signer_account_id()) {
+                if block_timestamp() < transfer_data.valid_till {
+                    self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
+                    self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
+
+                    self.pending_transfers.remove(&transaction_id.to_string());
+
+                    self.withdraw(transfer_data)
+                } else {
+                    panic!("Valid time is not correct.");
+                }
+            } else {
+                panic!("Signer not same.");
+            }
+        } else {
+            panic!("Transaction id not correct");
+        }
+    }
+
 
     #[private]
     pub fn update_balance(
