@@ -1,0 +1,30 @@
+{
+  "name": "spectrebridge",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "flatten:bridge": "./node_modules/.bin/poa-solidity-flattener ./contracts/EthErc20FastBridge.sol",
+    "flatten:token": "./node_modules/.bin/poa-solidity-flattener ./contracts/TestToken.sol",
+    "env": "source .env",
+    "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin",
+    "preinstall": "pip3 install -r requirements-dev.txt",
+    "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
+    "test": "brownie test",
+    "test:mainnet-fork": "brownie test --network mainnet-fork",
+    "deploy:tokens:goerli": "brownie run ./scripts/deploy_testnet/deploy_test_tokens.py --network goerli",
+    "deploy:bridge:goerli": "brownie run ./scripts/deploy_testnet/deploy_bridge.py --network goerli"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.5.2",
+    "@poanet/solidity-flattener": "^3.0.7",
+    "solc": "0.8.11",
+    "solidity-docgen": "^0.5.16"
+  }
+}
