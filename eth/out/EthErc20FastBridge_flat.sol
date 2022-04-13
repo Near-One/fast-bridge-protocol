@@ -1795,6 +1795,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         uint256 _amount
     ) 
         external 
+        whenNotPaused
         isWhitelisted(_token)
     {
         IERC20 token = IERC20(_token);
@@ -1809,7 +1810,12 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         emit TransferTokens(msg.sender, processedHash);
     }
 
-    function withdrawStuckTokens(address _token) external onlyRole(ADMIN_ROLE) {
+    function withdrawStuckTokens(
+        address _token
+    ) 
+        external 
+        onlyRole(ADMIN_ROLE) 
+    {
         IERC20 token = IERC20(_token);
         token.safeTransfer(
             msg.sender, 
