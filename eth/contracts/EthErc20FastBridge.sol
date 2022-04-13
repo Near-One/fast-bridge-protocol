@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 
 contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
     using SafeERC20 for IERC20;
     mapping (address => bool) public whitelistedTokens;
     mapping (bytes32 => bool) public processedHashes;
@@ -40,7 +38,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         setWhitelistedTokens(_tokens, _states);
     }
 
@@ -48,11 +46,11 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         return whitelistedTokens[_token];
     }
 
-    function pause() external onlyRole(ADMIN_ROLE) {
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unPause() external onlyRole(ADMIN_ROLE) {
+    function unPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -61,7 +59,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         bool[] memory _states
     ) 
         public 
-        onlyRole(ADMIN_ROLE) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
@@ -98,7 +96,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         address _token
     ) 
         external 
-        onlyRole(ADMIN_ROLE) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
         IERC20 token = IERC20(_token);
         token.safeTransfer(
@@ -112,7 +110,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     ) 
         internal 
         override
-        onlyRole(ADMIN_ROLE) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
 
     }
