@@ -1,5 +1,5 @@
 [package]
-name = "transfer"
+name = "bridge"
 version = "0.0.1"
 authors = ["mark.ts@blaize.tech", "tymofii.s@blaize.tech"]
 edition = "2018"
@@ -9,8 +9,9 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-near-sdk = "4.0.0-pre.3"
-near-contract-standards = "4.0.0-pre.6"
+near-sdk = "4.0.0-pre.7"
+near-contract-standards = "4.0.0-pre.7"
+uint = { version = "0.8.3", default-features = false }
 
 [dev-dependencies]
 near-sdk-sim = "3.1.1"
