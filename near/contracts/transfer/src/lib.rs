@@ -1,6 +1,6 @@
 use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success};
+use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require};
 use near_sdk::env::{block_timestamp, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
@@ -68,9 +68,7 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        if !self.supported_tokens.contains(&token_id) {
-            panic!("Token: {} not supported.", token_id);
-        }
+        require!(self.supported_tokens.contains(&token_id), format!("Token: {} not supported.", token_id));
         self.update_balance(token_id, amount)
     }
 
@@ -84,6 +82,7 @@ impl SpectreBridge {
 
         let token_transfer_balance = user_token_balance.get(&transfer_message.transfer.token)
             .unwrap_or_else(|| panic!("Balance for token transfer: {} not found", &transfer_message.transfer.token));
+
         if token_transfer_balance < transfer_message.transfer.amount {
             //TODO: place for emit event
             panic!("Not enough transfer token balance.");
@@ -111,13 +110,8 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("Transaction with id: {} not found", &transaction_id.to_string()));
         let transfer_data = transfer.1;
 
-        if transfer.0 != env::signer_account_id() {
-            panic!("Signer: {} transaction not fount:", &env::signer_account_id());
-        }
-
-        if block_timestamp() < transfer_data.valid_till {
-            panic!("Valid time is not correct.");
-        }
+        require!(transfer.0 == env::signer_account_id(), format!("Signer: {} transaction not fount:", &env::signer_account_id()));
+        require!(block_timestamp() > transfer_data.valid_till, "Valid time is not correct.".to_string());
 
         self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
         self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
@@ -226,10 +220,7 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-
-        if !self.supported_tokens.contains(&token_id){
-            panic!("Token: {}  not supported", token_id );
-        }
+        require!(self.supported_tokens.contains(&token_id), format!("Token: {}  not supported", token_id ));
 
         let user_balance = self.user_balances.get(&env::signer_account_id())
             .unwrap_or_else(|| { panic!("{}", "User not have balance".to_string()) });
@@ -237,9 +228,7 @@ impl SpectreBridge {
         let balance = user_balance.get(&token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", &token_id));
 
-        if balance < amount {
-            panic!("Not enough token balance");
-        }
+        require!( balance >= amount, "Not enough token balance".to_string());
 
         ext_token::ft_transfer(
             env::signer_account_id(),
@@ -261,9 +250,7 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        if !is_promise_success() {
-           panic!("Error transfer");
-        }
+        require!(is_promise_success(), "Error transfer".to_string());
 
         self.decrease_balance(&token_id, &amount);
         PromiseOrValue::Value(U128::from(0))
