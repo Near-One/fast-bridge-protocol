@@ -28,8 +28,8 @@ impl Contract {
             total_supply,
             FungibleTokenMetadata {
                 spec: FT_METADATA_SPEC.to_string(),
-                name: name,
-                symbol: symbol,
+                name,
+                symbol,
                 icon: Some(DATA_IMAGE_SVG_NEAR_ICON.to_string()),
                 reference: None,
                 reference_hash: None,
@@ -146,7 +146,7 @@ mod tests {
     fn test_transfer() {
         let mut context = get_context(accounts(2));
         testing_env!(context.build());
-        let mut contract = Contract::new_default_meta(accounts(2).into(), String::from("Mock Token"), String::from("MOCK"), TOTAL_SUPPLY.into());
+        let mut contract = Contract::new_default_meta(accounts(2), String::from("Mock Token"), String::from("MOCK"), TOTAL_SUPPLY.into());
         testing_env!(context
             .storage_usage(env::storage_usage())
             .attached_deposit(contract.storage_balance_bounds().min.into())
