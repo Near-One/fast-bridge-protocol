@@ -5,6 +5,7 @@ use near_sdk::env::{block_timestamp, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
+use crate::event::{Event, TransferDataNear};
 
 mod utils;
 mod event;
@@ -15,7 +16,7 @@ pub const NO_DEPOSIT: u128 = 0;
 
 
 #[near_bindgen]
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferData {
     token: AccountId,
@@ -23,7 +24,7 @@ pub struct TransferData {
 }
 
 #[near_bindgen]
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferMessage {
     valid_till: u64,
@@ -84,22 +85,32 @@ impl SpectreBridge {
         let token_transfer_balance = user_token_balance.get(&transfer_message.transfer.token)
             .unwrap_or_else(|| panic!("Balance for token transfer: {} not found", &transfer_message.transfer.token));
 
-        if token_transfer_balance < transfer_message.transfer.amount {
-            //TODO: place for emit event
-            panic!("Not enough transfer token balance.");
-        }
+        require!(token_transfer_balance > transfer_message.transfer.amount, "Not enough transfer token balance.");
 
         let token_fee_balance = user_token_balance.get(&transfer_message.fee.token)
             .unwrap_or_else(|| panic!("Balance for token fee: {} not found", &transfer_message.transfer.token));
-        if token_fee_balance < transfer_message.fee.amount {
-            //TODO: place for emit event
-            panic!("Not enough fee token balance.");
-        }
+        require!(token_fee_balance > transfer_message.fee.amount, "Not enough fee token balance.");
 
         self.decrease_balance(&transfer_message.transfer.token, &transfer_message.transfer.amount);
         self.decrease_balance(&transfer_message.fee.token, &transfer_message.fee.amount);
 
-        PromiseOrValue::Value(U128::from(self.store_transfers(transfer_message)))
+        let nonce = U128::from(self.store_transfers(transfer_message.clone()));
+
+        Event::SpectreBridgeTransferEvent {
+            nonce: &nonce,
+            valid_till: transfer_message.valid_till,
+            transfer: &TransferDataNear {
+                token: transfer_message.transfer.token,
+                amount: U128(transfer_message.transfer.amount),
+            },
+            fee: &TransferDataNear {
+                token: transfer_message.fee.token,
+                amount: U128(transfer_message.fee.amount),
+            },
+            recipient: &utils::get_eth_address(transfer_message.recipient),
+        }.emit();
+
+        PromiseOrValue::Value(nonce)
     }
 
     pub fn unlock(
@@ -112,13 +123,16 @@ impl SpectreBridge {
         let transfer_data = transfer.1;
 
         require!(transfer.0 == env::signer_account_id(), format!("Signer: {} transaction not fount:", &env::signer_account_id()));
-        require!(block_timestamp() > transfer_data.valid_till, "Valid time is not correct.".to_string());
+        require!(block_timestamp() > transfer_data.valid_till, "Valid time is not correct.");
 
         self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
         self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
         self.pending_transfers.remove(&transaction_id);
 
-        //TODO: emit event
+        Event::SpectreBridgeUnlockEvent {
+            nonce: &U128(nonce),
+            account: &signer_account_id(),
+        }.emit();
     }
 
     #[private]
@@ -140,6 +154,11 @@ impl SpectreBridge {
             token_balance.insert(&token_id, &amount);
             self.user_balances.insert(&signer_account_id(), &token_balance);
         }
+        Event::SpectreBridgeDepositEvent {
+            account: &signer_account_id(),
+            token: &token_id,
+            amount: &U128(amount),
+        }.emit();
         PromiseOrValue::Value(U128::from(0))
     }
 
@@ -192,6 +211,10 @@ impl SpectreBridge {
             return Err("This fee token not supported.");
         }
 
+        if !utils::is_valid_eth_address(transfer_message.recipient.clone()) {
+            return Err("Eth address not valid.");
+        }
+
         Ok(transfer_message)
     }
 
@@ -229,7 +252,7 @@ impl SpectreBridge {
         let balance = user_balance.get(&token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", &token_id));
 
-        require!( balance >= amount, "Not enough token balance".to_string());
+        require!( balance >= amount, "Not enough token balance");
 
         ext_token::ft_transfer(
             env::signer_account_id(),
@@ -251,7 +274,7 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        require!(is_promise_success(), "Error transfer".to_string());
+        require!(is_promise_success(), "Error transfer");
 
         self.decrease_balance(&token_id, &amount);
         PromiseOrValue::Value(U128::from(0))
@@ -320,7 +343,7 @@ mod tests {
                 "token": "alice_near",
                 "amount": 100
             },
-            "recipient": "bob_near"
+            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
 
         let transfer_message = contract.is_metadata_correct(msg).unwrap();
@@ -335,7 +358,7 @@ mod tests {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
                 amount: 100,
             },
-            recipient: "bob_near".to_string(),
+            recipient: "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
         };
         assert_eq!(serde_json::to_string(&original).unwrap(), serde_json::to_string(&transfer_message).unwrap());
     }
@@ -363,7 +386,7 @@ mod tests {
                 "token": "alice_near",
                 "amount": 100
             },
-            "recipient": "bob_near"
+            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
         let transfer_message = contract.is_metadata_correct(msg);
         let err: Result<TransferMessage, &'static str> = Err("Transfer valid time not correct.");
@@ -393,7 +416,7 @@ mod tests {
                 "token": "alice_near",
                 "amount": 100
             },
-            "recipient": "bob_near"
+            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
         let transfer_message = contract.is_metadata_correct(msg);
         let err: Result<TransferMessage, &'static str> = Err("Lock period does not fit the terms of the contract.");
@@ -426,7 +449,7 @@ mod tests {
                 "token": "token4_near",
                 "amount": 100
             },
-            "recipient": "bob_near"
+            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
         let transfer_message = contract.is_metadata_correct(msg);
         let err: Result<TransferMessage, &'static str> = Err("This transfer token not supported.");
@@ -459,7 +482,7 @@ mod tests {
                 "token": "token3_near",
                 "amount": 100
             },
-            "recipient": "bob_near"
+            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
         let transfer_message = contract.is_metadata_correct(msg);
         let err: Result<TransferMessage, &'static str> = Err("This fee token not supported.");
@@ -546,7 +569,7 @@ mod tests {
                 "token": "token2_near",
                 "amount": 50
             },
-            "recipient": "bob_near"
+             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
         contract.lock(msg);
 
@@ -596,7 +619,7 @@ mod tests {
                 "token": "token2_near",
                 "amount": 50
             },
-            "recipient": "bob_near"
+             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
         contract.lock(msg);
 

@@ -2,7 +2,7 @@
 name = "bridge"
 version = "0.0.1"
 authors = ["mark.ts@blaize.tech", "tymofii.s@blaize.tech"]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [lib]

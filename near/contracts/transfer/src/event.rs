@@ -15,8 +15,8 @@ pub struct TransferDataEthereum {
 #[derive(Serialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferDataNear {
-    token: AccountId,
-    amount: U128,
+    pub(crate) token: AccountId,
+    pub(crate) amount: U128,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -35,7 +35,7 @@ pub enum Event<'a> {
     SpectreBridgeTransferEvent {
         nonce: &'a U128,
         valid_till: u64,
-        transfer: &'a TransferDataEthereum,
+        transfer: &'a TransferDataNear,
         fee: &'a TransferDataNear,
         recipient: &'a EthAddress,
     },
@@ -46,8 +46,11 @@ pub enum Event<'a> {
     SpectreBridgeUnlockEvent {
         nonce: &'a U128,
         account: &'a AccountId,
-        transfer: &'a TransferDataEthereum,
-        fee: TransferDataNear,
+    },
+    SpectreBridgeDepositEvent {
+        account: &'a AccountId,
+        token: &'a AccountId,
+        amount: &'a U128,
     },
 }
 
@@ -103,7 +106,7 @@ mod tests {
         Event::SpectreBridgeNonceEvent {
             nonce,
             account: validator_id,
-            transfer: &TransferDataEthereum { token: token_address.clone(), amount },
+            transfer: &TransferDataEthereum { token: token_address, amount },
             recipient: &token_address,
         }.emit();
         assert_eq!(
@@ -131,17 +134,17 @@ mod tests {
         let nonce = &U128(238);
         let validator_id = alice();
         let token_address = get_eth_address();
-        let amount = U128(100);
+        let amount: u128 = 100;
         Event::SpectreBridgeTransferEvent {
             nonce,
             valid_till: 0,
-            transfer: &TransferDataEthereum { token: token_address.clone(), amount },
-            fee: &TransferDataNear { token: validator_id, amount },
+            transfer: &TransferDataNear { token: validator_id.clone(), amount: U128(amount) },
+            fee: &TransferDataNear { token: validator_id, amount: U128(amount) },
             recipient: &token_address,
         }.emit();
         assert_eq!(
             test_utils::get_logs()[0],
-            r#"EVENT_JSON:{"standard":"nep297","version":"1.0.0","event":"spectre_bridge_transfer_event","data":[{"nonce":"238","valid_till":0,"transfer":{"token":[113,199,101,110,199,171,136,176,152,222,251,117,27,116,1,181,246,216,151,111],"amount":"100"},"fee":{"token":"alice","amount":"100"},"recipient":[113,199,101,110,199,171,136,176,152,222,251,117,27,116,1,181,246,216,151,111]}]}"#
+            r#"EVENT_JSON:{"standard":"nep297","version":"1.0.0","event":"spectre_bridge_transfer_event","data":[{"nonce":"238","valid_till":0,"transfer":{"token":"alice","amount":"100"},"fee":{"token":"alice","amount":"100"},"recipient":[113,199,101,110,199,171,136,176,152,222,251,117,27,116,1,181,246,216,151,111]}]}"#
         );
     }
 
@@ -149,17 +152,13 @@ mod tests {
     fn unlock_event_test() {
         let nonce = &U128(238);
         let validator_id = alice();
-        let token_address = get_eth_address();
-        let amount = U128(100);
         Event::SpectreBridgeUnlockEvent {
             nonce,
-            account: &validator_id.clone(),
-            transfer: &TransferDataEthereum { token: token_address, amount },
-            fee: TransferDataNear { token: validator_id, amount },
+            account: &validator_id,
         }.emit();
         assert_eq!(
             test_utils::get_logs()[0],
-            r#"EVENT_JSON:{"standard":"nep297","version":"1.0.0","event":"spectre_bridge_unlock_event","data":[{"nonce":"238","account":"alice","transfer":{"token":[113,199,101,110,199,171,136,176,152,222,251,117,27,116,1,181,246,216,151,111],"amount":"100"},"fee":{"token":"alice","amount":"100"}}]}"#
+            r#"EVENT_JSON:{"standard":"nep297","version":"1.0.0","event":"spectre_bridge_unlock_event","data":[{"nonce":"238","account":"alice"}]}"#
         );
     }
 }
