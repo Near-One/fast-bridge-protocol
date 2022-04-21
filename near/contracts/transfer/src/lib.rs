@@ -188,55 +188,12 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn is_metadata_correct(
-        &mut self,
-        msg: String,
-    ) -> Result<TransferMessage, &'static str> {
-        let transfer_message: TransferMessage = serde_json::from_str(&msg)
-            .expect("Some error with json structure.");
-        if transfer_message.valid_till < block_timestamp() {
-            return Err("Transfer valid time not correct.");
-        }
-
-        let lock_period = transfer_message.valid_till - block_timestamp();
-        if !(LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period) {
-            return Err("Lock period does not fit the terms of the contract.");
-        }
-
-        if !self.supported_tokens.contains(&transfer_message.transfer.token) {
-            return Err("This transfer token not supported.");
-        }
-
-        if !self.supported_tokens.contains(&transfer_message.fee.token) {
-            return Err("This fee token not supported.");
-        }
-
-        if !utils::is_valid_eth_address(transfer_message.recipient.clone()) {
-            return Err("Eth address not valid.");
-        }
-
-        Ok(transfer_message)
-    }
-
-    #[private]
     #[allow(dead_code)]
     fn add_supported_token(
         &mut self,
         token: AccountId,
     ) {
         self.supported_tokens.insert(&token);
-    }
-
-    #[private]
-    fn store_transfers(
-        &mut self,
-        transfer_message: TransferMessage,
-    ) -> u128 {
-        self.nonce += 1;
-        let transaction_id = utils::get_transaction_id(self.nonce);
-        let account_pending = (signer_account_id(), transfer_message);
-        self.pending_transfers.insert(&transaction_id, &account_pending);
-        self.nonce
     }
 
     pub fn withdraw(
@@ -278,6 +235,50 @@ impl SpectreBridge {
 
         self.decrease_balance(&token_id, &amount);
         PromiseOrValue::Value(U128::from(0))
+    }
+}
+
+
+impl SpectreBridge {
+    fn store_transfers(
+        &mut self,
+        transfer_message: TransferMessage,
+    ) -> u128 {
+        self.nonce += 1;
+        let transaction_id = utils::get_transaction_id(self.nonce);
+        let account_pending = (signer_account_id(), transfer_message);
+        self.pending_transfers.insert(&transaction_id, &account_pending);
+        self.nonce
+    }
+
+    pub fn is_metadata_correct(
+        &self,
+        msg: String,
+    ) -> Result<TransferMessage, &'static str> {
+        let transfer_message: TransferMessage = serde_json::from_str(&msg)
+            .expect("Some error with json structure.");
+        if transfer_message.valid_till < block_timestamp() {
+            return Err("Transfer valid time not correct.");
+        }
+
+        let lock_period = transfer_message.valid_till - block_timestamp();
+        if !(LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period) {
+            return Err("Lock period does not fit the terms of the contract.");
+        }
+
+        if !self.supported_tokens.contains(&transfer_message.transfer.token) {
+            return Err("This transfer token not supported.");
+        }
+
+        if !self.supported_tokens.contains(&transfer_message.fee.token) {
+            return Err("This fee token not supported.");
+        }
+
+        if !utils::is_valid_eth_address(transfer_message.recipient.clone()) {
+            return Err("Eth address not valid.");
+        }
+
+        Ok(transfer_message)
     }
 }
 
