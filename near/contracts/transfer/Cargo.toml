@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 near-sdk = "4.0.0-pre.7"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0"}
 eth-types =  { git = "https://github.com/near/rainbow-bridge", rev = "3a5373168e720d237ab451e8d41e81010693f876" }
 near-contract-standards = "4.0.0-pre.7"
 near-sdk-sim = "3.2.0"
