@@ -1,10 +1,12 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use serde::{Serialize, Deserialize};
 use near_sdk::{ext_contract, near_bindgen};
-use ethabi::{Event, ParamType, EventParam, Hash, Log, RawLog};
+use ethabi::{Event, ParamType, EventParam, Hash, Log, RawLog, Token};
 use hex::ToHex;
 use eth_types::*;
-use crate::utils::{EthAddress, EthEventParams};
+use crate::utils::{EthAddress, EthEventParams, long_signature};
+
+const EVENT_NAME: &str = "TransferToNearInitiated";
 
 #[ext_contract(ext_prover)]
 pub trait Prover {
@@ -40,6 +42,7 @@ pub struct EthEvent {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 pub struct Relayer {
+    pub e_near_address: EthAddress,
     pub sender: String,
     pub nonce: u128,
 }
@@ -47,6 +50,7 @@ pub struct Relayer {
 impl Default for Relayer {
     fn default() -> Self {
         Self {
+            e_near_address: [0u8; 20],
             sender: "".to_string(),
             nonce: 0,
         }
@@ -63,11 +67,10 @@ impl Relayer {
 
     pub fn get_param( proof: Proof) -> Self {
         let data = proof.log_entry_data;
-        let name = "TransferToNearInitiated";
         let params = Relayer::event_params();
 
         let event = Event {
-            name: name.to_string(),
+            name: EVENT_NAME.to_string(),
             inputs: params
                 .into_iter()
                 .map(|(name, kind, indexed)| EventParam {
@@ -97,7 +100,6 @@ impl Relayer {
             log,
         };
 
-
         let sender = event.log.params[0].value.clone().to_address().unwrap().0;
         let sender = (&sender).encode_hex::<String>();
         let nonce = event.log.params[1]
@@ -107,8 +109,76 @@ impl Relayer {
             .unwrap()
             .as_u128();
         Self {
+            e_near_address: event.locker_address,
             sender,
             nonce,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn to_log_entry_data(&self) -> Vec<u8> {
+        let _name = EVENT_NAME;
+        let params = Relayer::event_params();
+        let locker_address = self.e_near_address;
+        let indexes =  vec![hex::decode(self.sender.clone()).unwrap()];
+        let values =vec![Token::Uint(self.nonce.into())];
+
+        let event = Event {
+            name: EVENT_NAME.to_string(),
+            inputs: params
+                .into_iter()
+                .map(|(name, kind, indexed)| EventParam {
+                    name,
+                    kind,
+                    indexed,
+                })
+                .collect(),
+            anonymous: false,
+        };
+        let params: Vec<ParamType> = event.inputs.iter().map(|p| p.kind.clone()).collect();
+        let topics = indexes.into_iter().map(H256::from).collect();
+        let log_entry = LogEntry {
+            address: locker_address.into(),
+            topics: vec![vec![long_signature(&event.name, &params).0.into()], topics].concat(),
+            data: ethabi::encode(&values),
+        };
+        rlp::encode(&log_entry)
+    }
+
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_proof(sender: String, nonce: u128) -> Proof {
+        let event_data = Relayer {
+            e_near_address: [0u8; 20],
+            sender,
+            nonce
+        };
+
+        Proof {
+            log_index: 0,
+            log_entry_data: event_data.to_log_entry_data(),
+            receipt_index: 0,
+            receipt_data: vec![],
+            header_data: vec![],
+            proof: vec![],
+        }
+    }
+
+
+    #[test]
+    fn test_event_data() {
+        let sender: String = "00005474e89094c44da98b954eedeac495271d0f".to_string();
+        let nonce = 1023441230023;
+
+        let proof: Proof = create_proof(sender.clone(), nonce);
+
+        let param = Relayer::get_param(proof);
+        assert_eq!(sender, param.sender);
+        assert_eq!(nonce, param.nonce);
     }
 }

@@ -173,6 +173,9 @@ impl SpectreBridge {
         ));
     }
 
+    /**
+    not #[private] because it will be used by callback cross contract call
+    **/
     pub fn finish_unlock(
         &mut self,
         #[callback]
@@ -180,7 +183,6 @@ impl SpectreBridge {
         param: Relayer,
         proof: Proof,
     ) {
-        near_sdk::assert_self();
         if !verification_success {
             Event::SpectreBridgeEthProoverNotProofedEvent {
                 sender: &param.sender,
