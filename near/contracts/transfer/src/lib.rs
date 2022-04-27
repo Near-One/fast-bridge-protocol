@@ -44,7 +44,7 @@ trait NEP141Token {
 trait InternalTokenInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
     #[result_serializer(borsh)]
-    fn finish_unlock(
+    fn verify_log_entry_callback(
         &mut self,
         #[callback]
         #[serializer(borsh)]
@@ -61,6 +61,7 @@ pub struct SpectreBridge {
     supported_tokens: LookupSet<AccountId>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
+    proover_contract: AccountId,
 }
 
 impl Default for SpectreBridge {
@@ -70,6 +71,7 @@ impl Default for SpectreBridge {
             supported_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
+            proover_contract: AccountId::try_from("proover_near".to_string()).unwrap(), //TODO: change to real proover contract account_id
         }
     }
 }
@@ -164,7 +166,7 @@ impl SpectreBridge {
             env::current_account_id(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
-        ).then(ext_self::finish_unlock(
+        ).then(ext_self::verify_log_entry_callback(
             param,
             proof_1,
             env::current_account_id(),
@@ -176,7 +178,7 @@ impl SpectreBridge {
     /**
     not #[private] because it will be used by callback cross contract call
     **/
-    pub fn finish_unlock(
+    pub fn verify_log_entry_callback(
         &mut self,
         #[callback]
         verification_success: bool,
@@ -191,6 +193,12 @@ impl SpectreBridge {
             }.emit();
             panic!("Failed to verify the proof");
         }
+
+        require!(env::predecessor_account_id() == env::current_account_id(),
+            format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
+        require!(env::predecessor_account_id() == self.proover_contract,
+            format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
+
         let nonce = param.nonce;
         let transaction_id = utils::get_transaction_id(nonce);
 
