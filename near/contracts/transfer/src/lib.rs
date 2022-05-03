@@ -71,7 +71,7 @@ impl Default for SpectreBridge {
             supported_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
-            proover_contract: AccountId::try_from("proover_near".to_string()).unwrap(), //TODO: change to real proover contract account_id
+            proover_contract: AccountId::try_from("prover.goerli.testnet".to_string()).unwrap(), //TODO: change to real proover contract account_id
         }
     }
 }
@@ -163,13 +163,13 @@ impl SpectreBridge {
             proof.header_data,
             proof.proof,
             false,
-            env::current_account_id(),
+            self.proover_contract.clone(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ).then(ext_self::verify_log_entry_callback(
             param,
             proof_1,
-            env::current_account_id(),
+            self.proover_contract.clone(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ));
@@ -194,8 +194,6 @@ impl SpectreBridge {
             panic!("Failed to verify the proof");
         }
 
-        require!(env::predecessor_account_id() == env::current_account_id(),
-            format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
         require!(env::predecessor_account_id() == self.proover_contract,
             format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
 
