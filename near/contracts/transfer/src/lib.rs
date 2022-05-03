@@ -1,19 +1,21 @@
-use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require};
 use near_sdk::env::{block_timestamp, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
-use crate::event::{Event, TransferDataNear};
+use event::{Event, TransferDataNear};
+use lp_relayer::{Proof, Relayer, ext_prover};
+#[allow(unused_imports)]
+use near_sdk::Promise;
 
 mod utils;
 mod event;
+mod lp_relayer;
 
 const LOCK_TIME_MIN: u64 = 3600;
 const LOCK_TIME_MAX: u64 = 7200;
-pub const NO_DEPOSIT: u128 = 0;
-
 
 #[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -41,6 +43,15 @@ trait NEP141Token {
 #[ext_contract(ext_self)]
 trait InternalTokenInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
+    #[result_serializer(borsh)]
+    fn verify_log_entry_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
+        #[serializer(borsh)] param: Relayer,
+        #[serializer(borsh)] proof: Proof,
+    ) -> Promise;
 }
 
 #[near_bindgen]
@@ -50,6 +61,7 @@ pub struct SpectreBridge {
     supported_tokens: LookupSet<AccountId>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
+    proover_contract: AccountId,
 }
 
 impl Default for SpectreBridge {
@@ -59,6 +71,7 @@ impl Default for SpectreBridge {
             supported_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
+            proover_contract: AccountId::try_from("prover.goerli.testnet".to_string()).unwrap(), //TODO: change to real proover contract account_id
         }
     }
 }
@@ -124,6 +137,72 @@ impl SpectreBridge {
 
         require!(transfer.0 == env::signer_account_id(), format!("Signer: {} transaction not fount:", &env::signer_account_id()));
         require!(block_timestamp() > transfer_data.valid_till, "Valid time is not correct.");
+
+        self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
+        self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
+        self.pending_transfers.remove(&transaction_id);
+
+        Event::SpectreBridgeUnlockEvent {
+            nonce: &U128(nonce),
+            account: &signer_account_id(),
+        }.emit();
+    }
+
+    pub fn lp_unlock(
+        &mut self,
+        proof: Proof,
+    ) {
+        let param = Relayer::get_param(proof.clone());
+
+        let proof_1 = proof.clone();
+        ext_prover::verify_log_entry(
+            proof.log_index,
+            proof.log_entry_data,
+            proof.receipt_index,
+            proof.receipt_data,
+            proof.header_data,
+            proof.proof,
+            false,
+            self.proover_contract.clone(),
+            utils::NO_DEPOSIT,
+            utils::terra_gas(50),
+        ).then(ext_self::verify_log_entry_callback(
+            param,
+            proof_1,
+            self.proover_contract.clone(),
+            utils::NO_DEPOSIT,
+            utils::terra_gas(50),
+        ));
+    }
+
+    /**
+    not #[private] because it will be used by callback cross contract call
+    **/
+    pub fn verify_log_entry_callback(
+        &mut self,
+        #[callback]
+        verification_success: bool,
+        param: Relayer,
+        proof: Proof,
+    ) {
+        if !verification_success {
+            Event::SpectreBridgeEthProoverNotProofedEvent {
+                sender: &param.sender,
+                nonce: &U128(param.nonce),
+                proof: &proof,
+            }.emit();
+            panic!("Failed to verify the proof");
+        }
+
+        require!(env::predecessor_account_id() == self.proover_contract,
+            format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
+
+        let nonce = param.nonce;
+        let transaction_id = utils::get_transaction_id(nonce);
+
+        let transfer = self.pending_transfers.get(&transaction_id)
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &transaction_id.to_string()));
+        let transfer_data = transfer.1;
 
         self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
         self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
@@ -215,13 +294,13 @@ impl SpectreBridge {
             env::signer_account_id(),
             amount,
             env::current_account_id(),
-            NO_DEPOSIT,
+            utils::NO_DEPOSIT,
             utils::TGAS,
         ).then(ext_self::withdraw_callback(
             token_id,
             amount,
             env::current_account_id(),
-            NO_DEPOSIT,
+            utils::NO_DEPOSIT,
             utils::terra_gas(40))).into()
     }
 

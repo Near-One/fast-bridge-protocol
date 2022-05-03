@@ -1,5 +1,6 @@
 use near_sdk::{log, serde_json, AccountId, json_types::U128, serde::Serialize};
 use serde_json::json;
+use crate::Proof;
 use crate::utils::EthAddress;
 
 const STANDARD: &str = "nep297";
@@ -52,6 +53,11 @@ pub enum Event<'a> {
         token: &'a AccountId,
         amount: &'a U128,
     },
+   SpectreBridgeEthProoverNotProofedEvent{
+        sender: &'a String,
+        nonce: &'a U128,
+        proof: &'a Proof
+    }
 }
 
 impl Event<'_> {
