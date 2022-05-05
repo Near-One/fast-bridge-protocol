@@ -16,6 +16,9 @@ near create-account token.spectrebridge2.testnet --masterAccount spectrebridge2.
 near deploy transfer.spectrebridge2.testnet --wasmFile ./res/bridge.wasm
 near deploy token.spectrebridge2.testnet --wasmFile ./res/mock_token.wasm --initFunction 'new_default_meta' --initArgs '{"owner_id": "spectrebridge2.testnet", "name": "Wrapped Near", "symbol": "WNEAR", "total_supply": "1000000000"}'
 
+# fund transfer.spectrebridge2.testnet
+near call token.spectrebridge2.testnet mint '{"account_id": "transfer.spectrebridge2.testnet", "amount": "1000000000"}' --accountId spectrebridge2.testnet
+
 # add mock data
 near call transfer.spectrebridge2.testnet add_supported_token '{"token": "token.spectrebridge2.testnet"}'  --account-id transfer.spectrebridge2.testnet
 near call transfer.spectrebridge2.testnet ft_on_transfer '{"token_id": "token.spectrebridge2.testnet", "amount": 100}' --account-id transfer.spectrebridge2.testnet
