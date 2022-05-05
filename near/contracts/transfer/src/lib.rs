@@ -10,8 +10,9 @@ use crate::event::{Event, TransferDataNear};
 mod utils;
 mod event;
 
-const LOCK_TIME_MIN: u64 = 3600;
-const LOCK_TIME_MAX: u64 = 7200;
+//3-7 days
+const LOCK_TIME_MIN: u64 = 259200000000000;
+const LOCK_TIME_MAX: u64 = 604800000000000;
 pub const NO_DEPOSIT: u128 = 0;
 
 
@@ -78,7 +79,7 @@ impl SpectreBridge {
         &mut self,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        let transfer_message = self.is_metadata_correct(msg).unwrap();
+        let transfer_message = self.is_metadata_correct(msg);
         let user_token_balance = self.user_balances.get(&env::signer_account_id())
             .unwrap_or_else(|| panic!("Balance in {} for user {} not found", transfer_message.transfer.token, env::signer_account_id()));
 
@@ -191,36 +192,27 @@ impl SpectreBridge {
     pub fn is_metadata_correct(
         &mut self,
         msg: String,
-    ) -> Result<TransferMessage, &'static str> {
+    ) -> TransferMessage {
         let transfer_message: TransferMessage = serde_json::from_str(&msg)
             .expect("Some error with json structure.");
-        if transfer_message.valid_till < block_timestamp() {
-            return Err("Transfer valid time not correct.");
-        }
+
+        require!(transfer_message.valid_till > block_timestamp(),
+            format!("Transfer valid time:{} not correct, block timestamp:{}.",
+                transfer_message.valid_till, block_timestamp()));
 
         let lock_period = transfer_message.valid_till - block_timestamp();
-        if !(LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period) {
-            return Err("Lock period does not fit the terms of the contract.");
-        }
+        require!((LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period),
+            format!("Lock period:{} does not fit the terms of the contract.", lock_period));
+        require!(self.supported_tokens.contains(&transfer_message.transfer.token), "This transfer token not supported.");
+        require!(self.supported_tokens.contains(&transfer_message.fee.token), "This fee token not supported.");
+        require!(utils::is_valid_eth_address(transfer_message.recipient.clone()), "Eth address not valid.");
 
-        if !self.supported_tokens.contains(&transfer_message.transfer.token) {
-            return Err("This transfer token not supported.");
-        }
-
-        if !self.supported_tokens.contains(&transfer_message.fee.token) {
-            return Err("This fee token not supported.");
-        }
-
-        if !utils::is_valid_eth_address(transfer_message.recipient.clone()) {
-            return Err("Eth address not valid.");
-        }
-
-        Ok(transfer_message)
+        transfer_message
     }
 
     #[private]
     #[allow(dead_code)]
-    fn add_supported_token(
+    pub fn add_supported_token(
         &mut self,
         token: AccountId,
     ) {
@@ -346,7 +338,7 @@ mod tests {
             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
 
-        let transfer_message = contract.is_metadata_correct(msg).unwrap();
+        let transfer_message = contract.is_metadata_correct(msg);
 
         let original = TransferMessage {
             valid_till: current_timestamp,
@@ -364,6 +356,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn metadata_not_correct_valid_time_test() {
         let context = get_context(false);
         testing_env!(context);
@@ -388,12 +381,11 @@ mod tests {
             },
             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
-        let transfer_message = contract.is_metadata_correct(msg);
-        let err: Result<TransferMessage, &'static str> = Err("Transfer valid time not correct.");
-        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+        let _transfer_message = contract.is_metadata_correct(msg);
     }
 
     #[test]
+    #[should_panic]
     fn metadata_lock_period_not_correct_test() {
         let context = get_context(false);
         testing_env!(context);
@@ -418,12 +410,11 @@ mod tests {
             },
             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
-        let transfer_message = contract.is_metadata_correct(msg);
-        let err: Result<TransferMessage, &'static str> = Err("Lock period does not fit the terms of the contract.");
-        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+        let _transfer_message = contract.is_metadata_correct(msg);
     }
 
     #[test]
+    #[should_panic]
     fn metadata_transfer_token_not_available_test() {
         let context = get_context(false);
         testing_env!(context);
@@ -451,12 +442,11 @@ mod tests {
             },
             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
-        let transfer_message = contract.is_metadata_correct(msg);
-        let err: Result<TransferMessage, &'static str> = Err("This transfer token not supported.");
-        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+        let _transfer_message = contract.is_metadata_correct(msg);
     }
 
     #[test]
+    #[should_panic]
     fn metadata_fee_token_not_available_test() {
         let context = get_context(false);
         testing_env!(context);
@@ -484,9 +474,7 @@ mod tests {
             },
             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
         }"#);
-        let transfer_message = contract.is_metadata_correct(msg);
-        let err: Result<TransferMessage, &'static str> = Err("This fee token not supported.");
-        assert_eq!(serde_json::to_string(&err).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+        let _transfer_message = contract.is_metadata_correct(msg);
     }
 
     #[test]
