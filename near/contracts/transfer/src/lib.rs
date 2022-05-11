@@ -32,6 +32,7 @@ pub struct TransferData {
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferMessage {
+    chain_id: u32,
     valid_till: u64,
     transfer: TransferData,
     fee: TransferData,
@@ -64,7 +65,7 @@ pub struct SpectreBridge {
     supported_tokens: LookupSet<AccountId>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
-    proover_contract: AccountId,
+    proover_contracts: LookupMap<u32, AccountId>,
 }
 
 impl Default for SpectreBridge {
@@ -74,7 +75,7 @@ impl Default for SpectreBridge {
             supported_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
-            proover_contract: AccountId::try_from("prover.goerli.testnet".to_string()).unwrap(), //TODO: change to real proover contract account_id
+            proover_contracts: LookupMap::new(b"pr_ct".to_vec()),
         }
     }
 }
@@ -114,6 +115,7 @@ impl SpectreBridge {
 
         Event::SpectreBridgeTransferEvent {
             nonce: &nonce,
+            chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
             transfer: &TransferDataNear {
                 token: transfer_message.transfer.token,
@@ -156,6 +158,8 @@ impl SpectreBridge {
         proof: Proof,
     ) {
         let param = Relayer::get_param(proof.clone());
+        let proover_contract = self.proover_contracts.get(&param.chain_id).unwrap_or_else(
+            || panic!("For chain_id: {} proover contract AccountId not found.", param.chain_id));
 
         let proof_1 = proof.clone();
         ext_prover::verify_log_entry(
@@ -166,13 +170,13 @@ impl SpectreBridge {
             proof.header_data,
             proof.proof,
             false,
-            self.proover_contract.clone(),
+            proover_contract.clone(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ).then(ext_self::verify_log_entry_callback(
             param,
             proof_1,
-            self.proover_contract.clone(),
+            proover_contract,
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ));
@@ -197,7 +201,10 @@ impl SpectreBridge {
             panic!("Failed to verify the proof");
         }
 
-        require!(env::predecessor_account_id() == self.proover_contract,
+        let proover_contract = self.proover_contracts.get(&param.chain_id).unwrap_or_else(
+            || panic!("For chain_id: {} proover contract AccountId not found.", param.chain_id));
+
+        require!(env::predecessor_account_id() == proover_contract,
             format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
 
         let nonce = param.nonce;
@@ -352,6 +359,13 @@ impl SpectreBridge {
         self.decrease_balance(&token_id, &amount);
         PromiseOrValue::Value(U128::from(0))
     }
+
+    #[private]
+    #[allow(dead_code)]
+    pub fn add_proover_contract(&mut self, chain_id: u32, proover_contract: AccountId)
+    {
+        self.proover_contracts.insert(&chain_id, &proover_contract);
+    }
 }
 
 #[cfg(test)]
@@ -405,6 +419,7 @@ mod tests {
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
@@ -422,6 +437,7 @@ mod tests {
         let transfer_message = contract.is_metadata_correct(msg);
 
         let original = TransferMessage {
+            chain_id: 5,
             valid_till: current_timestamp,
             transfer: TransferData {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
@@ -449,6 +465,7 @@ mod tests {
         let current_timestamp = block_timestamp() - 20;
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
@@ -478,6 +495,7 @@ mod tests {
         let current_timestamp = block_timestamp();
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
@@ -510,6 +528,7 @@ mod tests {
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
@@ -542,6 +561,7 @@ mod tests {
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
@@ -627,6 +647,7 @@ mod tests {
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
@@ -677,6 +698,7 @@ mod tests {
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
         {
+            "chain_id": 5,
             "valid_till": "#.to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",

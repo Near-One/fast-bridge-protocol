@@ -35,6 +35,7 @@ pub enum Event<'a> {
     },
     SpectreBridgeTransferEvent {
         nonce: &'a U128,
+        chain_id: u32,
         valid_till: u64,
         transfer: &'a TransferDataNear,
         fee: &'a TransferDataNear,
@@ -53,11 +54,11 @@ pub enum Event<'a> {
         token: &'a AccountId,
         amount: &'a U128,
     },
-   SpectreBridgeEthProoverNotProofedEvent{
+    SpectreBridgeEthProoverNotProofedEvent {
         sender: &'a String,
         nonce: &'a U128,
-        proof: &'a Proof
-    }
+        proof: &'a Proof,
+    },
 }
 
 impl Event<'_> {
@@ -143,6 +144,7 @@ mod tests {
         let amount: u128 = 100;
         Event::SpectreBridgeTransferEvent {
             nonce,
+            chain_id: 5,
             valid_till: 0,
             transfer: &TransferDataNear { token: validator_id.clone(), amount: U128(amount) },
             fee: &TransferDataNear { token: validator_id, amount: U128(amount) },
@@ -150,7 +152,7 @@ mod tests {
         }.emit();
         assert_eq!(
             test_utils::get_logs()[0],
-            r#"EVENT_JSON:{"standard":"nep297","version":"1.0.0","event":"spectre_bridge_transfer_event","data":[{"nonce":"238","valid_till":0,"transfer":{"token":"alice","amount":"100"},"fee":{"token":"alice","amount":"100"},"recipient":[113,199,101,110,199,171,136,176,152,222,251,117,27,116,1,181,246,216,151,111]}]}"#
+            r#"EVENT_JSON:{"standard":"nep297","version":"1.0.0","event":"spectre_bridge_transfer_event","data":[{"nonce":"238","chain_id":5,"valid_till":0,"transfer":{"token":"alice","amount":"100"},"fee":{"token":"alice","amount":"100"},"recipient":[113,199,101,110,199,171,136,176,152,222,251,117,27,116,1,181,246,216,151,111]}]}"#
         );
     }
 
