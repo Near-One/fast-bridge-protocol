@@ -9,6 +9,7 @@ use event::{Event, TransferDataNear};
 use lp_relayer::{Proof, Relayer, ext_prover};
 #[allow(unused_imports)]
 use near_sdk::Promise;
+use crate::utils::EthAddress;
 
 mod utils;
 mod event;
@@ -65,7 +66,8 @@ pub struct SpectreBridge {
     supported_tokens: LookupSet<AccountId>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
-    proover_contracts: LookupMap<u32, AccountId>,
+    proover_accounts: LookupMap<u32, AccountId>,
+    e_near_address: EthAddress,
 }
 
 impl Default for SpectreBridge {
@@ -75,7 +77,8 @@ impl Default for SpectreBridge {
             supported_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
-            proover_contracts: LookupMap::new(b"pr_ct".to_vec()),
+            proover_accounts: LookupMap::new(b"pr_ct".to_vec()),
+            e_near_address: [0u8; 20],
         }
     }
 }
@@ -157,9 +160,9 @@ impl SpectreBridge {
         &mut self,
         proof: Proof,
     ) {
-        let param = Relayer::get_param(proof.clone());
-        let proover_contract = self.proover_contracts.get(&param.chain_id).unwrap_or_else(
-            || panic!("For chain_id: {} proover contract AccountId not found.", param.chain_id));
+        let param = Relayer::get_param(self.e_near_address, proof.clone());
+        let proover_account = self.proover_accounts.get(&param.chain_id).unwrap_or_else(
+            || panic!("For chain_id: {} proover account not found.", param.chain_id));
 
         let proof_1 = proof.clone();
         ext_prover::verify_log_entry(
@@ -170,13 +173,13 @@ impl SpectreBridge {
             proof.header_data,
             proof.proof,
             false,
-            proover_contract.clone(),
+            proover_account.clone(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ).then(ext_self::verify_log_entry_callback(
             param,
             proof_1,
-            proover_contract,
+            proover_account,
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ));
@@ -201,10 +204,10 @@ impl SpectreBridge {
             panic!("Failed to verify the proof");
         }
 
-        let proover_contract = self.proover_contracts.get(&param.chain_id).unwrap_or_else(
+        let proover_account = self.proover_accounts.get(&param.chain_id).unwrap_or_else(
             || panic!("For chain_id: {} proover contract AccountId not found.", param.chain_id));
 
-        require!(env::predecessor_account_id() == proover_contract,
+        require!(env::predecessor_account_id() == proover_account,
             format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
 
         let nonce = param.nonce;
@@ -362,9 +365,17 @@ impl SpectreBridge {
 
     #[private]
     #[allow(dead_code)]
-    pub fn add_proover_contract(&mut self, chain_id: u32, proover_contract: AccountId)
+    pub fn add_proover_contract(&mut self, chain_id: u32, proover_account: AccountId)
     {
-        self.proover_contracts.insert(&chain_id, &proover_contract);
+        self.proover_accounts.insert(&chain_id, &proover_account);
+    }
+
+    #[private]
+    #[allow(dead_code)]
+    pub fn set_enear_address(&mut self, near_address: String)
+    {
+        require!(utils::is_valid_eth_address(near_address.clone()), format!("Ethereum address:{} not valid.", near_address));
+        self.e_near_address = utils::get_eth_address(near_address);
     }
 }
 
