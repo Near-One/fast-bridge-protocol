@@ -5,13 +5,13 @@ use near_sdk::env::{block_timestamp, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
-use event::{Event, TransferDataNear};
-use lp_relayer::{Proof, Relayer, ext_prover};
+use lp_relayer::{Relayer, ext_prover};
+use transfer_event_custon_logs;
+use transfer_event_custon_logs::*;
 #[allow(unused_imports)]
 use near_sdk::Promise;
 
 mod utils;
-mod event;
 mod lp_relayer;
 
 //3-7 days
