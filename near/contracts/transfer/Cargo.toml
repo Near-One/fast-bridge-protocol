@@ -19,7 +19,7 @@ hex = "0.4.2"
 ethabi = "12.0.0"
 rlp = "0.4.2"
 tiny-keccak = "1.4.0"
-transfer-event-custon-logs = { git = "https://github.com/convowork1/transfer-event-custon-logs.git", branch = "master" }
+transfer-event-logs = { git = "https://github.com/spectrebridge/spectre-bridge-common.git", branch = "main" }
 
 [dev-dependencies]
 near-sdk-sim = "3.1.1"

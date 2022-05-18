@@ -5,7 +5,7 @@ use ethabi::{Event, ParamType, EventParam, Hash, RawLog, Token};
 use hex::ToHex;
 use eth_types::*;
 use crate::utils::{EthEventParams, long_signature};
-use transfer_event_custon_logs::*;
+use transfer_event_logs::*;
 
 const EVENT_NAME: &str = "TransferToNearInitiated";
 
@@ -61,7 +61,7 @@ impl Relayer {
         ]
     }
 
-    pub fn get_param(proof: transfer_event_custon_logs::Proof) -> Self {
+    pub fn get_param(proof: transfer_event_logs::Proof) -> Self {
         let data = proof.log_entry_data;
         let params = Relayer::event_params();
         let event = Event {
