@@ -18,6 +18,7 @@ hex = "0.4.2"
 ethabi = "12.0.0"
 rlp = "0.4.2"
 tiny-keccak = "1.4.0"
+spectre-bridge-common = { path = "../../spectre-bridge-common" }
 
 [dev-dependencies]
 near-sdk-sim = "3.1.1"

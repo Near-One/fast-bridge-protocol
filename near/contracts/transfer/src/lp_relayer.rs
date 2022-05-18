@@ -4,7 +4,8 @@ use near_sdk::{ext_contract, near_bindgen};
 use ethabi::{Event, ParamType, EventParam, Hash, RawLog, Token};
 use hex::ToHex;
 use eth_types::*;
-use crate::utils::{EthAddress, EthEventParams, long_signature};
+use crate::utils::{EthEventParams, long_signature};
+use spectre_bridge_common::*;
 
 const EVENT_NAME: &str = "TransferToNearInitiated";
 
@@ -63,7 +64,7 @@ impl Relayer {
         ]
     }
 
-    pub fn get_param(e_near_address: EthAddress, proof: Proof) -> Self {
+    pub fn get_param(e_near_address: EthAddress, proof: spectre_bridge_common::Proof) -> Self {
         let data = proof.log_entry_data;
         let params = Relayer::event_params();
         let event = Event {
