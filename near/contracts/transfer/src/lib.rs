@@ -116,18 +116,18 @@ impl SpectreBridge {
         let nonce = U128::from(self.store_transfers(transfer_message.clone()));
 
         Event::SpectreBridgeTransferEvent {
-            nonce: &nonce,
+            nonce: nonce,
             chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
-            transfer: &TransferDataNear {
+            transfer: TransferDataNear {
                 token: transfer_message.transfer.token,
                 amount: U128(transfer_message.transfer.amount),
             },
-            fee: &TransferDataNear {
+            fee: TransferDataNear {
                 token: transfer_message.fee.token,
                 amount: U128(transfer_message.fee.amount),
             },
-            recipient: &utils::get_eth_address(transfer_message.recipient),
+            recipient: utils::get_eth_address(transfer_message.recipient),
         }.emit();
 
         PromiseOrValue::Value(nonce)
@@ -150,8 +150,8 @@ impl SpectreBridge {
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
-            nonce: &U128(nonce),
-            account: &signer_account_id(),
+            nonce: U128(nonce),
+            account: signer_account_id(),
         }.emit();
     }
 
@@ -196,9 +196,9 @@ impl SpectreBridge {
     ) {
         if !verification_success {
             Event::SpectreBridgeEthProoverNotProofedEvent {
-                sender: &param.sender,
-                nonce: &U128(param.nonce),
-                proof: &proof,
+                sender: param.sender,
+                nonce: U128(param.nonce),
+                proof: proof,
             }.emit();
             panic!("Failed to verify the proof");
         }
@@ -221,8 +221,8 @@ impl SpectreBridge {
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
-            nonce: &U128(nonce),
-            account: &signer_account_id(),
+            nonce: U128(nonce),
+            account: signer_account_id(),
         }.emit();
     }
 
@@ -246,9 +246,9 @@ impl SpectreBridge {
             self.user_balances.insert(&signer_account_id(), &token_balance);
         }
         Event::SpectreBridgeDepositEvent {
-            account: &signer_account_id(),
-            token: &token_id,
-            amount: &U128(amount),
+            account: signer_account_id(),
+            token: token_id,
+            amount: U128(amount),
         }.emit();
         PromiseOrValue::Value(U128::from(0))
     }
