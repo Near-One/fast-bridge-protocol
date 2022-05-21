@@ -1,5 +1,5 @@
 import { connect, Contract, keyStores, WalletConnection } from 'near-api-js'
-import getConfig from './config'
+import getConfig from './config.js'
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 
 // Initialize contract & set global variables
@@ -22,18 +22,34 @@ export function login() {
     window.walletConnection.requestSignIn(nearConfig.contractName)
 }
 
-export async function deposit(accountId, amount){
-    let rAmount = await window.contract.ft_on_transfer({args:{accountId,amount}})
-        .catch(err => errorHelper(err))
-    if(rAmount){
-        console.warn('Some error with transaction, you tokens was not deposit.')
-    }
-    return rAmount;
+export async function deposit(){
+    console.log("Deposit action run");
+    var accountId = "token.spectrebridge2.testnet";
+    var amount = 20;
+    await window.contract.ft_on_transfer({args:{token_id:accountId,amount:amount}})
+    .then(successDepositCallback,failureDepositCallback);
 }
 
-export async function withdraw(nonce){
-    await window.contract.unlock({args:{nonce}})
-        .catch(err => errorHelper(err))
+function successDepositCallback(result) {
+    console.log("Amount after ft_on_transfer: " + result);
+}
+
+function failureDepositCallback(error) {
+    console.log("Error: " + error);
+}
+
+export async function withdraw(){
+    var nonce = 1;
+    await window.contract. unlock({args:{nonce}})
+        .then(successWithdrawCallback,failureWithdrawCallback);
+}
+
+function successWithdrawCallback(result) {
+    console.log("Amount after unlock: " + result);
+}
+
+function failureWithdrawCallback(error) {
+    console.log("Error: " + error);
 }
 
 export async function lock(msg){
@@ -48,14 +64,10 @@ export async function lp_unlock(proof){
 
 function errorHelper(err) {
     if (err.message.includes('Cannot deserialize the contract state')) {
-        console.warn('NEAR Warning: the contract/account seems to have state that is not (or no longer) compatible.\n' +
-            'This may require deleting and recreating the NEAR account as shown here:\n' +
-            'https://stackoverflow.com/a/60767144/711863');
+        console.warn('NEAR Warning: the contract/account seems to have state that is not (or no longer) compatible.');
     }
     if (err.message.includes('Cannot deserialize the contract state')) {
-        console.warn('NEAR Warning: the contract/account seems to have state that is not (or no longer) compatible.\n' +
-            'This may require deleting and recreating the NEAR account as shown here:\n' +
-            'https://stackoverflow.com/a/60767144/711863');
+        console.warn('NEAR Warning: the contract/account seems to have state that is not (or no longer) compatible.');
     }
     console.error(err);
 }

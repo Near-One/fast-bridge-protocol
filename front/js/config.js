@@ -1,6 +1,6 @@
-const CONTRACT_NAME = process.env.CONTRACT_NAME || 'change_this_account'; /* TODO: Change this to the deployed account */
+const CONTRACT_NAME = process.env.CONTRACT_NAME || 'transfer.spectrebridge2.testnet'; /* TODO: Change this to the deployed account */
 
-function getConfig (env) {
+export default function getConfig (env) {
     switch (env) {
         case 'production':
         case 'mainnet':
@@ -55,5 +55,3 @@ function getConfig (env) {
             throw Error(`Unconfigured environment '${env}'. Can be configured in src/config.js.`)
     }
 }
-
-module.exports = getConfig
