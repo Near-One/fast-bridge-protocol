@@ -1,25 +1,23 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use serde::{Serialize, Deserialize};
 use near_sdk::{ext_contract, near_bindgen};
-use ethabi::{Event, ParamType, EventParam, Hash, RawLog, Token};
-use hex::ToHex;
+use ethabi::{Event, ParamType, EventParam, Hash, RawLog};
 use eth_types::*;
 use crate::utils::{EthAddress, EthEventParams, long_signature};
 
-const EVENT_NAME: &str = "TransferToNearInitiated";
+const EVENT_NAME: &str = "TransferTokens";
 
 #[ext_contract(ext_prover)]
 pub trait Prover {
-    #[result_serializer(borsh)]
     fn verify_log_entry(
         &self,
-        #[serializer(borsh)] log_index: u64,
-        #[serializer(borsh)] log_entry_data: Vec<u8>,
-        #[serializer(borsh)] receipt_index: u64,
-        #[serializer(borsh)] receipt_data: Vec<u8>,
-        #[serializer(borsh)] header_data: Vec<u8>,
-        #[serializer(borsh)] proof: Vec<Vec<u8>>,
-        #[serializer(borsh)] skip_bridge_call: bool,
+        log_index: u64,
+        log_entry_data: Vec<u8>,
+        receipt_index: u64,
+        receipt_data: Vec<u8>,
+        header_data: Vec<u8>,
+        proof: Vec<Vec<u8>>,
+        skip_bridge_call: bool,
     ) -> bool;
 }
 
@@ -35,28 +33,16 @@ pub struct Proof {
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Default)]
 pub struct Relayer {
     pub e_near_address: EthAddress,
-    pub sender: String,
-    pub nonce: u128,
-}
-
-impl Default for Relayer {
-    fn default() -> Self {
-        Self {
-            e_near_address: [0u8; 20],
-            sender: "".to_string(),
-            nonce: 0,
-        }
-    }
 }
 
 impl Relayer {
     pub fn event_params() -> EthEventParams {
         vec![
-            ("sender".to_string(), ParamType::Address, true),
-            ("nonce".to_string(), ParamType::Uint(256), false),
+            ("relayer".to_string(), ParamType::Address, false),
+            ("processedHash".to_string(), ParamType::FixedBytes(32), false),
         ]
     }
 
@@ -85,33 +71,23 @@ impl Relayer {
             .collect();
         let raw_log = RawLog {
             topics,
-            data: log_entry.data,
+            data: log_entry.data.clone(),
         };
-
-        let log = event.parse_log(raw_log).expect("Failed to parse event log");
-        let sender = log.params[0].value.clone().to_address().unwrap().0;
-        let sender = (&sender).encode_hex::<String>();
-        let nonce = log.params[1]
-            .value
-            .clone()
-            .to_uint()
-            .unwrap()
-            .as_u128();
+        let _log = event.parse_log(raw_log).expect("Failed to parse event log");
 
         Self {
             e_near_address: locker_address,
-            sender,
-            nonce,
         }
     }
 
     #[allow(dead_code)]
-    pub fn to_log_entry_data(&self) -> Vec<u8> {
+    pub fn to_log_entry_data(&self, relayer: String, processed_hash: String) -> Vec<u8> {
         let _name = EVENT_NAME;
         let params = Relayer::event_params();
         let locker_address = self.e_near_address;
-        let indexes = vec![hex::decode(self.sender.clone()).unwrap()];
-        let values = vec![Token::Uint(self.nonce.into())];
+        let indexes = vec![hex::decode(relayer.clone()).unwrap(),
+                           hex::decode(processed_hash.clone()).unwrap()];
+        let values = vec![];
 
         let event = Event {
             name: EVENT_NAME.to_string(),
@@ -140,16 +116,14 @@ impl Relayer {
 mod tests {
     use super::*;
 
-    fn create_proof(sender: String, nonce: u128) -> Proof {
+    fn create_proof(relayer: String, processed_hash: String) -> Proof {
         let event_data = Relayer {
             e_near_address: [0u8; 20],
-            sender,
-            nonce,
         };
 
         Proof {
             log_index: 0,
-            log_entry_data: event_data.to_log_entry_data(),
+            log_entry_data: event_data.to_log_entry_data(relayer, processed_hash),
             receipt_index: 0,
             receipt_data: vec![],
             header_data: vec![],
@@ -160,13 +134,12 @@ mod tests {
 
     #[test]
     fn test_event_data() {
-        let sender: String = "00005474e89094c44da98b954eedeac495271d0f".to_string();
-        let nonce = 1023441230023;
-
-        let proof: Proof = create_proof(sender.clone(), nonce);
+        let relayer =  "2a23e0fa3afe77aff5dc6c6a007e3a10c1450633".to_string();
+        let processed_hash = "0f98ded191bd93679652d2c8f62c5356b2115d0785954273e90521dbe4c851a9".to_string();
+        let proof: Proof = create_proof(relayer, processed_hash);
 
         let param = Relayer::get_param(proof);
         assert_eq!(sender, param.sender);
-        assert_eq!(nonce, param.nonce);
+        assert_eq!(amount, param.amount);
     }
 }

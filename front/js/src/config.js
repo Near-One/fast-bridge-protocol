@@ -1,6 +1,6 @@
 const CONTRACT_NAME = process.env.CONTRACT_NAME || 'transfer.spectrebridge2.testnet'; /* TODO: Change this to the deployed account */
 
-export default function getConfig (env) {
+export default function getConfig(env) {
     switch (env) {
         case 'production':
         case 'mainnet':

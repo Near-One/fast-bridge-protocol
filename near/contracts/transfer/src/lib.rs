@@ -1,7 +1,7 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, LookupSet};
-use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require};
-use near_sdk::env::{block_timestamp, signer_account_id};
+use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require, PromiseResult};
+use near_sdk::env::{block_timestamp, current_account_id, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
@@ -46,14 +46,10 @@ trait NEP141Token {
 #[ext_contract(ext_self)]
 trait InternalTokenInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
-    #[result_serializer(borsh)]
     fn verify_log_entry_callback(
         &mut self,
-        #[callback]
-        #[serializer(borsh)]
-        verification_success: bool,
-        #[serializer(borsh)] param: Relayer,
-        #[serializer(borsh)] proof: Proof,
+        proof: Proof,
+        nonce: u128
     ) -> Promise;
 }
 
@@ -151,11 +147,13 @@ impl SpectreBridge {
         }.emit();
     }
 
+    //TODO: nonce must be in Proof as param
     pub fn lp_unlock(
         &mut self,
         proof: Proof,
+        nonce: u128
     ) {
-        let param = Relayer::get_param(proof.clone());
+        let _param = Relayer::get_param(proof.clone());
 
         let proof_1 = proof.clone();
         ext_prover::verify_log_entry(
@@ -165,14 +163,14 @@ impl SpectreBridge {
             proof.receipt_data,
             proof.header_data,
             proof.proof,
-            false,
+            true,
             self.proover_contract.clone(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ).then(ext_self::verify_log_entry_callback(
-            param,
             proof_1,
-            self.proover_contract.clone(),
+            nonce,
+            current_account_id(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ));
@@ -183,24 +181,28 @@ impl SpectreBridge {
     **/
     pub fn verify_log_entry_callback(
         &mut self,
-        #[callback]
-        verification_success: bool,
-        param: Relayer,
         proof: Proof,
+        nonce: u128
     ) {
-        if !verification_success {
+        let verification_result = match env::promise_result(0) {
+            PromiseResult::NotReady => 0,
+            PromiseResult::Failed => 0,
+            PromiseResult::Successful(result) => {
+                result[0]
+            }
+        };
+
+        if verification_result <= 0 {
             Event::SpectreBridgeEthProoverNotProofedEvent {
-                sender: &param.sender,
-                nonce: &U128(param.nonce),
+                nonce: &U128(nonce),
                 proof: &proof,
             }.emit();
             panic!("Failed to verify the proof");
         }
 
-        require!(env::predecessor_account_id() == self.proover_contract,
+       require!(env::predecessor_account_id() == current_account_id(),
             format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
 
-        let nonce = param.nonce;
         let transaction_id = utils::get_transaction_id(nonce);
 
         let transfer = self.pending_transfers.get(&transaction_id)
