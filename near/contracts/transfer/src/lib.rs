@@ -45,7 +45,7 @@ trait NEP141Token {
 }
 
 #[ext_contract(ext_self)]
-trait InternalTokenInterface {
+trait SpectreBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
     #[result_serializer(borsh)]
     fn verify_log_entry_callback(
