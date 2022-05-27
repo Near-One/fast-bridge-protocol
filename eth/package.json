@@ -24,6 +24,7 @@
     "@openzeppelin/contracts": "^4.5.0",
     "@openzeppelin/contracts-upgradeable": "^4.5.2",
     "@poanet/solidity-flattener": "^3.0.7",
+    "dotenv": "^16.0.1",
     "solc": "0.8.11",
     "solidity-docgen": "^0.5.16"
   }

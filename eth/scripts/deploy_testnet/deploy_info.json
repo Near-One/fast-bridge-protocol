@@ -7,7 +7,7 @@
     "whitelisted_tokens": {
         "USDC": true,
         "WBTC": true,
-        "WETH": false
+        "WETH": true
     },
     "deployedContracts": {
         "bridge": "0x5c739e4039D552E2DBF94ce9E7Db261c88BcEc84"
