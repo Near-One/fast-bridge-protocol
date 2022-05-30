@@ -1,11 +1,12 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, LookupSet};
-use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require};
+use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require, Duration};
 use near_sdk::env::{block_timestamp, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
 use lp_relayer::{Relayer, ext_prover};
+use parse_duration::parse;
 use spectre_bridge_common;
 use spectre_bridge_common::*;
 #[allow(unused_imports)]
@@ -14,11 +15,7 @@ use near_sdk::Promise;
 mod utils;
 mod lp_relayer;
 
-//3-7 days
-const LOCK_TIME_MIN: u64 = 259200000000000;
-const LOCK_TIME_MAX: u64 = 604800000000000;
 pub const NO_DEPOSIT: u128 = 0;
-
 
 #[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -66,6 +63,8 @@ pub struct SpectreBridge {
     nonce: u128,
     proover_accounts: LookupMap<u32, AccountId>,
     e_near_address: EthAddress,
+    lock_time_min: Duration,
+    lock_time_max: Duration
 }
 
 impl Default for SpectreBridge {
@@ -76,6 +75,8 @@ impl Default for SpectreBridge {
             nonce: 0,
             proover_accounts: LookupMap::new(b"pr_ct".to_vec()),
             e_near_address: [0u8; 20],
+            lock_time_min: parse("3h").unwrap().as_nanos() as u64,
+            lock_time_max: parse("12h").unwrap().as_nanos() as u64,
         }
     }
 }
@@ -288,7 +289,7 @@ impl SpectreBridge {
                 transfer_message.valid_till, block_timestamp()));
 
         let lock_period = transfer_message.valid_till - block_timestamp();
-        require!((LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period),
+        require!((self.lock_time_min..=self.lock_time_max).contains(&lock_period),
             format!("Lock period:{} does not fit the terms of the contract.", lock_period));
 
         require!(utils::is_valid_eth_address(transfer_message.recipient.clone()), "Eth address not valid.");
@@ -350,8 +351,11 @@ impl SpectreBridge {
 
     #[private]
     #[allow(dead_code)]
-    pub fn add_proover_contract(&mut self, chain_id: u32, proover_account: AccountId)
-    {
+    pub fn add_proover_contract(
+        &mut self,
+        chain_id: u32,
+        proover_account: AccountId
+    ) {
         self.proover_accounts.insert(&chain_id, &proover_account);
     }
 
@@ -361,6 +365,13 @@ impl SpectreBridge {
     {
         require!(utils::is_valid_eth_address(near_address.clone()), format!("Ethereum address:{} not valid.", near_address));
         self.e_near_address = utils::get_eth_address(near_address);
+    }
+
+    #[private]
+    #[allow(dead_code)]
+    pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String){
+        self.lock_time_min = parse(&lock_time_min.as_str()).unwrap().as_nanos() as u64;
+        self.lock_time_max = parse(&lock_time_max.as_str()).unwrap().as_nanos() as u64;
     }
 }
 
@@ -388,7 +399,8 @@ mod tests {
             .signer_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
             .predecessor_account_id(AccountId::try_from("carol_near".to_string()).unwrap())
             .block_index(200)
-            .block_timestamp(1649402222 + LOCK_TIME_MIN + 30)
+            //10800000000000 = lock_time_min
+            .block_timestamp(1649402222 + 10800000000000 + 30)
             .is_view(is_view)
             .build()
     }
@@ -400,7 +412,7 @@ mod tests {
         let mut contract = SpectreBridge::default();
         let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
 
-        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
@@ -501,7 +513,7 @@ mod tests {
         let transfer_token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         let fee_token: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
 
-        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
@@ -530,7 +542,7 @@ mod tests {
         let transfer_token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         let fee_token: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
 
-        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
@@ -608,7 +620,7 @@ mod tests {
         assert_eq!(100, transfer_token2_amount);
 
 
-        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
@@ -654,7 +666,7 @@ mod tests {
         assert_eq!(100, transfer_token2_amount);
 
 
-        let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
