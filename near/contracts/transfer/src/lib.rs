@@ -62,7 +62,6 @@ trait SpectreBridgeInterface {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct SpectreBridge {
     pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
-    supported_tokens: LookupSet<AccountId>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     proover_accounts: LookupMap<u32, AccountId>,
@@ -73,7 +72,6 @@ impl Default for SpectreBridge {
     fn default() -> Self {
         Self {
             pending_transfers: LookupMap::new(b"a".to_vec()),
-            supported_tokens: LookupSet::new(b"b".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
             proover_accounts: LookupMap::new(b"pr_ct".to_vec()),
@@ -89,7 +87,6 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        require!(self.supported_tokens.contains(&token_id), format!("Token: {} not supported.", token_id));
         self.update_balance(token_id, amount)
     }
 
@@ -293,20 +290,10 @@ impl SpectreBridge {
         let lock_period = transfer_message.valid_till - block_timestamp();
         require!((LOCK_TIME_MIN..=LOCK_TIME_MAX).contains(&lock_period),
             format!("Lock period:{} does not fit the terms of the contract.", lock_period));
-        require!(self.supported_tokens.contains(&transfer_message.transfer.token), "This transfer token not supported.");
-        require!(self.supported_tokens.contains(&transfer_message.fee.token), "This fee token not supported.");
+
         require!(utils::is_valid_eth_address(transfer_message.recipient.clone()), "Eth address not valid.");
 
         transfer_message
-    }
-
-    #[private]
-    #[allow(dead_code)]
-    pub fn add_supported_token(
-        &mut self,
-        token: AccountId,
-    ) {
-        self.supported_tokens.insert(&token);
     }
 
     #[private]
@@ -326,7 +313,6 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        require!(self.supported_tokens.contains(&token_id), format!("Token: {}  not supported", token_id ));
 
         let user_balance = self.user_balances.get(&env::signer_account_id())
             .unwrap_or_else(|| { panic!("{}", "User not have balance".to_string()) });
@@ -408,23 +394,11 @@ mod tests {
     }
 
     #[test]
-    fn add_supported_token_test() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = SpectreBridge::default();
-        let token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        contract.add_supported_token(token.clone());
-        assert!(contract.supported_tokens.contains(&token));
-    }
-
-    #[test]
     fn is_metadata_correct_test() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
         let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
-        contract.add_supported_token(token.clone());
-        assert!(contract.supported_tokens.contains(&token));
 
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
@@ -469,8 +443,6 @@ mod tests {
         testing_env!(context);
         let mut contract = SpectreBridge::default();
         let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
-        contract.add_supported_token(token.clone());
-        assert!(contract.supported_tokens.contains(&token));
 
         let current_timestamp = block_timestamp() - 20;
         let mut msg: String = r#"
@@ -499,8 +471,6 @@ mod tests {
         testing_env!(context);
         let mut contract = SpectreBridge::default();
         let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
-        contract.add_supported_token(token.clone());
-        assert!(contract.supported_tokens.contains(&token));
 
         let current_timestamp = block_timestamp();
         let mut msg: String = r#"
@@ -530,10 +500,6 @@ mod tests {
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         let fee_token: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
-        contract.add_supported_token(transfer_token.clone());
-        contract.add_supported_token(fee_token.clone());
-        assert!(contract.supported_tokens.contains(&transfer_token));
-        assert!(contract.supported_tokens.contains(&fee_token));
 
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
@@ -563,10 +529,6 @@ mod tests {
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         let fee_token: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
-        contract.add_supported_token(transfer_token.clone());
-        contract.add_supported_token(fee_token.clone());
-        assert!(contract.supported_tokens.contains(&transfer_token));
-        assert!(contract.supported_tokens.contains(&fee_token));
 
         let current_timestamp = block_timestamp() + LOCK_TIME_MIN + 20;
         let mut msg: String = r#"
@@ -595,8 +557,6 @@ mod tests {
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
-        contract.add_supported_token(transfer_token.clone());
-        assert!(contract.supported_tokens.contains(&transfer_token));
 
         let balance: u128 = 100;
 
@@ -613,8 +573,7 @@ mod tests {
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
-        contract.add_supported_token(transfer_token.clone());
-        assert!(contract.supported_tokens.contains(&transfer_token));
+
 
         let balance: u128 = 100;
 
@@ -638,11 +597,6 @@ mod tests {
         let transfer_token2: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
-
-        contract.add_supported_token(transfer_token.clone());
-        contract.add_supported_token(transfer_token2.clone());
-        assert!(contract.supported_tokens.contains(&transfer_token));
-        assert!(contract.supported_tokens.contains(&transfer_token2));
 
         contract.ft_on_transfer(transfer_token.clone(), balance);
         contract.ft_on_transfer(transfer_token2.clone(), balance);
@@ -689,11 +643,6 @@ mod tests {
         let transfer_token2: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
-
-        contract.add_supported_token(transfer_token.clone());
-        contract.add_supported_token(transfer_token2.clone());
-        assert!(contract.supported_tokens.contains(&transfer_token));
-        assert!(contract.supported_tokens.contains(&transfer_token2));
 
         contract.ft_on_transfer(transfer_token.clone(), balance);
         contract.ft_on_transfer(transfer_token2.clone(), balance);
