@@ -9,9 +9,6 @@ use ethabi::Hash;
 pub const TGAS: Gas = near_sdk::Gas::ONE_TERA;
 pub const NO_DEPOSIT: u128 = 0;
 
-pub type EthAddress = [u8; 20];
-pub type EthEventParams = Vec<(String, ParamType, bool)>;
-
 #[allow(dead_code)]
 pub fn terra_gas(gas: u64) -> Gas {
     TGAS * gas
@@ -38,7 +35,7 @@ pub fn is_valid_eth_address(address: String) -> bool {
 }
 
 #[allow(dead_code)]
-pub fn get_eth_address(address: String) -> EthAddress {
+pub fn get_eth_address(address: String) -> spectre_bridge_common::EthAddress {
     let data = hex::decode(address).expect("address should be a valid hex string.");
     assert_eq!(data.len(), 20, "address should be 20 bytes long");
     let mut result = [0u8; 20];

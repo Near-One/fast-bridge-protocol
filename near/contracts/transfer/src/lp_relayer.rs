@@ -3,39 +3,14 @@ use serde::{Serialize, Deserialize};
 use near_sdk::{ext_contract, near_bindgen};
 use ethabi::{Event, ParamType, EventParam, Hash, RawLog};
 use eth_types::*;
-use crate::utils::{EthAddress, EthEventParams, long_signature};
+use crate::utils::{EthEventParams, long_signature};
 
 const EVENT_NAME: &str = "TransferTokens";
-
-#[ext_contract(ext_prover)]
-pub trait Prover {
-    fn verify_log_entry(
-        &self,
-        log_index: u64,
-        log_entry_data: Vec<u8>,
-        receipt_index: u64,
-        receipt_data: Vec<u8>,
-        header_data: Vec<u8>,
-        proof: Vec<Vec<u8>>,
-        skip_bridge_call: bool,
-    ) -> bool;
-}
-
-
-#[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize)]
-pub struct Proof {
-    pub log_index: u64,
-    pub log_entry_data: Vec<u8>,
-    pub receipt_index: u64,
-    pub receipt_data: Vec<u8>,
-    pub header_data: Vec<u8>,
-    pub proof: Vec<Vec<u8>>,
-}
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Default)]
 pub struct Relayer {
-    pub e_near_address: EthAddress,
+    pub e_near_address: spectre_bridge_common::EthAddress,
 }
 
 impl Relayer {
@@ -46,7 +21,7 @@ impl Relayer {
         ]
     }
 
-    pub fn get_param(proof: Proof) -> Self {
+    pub fn get_param(e_near_address: spectre_bridge_common::EthAddress, proof: spectre_bridge_common::Proof) -> Self {
         let data = proof.log_entry_data;
         let params = Relayer::event_params();
         let event = Event {
@@ -114,9 +89,11 @@ impl Relayer {
 
 #[cfg(test)]
 mod tests {
+    use crate::utils;
     use super::*;
+    use spectre_bridge_common::*;
 
-    fn create_proof(relayer: String, processed_hash: String) -> Proof {
+    fn create_proof(relayer: String, processed_hash: String) -> spectre_bridge_common::Proof {
         let event_data = Relayer {
             e_near_address: [0u8; 20],
         };
@@ -134,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_event_data() {
-        let relayer =  "2a23e0fa3afe77aff5dc6c6a007e3a10c1450633".to_string();
+        let relayer = "2a23e0fa3afe77aff5dc6c6a007e3a10c1450633".to_string();
         let processed_hash = "0f98ded191bd93679652d2c8f62c5356b2115d0785954273e90521dbe4c851a9".to_string();
         let proof: Proof = create_proof(relayer, processed_hash);
 
