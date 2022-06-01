@@ -19,8 +19,11 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     );
 
     event TransferTokens(
-        address relayer,
-        bytes32 processedHash
+        uint256 _nonce,
+        address _relayer,
+        address _token,
+        address _recipient,
+        uint256 _amount
     );
 
     modifier isWhitelisted(address _token) {
@@ -89,7 +92,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
         token.safeTransferFrom(msg.sender, _recipient, _amount);
 
-        emit TransferTokens(msg.sender, processedHash);
+        emit TransferTokens(_nonce, msg.sender, _recipient, _token, _amount);
     }
 
     function withdrawStuckTokens(

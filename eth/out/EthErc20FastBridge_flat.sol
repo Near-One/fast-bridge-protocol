@@ -239,7 +239,7 @@ interface IERC165Upgradeable {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-// OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/IERC20.sol)
+// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
 
 
 
@@ -247,6 +247,20 @@ interface IERC165Upgradeable {
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
 interface IERC20 {
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
     /**
      * @dev Returns the amount of tokens in existence.
      */
@@ -305,23 +319,9 @@ interface IERC20 {
         address to,
         uint256 amount
     ) external returns (bool);
-
-    /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-// OpenZeppelin Contracts (last updated v4.5.0) (proxy/utils/Initializable.sol)
+// OpenZeppelin Contracts (last updated v4.6.0) (proxy/utils/Initializable.sol)
 
 
 
@@ -332,6 +332,26 @@ interface IERC20 {
  * behind a proxy. Since proxied contracts do not make use of a constructor, it's common to move constructor logic to an
  * external initializer function, usually called `initialize`. It then becomes necessary to protect this initializer
  * function so it can only be called once. The {initializer} modifier provided by this contract will have this effect.
+ *
+ * The initialization functions use a version number. Once a version number is used, it is consumed and cannot be
+ * reused. This mechanism prevents re-execution of each "step" but allows the creation of new initialization steps in
+ * case an upgrade adds a module that needs to be initialized.
+ *
+ * For example:
+ *
+ * [.hljs-theme-light.nopadding]
+ * ```
+ * contract MyToken is ERC20Upgradeable {
+ *     function initialize() initializer public {
+ *         __ERC20_init("MyToken", "MTK");
+ *     }
+ * }
+ * contract MyTokenV2 is MyToken, ERC20PermitUpgradeable {
+ *     function initializeV2() reinitializer(2) public {
+ *         __ERC20Permit_init("MyToken");
+ *     }
+ * }
+ * ```
  *
  * TIP: To avoid leaving the proxy in an uninitialized state, the initializer function should be called as early as
  * possible by providing the encoded function call as the `_data` argument to {ERC1967Proxy-constructor}.
@@ -344,21 +364,24 @@ interface IERC20 {
  * Avoid leaving a contract uninitialized.
  *
  * An uninitialized contract can be taken over by an attacker. This applies to both a proxy and its implementation
- * contract, which may impact the proxy. To initialize the implementation contract, you can either invoke the
- * initializer manually, or you can include a constructor to automatically mark it as initialized when it is deployed:
+ * contract, which may impact the proxy. To prevent the implementation contract from being used, you should invoke
+ * the {_disableInitializers} function in the constructor to automatically lock it when it is deployed:
  *
  * [.hljs-theme-light.nopadding]
  * ```
  * /// @custom:oz-upgrades-unsafe-allow constructor
- * constructor() initializer {}
+ * constructor() {
+ *     _disableInitializers();
+ * }
  * ```
  * ====
  */
 abstract contract Initializable {
     /**
      * @dev Indicates that the contract has been initialized.
+     * @custom:oz-retyped-from bool
      */
-    bool private _initialized;
+    uint8 private _initialized;
 
     /**
      * @dev Indicates that the contract is in the process of being initialized.
@@ -366,38 +389,84 @@ abstract contract Initializable {
     bool private _initializing;
 
     /**
-     * @dev Modifier to protect an initializer function from being invoked twice.
+     * @dev Triggered when the contract has been initialized or reinitialized.
+     */
+    event Initialized(uint8 version);
+
+    /**
+     * @dev A modifier that defines a protected initializer function that can be invoked at most once. In its scope,
+     * `onlyInitializing` functions can be used to initialize parent contracts. Equivalent to `reinitializer(1)`.
      */
     modifier initializer() {
-        // If the contract is initializing we ignore whether _initialized is set in order to support multiple
-        // inheritance patterns, but we only do this in the context of a constructor, because in other contexts the
-        // contract may have been reentered.
-        require(_initializing ? _isConstructor() : !_initialized, "Initializable: contract is already initialized");
-
-        bool isTopLevelCall = !_initializing;
+        bool isTopLevelCall = _setInitializedVersion(1);
         if (isTopLevelCall) {
             _initializing = true;
-            _initialized = true;
         }
-
         _;
-
         if (isTopLevelCall) {
             _initializing = false;
+            emit Initialized(1);
+        }
+    }
+
+    /**
+     * @dev A modifier that defines a protected reinitializer function that can be invoked at most once, and only if the
+     * contract hasn't been initialized to a greater version before. In its scope, `onlyInitializing` functions can be
+     * used to initialize parent contracts.
+     *
+     * `initializer` is equivalent to `reinitializer(1)`, so a reinitializer may be used after the original
+     * initialization step. This is essential to configure modules that are added through upgrades and that require
+     * initialization.
+     *
+     * Note that versions can jump in increments greater than 1; this implies that if multiple reinitializers coexist in
+     * a contract, executing them in the right order is up to the developer or operator.
+     */
+    modifier reinitializer(uint8 version) {
+        bool isTopLevelCall = _setInitializedVersion(version);
+        if (isTopLevelCall) {
+            _initializing = true;
+        }
+        _;
+        if (isTopLevelCall) {
+            _initializing = false;
+            emit Initialized(version);
         }
     }
 
     /**
      * @dev Modifier to protect an initialization function so that it can only be invoked by functions with the
-     * {initializer} modifier, directly or indirectly.
+     * {initializer} and {reinitializer} modifiers, directly or indirectly.
      */
     modifier onlyInitializing() {
         require(_initializing, "Initializable: contract is not initializing");
         _;
     }
 
-    function _isConstructor() private view returns (bool) {
-        return !AddressUpgradeable.isContract(address(this));
+    /**
+     * @dev Locks the contract, preventing any future reinitialization. This cannot be part of an initializer call.
+     * Calling this in the constructor of a contract will prevent that contract from being initialized or reinitialized
+     * to any version. It is recommended to use this to lock implementation contracts that are designed to be called
+     * through proxies.
+     */
+    function _disableInitializers() internal virtual {
+        _setInitializedVersion(type(uint8).max);
+    }
+
+    function _setInitializedVersion(uint8 version) private returns (bool) {
+        // If the contract is initializing we ignore whether _initialized is set in order to support multiple
+        // inheritance patterns, but we only do this in the context of a constructor, and for the lowest level
+        // of initializers, because in other contexts the contract may have been reentered.
+        if (_initializing) {
+            require(
+                version == 1 && !AddressUpgradeable.isContract(address(this)),
+                "Initializable: contract is already initialized"
+            );
+            return false;
+        } else {
+            require(_initialized < version, "Initializable: contract is already initialized");
+            _initialized = version;
+            return true;
+        }
     }
 }
 
@@ -470,7 +539,7 @@ library StringsUpgradeable {
 
 
 
-// OpenZeppelin Contracts (last updated v4.5.0) (access/AccessControl.sol)
+// OpenZeppelin Contracts (last updated v4.6.0) (access/AccessControl.sol)
 
 
 
@@ -711,7 +780,7 @@ abstract contract AccessControlUpgradeable is Initializable, ContextUpgradeable,
      * _Available since v4.1._
      */
     modifier onlyRole(bytes32 role) {
-        _checkRole(role, _msgSender());
+        _checkRole(role);
         _;
     }
 
@@ -727,6 +796,18 @@ abstract contract AccessControlUpgradeable is Initializable, ContextUpgradeable,
      */
     function hasRole(bytes32 role, address account) public view virtual override returns (bool) {
         return _roles[role].members[account];
+    }
+
+    /**
+     * @dev Revert with a standard message if `_msgSender()` is missing `role`.
+     * Overriding this function changes the behavior of the {onlyRole} modifier.
+     *
+     * Format of the revert message is described in {_checkRole}.
+     *
+     * _Available since v4.6._
+     */
+    function _checkRole(bytes32 role) internal view virtual {
+        _checkRole(role, _msgSender());
     }
 
     /**
@@ -1725,8 +1806,6 @@ library SafeERC20 {
 
 
 contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
     using SafeERC20 for IERC20;
     mapping (address => bool) public whitelistedTokens;
     mapping (bytes32 => bool) public processedHashes;
@@ -1737,8 +1816,11 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     );
 
     event TransferTokens(
-        address relayer,
-        bytes32 processedHash
+        uint256 _nonce,
+        address _relayer,
+        address _token,
+        address _recipient,
+        uint256 _amount
     );
 
     modifier isWhitelisted(address _token) {
@@ -1756,7 +1838,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _setupRole(ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         setWhitelistedTokens(_tokens, _states);
     }
 
@@ -1764,11 +1846,11 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         return whitelistedTokens[_token];
     }
 
-    function pause() external onlyRole(ADMIN_ROLE) {
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
     }
 
-    function unPause() external onlyRole(ADMIN_ROLE) {
+    function unPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -1777,7 +1859,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         bool[] memory _states
     ) 
         public 
-        onlyRole(ADMIN_ROLE) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
@@ -1807,14 +1889,14 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
         token.safeTransferFrom(msg.sender, _recipient, _amount);
 
-        emit TransferTokens(msg.sender, processedHash);
+        emit TransferTokens(_nonce, msg.sender, _recipient, _token, _amount);
     }
 
     function withdrawStuckTokens(
         address _token
     ) 
         external 
-        onlyRole(ADMIN_ROLE) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
         IERC20 token = IERC20(_token);
         token.safeTransfer(
@@ -1828,7 +1910,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     ) 
         internal 
         override
-        onlyRole(ADMIN_ROLE) 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
     {
 
     }

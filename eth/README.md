@@ -5,5 +5,5 @@ To verify contracts use brownie.publish_source() or you can verify proxy in Ethe
 https://abi.hashex.org/
 
 ## Contracts in Goerli
-Proxy: 0x4F04E2dbEB74016CE52F5A6D136C65AE0C61e236
-Impl: 0x1ad4B50Dd6584eB237eEbAfA339cB55EFA27869a
+Proxy: 0xbC685C003884c394eBB5F9235a1DBe9cbdc6c9d6
+Impl: 0xBa78AE6A68DB5784e26a7DdCccd3939BB6cd5F57
