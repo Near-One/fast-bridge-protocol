@@ -1,11 +1,10 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, LookupSet};
-use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require, Duration};
-use near_sdk::env::{block_timestamp, signer_account_id};
+use near_sdk::collections::{LookupMap};
+use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require, Duration, PromiseResult};
+use near_sdk::env::{block_timestamp, current_account_id, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
-use lp_relayer::{Relayer, ext_prover};
 use parse_duration::parse;
 use spectre_bridge_common;
 use spectre_bridge_common::*;
@@ -13,9 +12,37 @@ use spectre_bridge_common::*;
 use near_sdk::Promise;
 
 mod utils;
-mod lp_relayer;
 
 pub const NO_DEPOSIT: u128 = 0;
+
+#[ext_contract(ext_prover)]
+pub trait Prover {
+    fn verify_log_entry(
+        &self,
+        log_index: u64,
+        log_entry_data: Vec<u8>,
+        receipt_index: u64,
+        receipt_data: Vec<u8>,
+        header_data: Vec<u8>,
+        proof: Vec<Vec<u8>>,
+        skip_bridge_call: bool,
+    ) -> bool;
+}
+
+#[ext_contract(ext_token)]
+trait NEP141Token {
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
+}
+
+#[ext_contract(ext_self)]
+trait SpectreBridgeInterface {
+    fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
+    fn verify_log_entry_callback(
+        &mut self,
+        proof: Proof,
+        nonce: U128,
+    ) -> Promise;
+}
 
 #[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -36,25 +63,6 @@ pub struct TransferMessage {
     recipient: String,
 }
 
-#[ext_contract(ext_token)]
-trait NEP141Token {
-    fn ft_transfer(&mut self, receiver_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
-}
-
-#[ext_contract(ext_self)]
-trait SpectreBridgeInterface {
-    fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
-    #[result_serializer(borsh)]
-    fn verify_log_entry_callback(
-        &mut self,
-        #[callback]
-        #[serializer(borsh)]
-        verification_success: bool,
-        #[serializer(borsh)] param: Relayer,
-        #[serializer(borsh)] proof: Proof,
-    ) -> Promise;
-}
-
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct SpectreBridge {
@@ -64,7 +72,7 @@ pub struct SpectreBridge {
     proover_accounts: LookupMap<u32, AccountId>,
     e_near_address: EthAddress,
     lock_time_min: Duration,
-    lock_time_max: Duration
+    lock_time_max: Duration,
 }
 
 impl Default for SpectreBridge {
@@ -155,12 +163,9 @@ impl SpectreBridge {
 
     pub fn lp_unlock(
         &mut self,
+        nonce: U128,
         proof: Proof,
     ) {
-        let param = Relayer::get_param(self.e_near_address, proof.clone());
-        let proover_account = self.proover_accounts.get(&param.chain_id).unwrap_or_else(
-            || panic!("For chain_id: {} proover account not found.", param.chain_id));
-
         let proof_1 = proof.clone();
         ext_prover::verify_log_entry(
             proof.log_index,
@@ -169,45 +174,43 @@ impl SpectreBridge {
             proof.receipt_data,
             proof.header_data,
             proof.proof,
-            false,
-            proover_account.clone(),
+            true,
+            AccountId::try_from("prover.goerli.testnet".to_string()).unwrap(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ).then(ext_self::verify_log_entry_callback(
-            param,
             proof_1,
-            proover_account,
+            nonce,
+            current_account_id(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         ));
     }
 
-    /**
-    not #[private] because it will be used by callback cross contract call
-    **/
+    #[private]
     pub fn verify_log_entry_callback(
         &mut self,
-        #[callback]
-        verification_success: bool,
-        param: Relayer,
         proof: Proof,
+        nonce: U128,
     ) {
-        if !verification_success {
+        let verification_result = match env::promise_result(0) {
+            PromiseResult::NotReady => 0,
+            PromiseResult::Failed => 0,
+            PromiseResult::Successful(result) => {
+                result[0]
+            }
+        };
+
+        let nonce = u128::from(nonce);
+        if verification_result <= 0 {
             Event::SpectreBridgeEthProoverNotProofedEvent {
-                sender: param.sender,
-                nonce: U128(param.nonce),
+                nonce: U128(nonce),
                 proof: proof,
             }.emit();
             panic!("Failed to verify the proof");
         }
 
-        let proover_account = self.proover_accounts.get(&param.chain_id).unwrap_or_else(
-            || panic!("For chain_id: {} proover contract AccountId not found.", param.chain_id));
 
-        require!(env::predecessor_account_id() == proover_account,
-            format!("Current account_id: {} does not have permission to call this method", &env::predecessor_account_id()));
-
-        let nonce = param.nonce;
         let transaction_id = utils::get_transaction_id(nonce);
 
         let transfer = self.pending_transfers.get(&transaction_id)
@@ -314,7 +317,6 @@ impl SpectreBridge {
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-
         let user_balance = self.user_balances.get(&env::signer_account_id())
             .unwrap_or_else(|| { panic!("{}", "User not have balance".to_string()) });
 
@@ -354,7 +356,7 @@ impl SpectreBridge {
     pub fn add_proover_contract(
         &mut self,
         chain_id: u32,
-        proover_account: AccountId
+        proover_account: AccountId,
     ) {
         self.proover_accounts.insert(&chain_id, &proover_account);
     }
@@ -369,7 +371,7 @@ impl SpectreBridge {
 
     #[private]
     #[allow(dead_code)]
-    pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String){
+    pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         self.lock_time_min = parse(&lock_time_min.as_str()).unwrap().as_nanos() as u64;
         self.lock_time_max = parse(&lock_time_max.as_str()).unwrap().as_nanos() as u64;
     }
@@ -410,7 +412,6 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
@@ -454,8 +455,6 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
-
         let current_timestamp = block_timestamp() - 20;
         let mut msg: String = r#"
         {
@@ -482,8 +481,6 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        let token: AccountId = AccountId::try_from("alice_near".to_string()).unwrap();
-
         let current_timestamp = block_timestamp();
         let mut msg: String = r#"
         {
@@ -497,64 +494,6 @@ mod tests {
             },
             "fee": {
                 "token": "alice_near",
-                "amount": 100
-            },
-            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
-        }"#);
-        let _transfer_message = contract.is_metadata_correct(msg);
-    }
-
-    #[test]
-    #[should_panic]
-    fn metadata_transfer_token_not_available_test() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = SpectreBridge::default();
-        let transfer_token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
-        let fee_token: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
-
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
-            "chain_id": 5,
-            "valid_till": "#.to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
-            "transfer": {
-                "token": "token3_near",
-                "amount": 100
-            },
-            "fee": {
-                "token": "token4_near",
-                "amount": 100
-            },
-            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
-        }"#);
-        let _transfer_message = contract.is_metadata_correct(msg);
-    }
-
-    #[test]
-    #[should_panic]
-    fn metadata_fee_token_not_available_test() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = SpectreBridge::default();
-        let transfer_token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
-        let fee_token: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
-
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
-            "chain_id": 5,
-            "valid_till": "#.to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
-            "transfer": {
-                "token": "token1_near",
-                "amount": 100
-            },
-            "fee": {
-                "token": "token3_near",
                 "amount": 100
             },
             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"

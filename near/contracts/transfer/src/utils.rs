@@ -9,8 +9,6 @@ use ethabi::Hash;
 pub const TGAS: Gas = near_sdk::Gas::ONE_TERA;
 pub const NO_DEPOSIT: u128 = 0;
 
-pub type EthEventParams = Vec<(String, ParamType, bool)>;
-
 #[allow(dead_code)]
 pub fn terra_gas(gas: u64) -> Gas {
     TGAS * gas

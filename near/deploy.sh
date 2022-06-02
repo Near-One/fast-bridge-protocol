@@ -23,4 +23,4 @@ near call token.spectrebridge2.testnet mint '{"account_id": "transfer.spectrebri
 near call transfer.spectrebridge2.testnet add_supported_token '{"token": "token.spectrebridge2.testnet"}'  --account-id transfer.spectrebridge2.testnet
 near call transfer.spectrebridge2.testnet ft_on_transfer '{"token_id": "token.spectrebridge2.testnet", "amount": 100}' --account-id transfer.spectrebridge2.testnet
 near call transfer.spectrebridge2.testnet lock '{"msg": "{\"valid_till\":1652038871250000000,\"transfer\":{\"token\":\"token.spectrebridge2.testnet\",\"amount\":50},\"fee\":{\"token\":\"token.spectrebridge2.testnet\",\"amount\":50},\"recipient\":\"00005474e89094c44da98b954eedeac495271d0f\"}"}' --account-id transfer.spectrebridge2.testnet
-
+#near call transfer.spectrebridge2.testnet lp_unlock '{}' --account-id transfer.spectrebridge2.testnet --gas 300000000000000
