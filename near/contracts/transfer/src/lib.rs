@@ -6,7 +6,6 @@ use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use std::str;
 use parse_duration::parse;
-use spectre_bridge_common;
 use spectre_bridge_common::*;
 #[allow(unused_imports)]
 use near_sdk::Promise;
@@ -202,7 +201,7 @@ impl SpectreBridge {
         };
 
         let nonce = u128::from(nonce);
-        if verification_result <= 0 {
+        if verification_result == 0 {
             Event::SpectreBridgeEthProoverNotProofedEvent {
                 nonce: U128(nonce),
                 proof: proof,
@@ -372,8 +371,8 @@ impl SpectreBridge {
     #[private]
     #[allow(dead_code)]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
-        self.lock_time_min = parse(&lock_time_min.as_str()).unwrap().as_nanos() as u64;
-        self.lock_time_max = parse(&lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        self.lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
+        self.lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
     }
 }
 

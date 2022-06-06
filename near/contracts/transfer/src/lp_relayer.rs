@@ -11,13 +11,21 @@ const EVENT_NAME: &str = "TransferTokens";
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Default)]
 pub struct Relayer {
     pub e_near_address: spectre_bridge_common::EthAddress,
+    pub nonce: u128,
+    pub relayer: spectre_bridge_common::EthAddress,
+    pub token: spectre_bridge_common::EthAddress,
+    pub recipient: spectre_bridge_common::EthAddress,
+    pub amount: u128,
 }
 
 impl Relayer {
     pub fn event_params() -> EthEventParams {
         vec![
-            ("relayer".to_string(), ParamType::Address, false),
-            ("processedHash".to_string(), ParamType::FixedBytes(32), false),
+            ("nonce".to_string(), ParamType::Uint(256), false)
+                ("relayer".to_string(), ParamType::Address, false),
+            ("token".to_string(), ParamType::Address, false),
+            ("recipient".to_string(), ParamType::Address, false),
+            ("amount".to_string(), ParamType::Uint(256), false),
         ]
     }
 
@@ -48,10 +56,34 @@ impl Relayer {
             topics,
             data: log_entry.data.clone(),
         };
-        let _log = event.parse_log(raw_log).expect("Failed to parse event log");
+        let log = event.parse_log(raw_log).expect("Failed to parse event log");
+        let nonce = log.params[0]
+            .value
+            .clone()
+            .to_uint()
+            .unwrap()
+            .as_u128();
 
+        let relayer = log.params[1].value.clone().to_address().unwrap().0;
+        let relayer = (&relayer).encode_hex::<String>();
+        let token = log.params[2].value.clone().to_address().unwrap().0;
+        let token = (&token).encode_hex::<String>();
+        let recipient = log.params[3].value.clone().to_address().unwrap().0;
+        let recipient = (&recipient).encode_hex::<String>();
+
+        let amount = event.log.params[4]
+            .value
+            .clone()
+            .to_uint()
+            .unwrap()
+            .as_u128();
         Self {
             e_near_address: locker_address,
+            nonce,
+            relayer,
+            token,
+            recipient,
+            amount,
         }
     }
 
