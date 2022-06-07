@@ -57,9 +57,9 @@ pub struct TransferData {
 pub struct TransferMessage {
     chain_id: u32,
     valid_till: u64,
-    transfer: TransferData,
-    fee: TransferData,
-    recipient: String,
+    transfer: TransferDataEthereum,
+    fee: TransferDataNear,
+    recipient: EthAddress,
 }
 
 #[near_bindgen]
@@ -104,19 +104,20 @@ impl SpectreBridge {
     ) -> PromiseOrValue<U128> {
         let transfer_message = self.is_metadata_correct(msg);
         let user_token_balance = self.user_balances.get(&env::signer_account_id())
-            .unwrap_or_else(|| panic!("Balance in {} for user {} not found", transfer_message.transfer.token, env::signer_account_id()));
+            .unwrap_or_else(|| panic!("Balance in {} for user {} not found", transfer_message.transfer.token_near, env::signer_account_id()));
 
-        let token_transfer_balance = user_token_balance.get(&transfer_message.transfer.token)
-            .unwrap_or_else(|| panic!("Balance for token transfer: {} not found", &transfer_message.transfer.token));
+        let token_transfer_balance = user_token_balance.get(&transfer_message.transfer.token_near)
+            .unwrap_or_else(|| panic!("Balance for token transfer: {} not found", &transfer_message.transfer.token_near));
 
-        require!(token_transfer_balance > transfer_message.transfer.amount, "Not enough transfer token balance.");
+        require!(token_transfer_balance > u128::from(transfer_message.transfer.amount), "Not enough transfer token balance.");
 
         let token_fee_balance = user_token_balance.get(&transfer_message.fee.token)
-            .unwrap_or_else(|| panic!("Balance for token fee: {} not found", &transfer_message.transfer.token));
-        require!(token_fee_balance > transfer_message.fee.amount, "Not enough fee token balance.");
+            .unwrap_or_else(|| panic!("Balance for token fee: {} not found", &transfer_message.transfer.token_near));
+        require!(token_fee_balance > u128::from(transfer_message.fee.amount), "Not enough fee token balance.");
 
-        self.decrease_balance(&transfer_message.transfer.token, &transfer_message.transfer.amount);
-        self.decrease_balance(&transfer_message.fee.token, &transfer_message.fee.amount);
+        self.decrease_balance(&transfer_message.transfer.token_near, &u128::from(transfer_message.transfer.amount));
+
+        self.decrease_balance(&transfer_message.fee.token, &u128::from(transfer_message.fee.amount));
 
         let nonce = U128::from(self.store_transfers(transfer_message.clone()));
 
@@ -124,15 +125,16 @@ impl SpectreBridge {
             nonce: nonce,
             chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
-            transfer: TransferDataNear {
-                token: transfer_message.transfer.token,
-                amount: U128(transfer_message.transfer.amount),
+            transfer: TransferDataEthereum {
+                token_near: transfer_message.transfer.token_near,
+                token_eth: transfer_message.transfer.token_eth,
+                amount: transfer_message.transfer.amount,
             },
             fee: TransferDataNear {
                 token: transfer_message.fee.token,
-                amount: U128(transfer_message.fee.amount),
+                amount: transfer_message.fee.amount,
             },
-            recipient: utils::get_eth_address(transfer_message.recipient),
+            recipient: transfer_message.recipient,
         }.emit();
 
         PromiseOrValue::Value(nonce)
@@ -150,8 +152,8 @@ impl SpectreBridge {
         require!(transfer.0 == env::signer_account_id(), format!("Signer: {} transaction not fount:", &env::signer_account_id()));
         require!(block_timestamp() > transfer_data.valid_till, "Valid time is not correct.");
 
-        self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
-        self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
+        self.increase_balance(&transfer_data.transfer.token_near, &u128::from(transfer_data.transfer.amount));
+        self.increase_balance(&transfer_data.fee.token, &u128::from(transfer_data.fee.amount));
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
@@ -216,8 +218,8 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("Transaction with id: {} not found", &transaction_id.to_string()));
         let transfer_data = transfer.1;
 
-        self.increase_balance(&transfer_data.transfer.token, &transfer_data.transfer.amount);
-        self.increase_balance(&transfer_data.fee.token, &transfer_data.fee.amount);
+        self.increase_balance(&transfer_data.transfer.token_near, &u128::from(transfer_data.transfer.amount));
+        self.increase_balance(&transfer_data.fee.token, &u128::from(transfer_data.fee.amount));
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
@@ -293,8 +295,6 @@ impl SpectreBridge {
         let lock_period = transfer_message.valid_till - block_timestamp();
         require!((self.lock_time_min..=self.lock_time_max).contains(&lock_period),
             format!("Lock period:{} does not fit the terms of the contract.", lock_period));
-
-        require!(utils::is_valid_eth_address(transfer_message.recipient.clone()), "Eth address not valid.");
 
         transfer_message
     }
@@ -420,14 +420,15 @@ mod tests {
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
-                "token": "alice_near",
-                "amount": 100
+                "token_near": "alice_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "100"
             },
             "fee": {
                 "token": "alice_near",
-                "amount": 100
+                "amount": "100"
             },
-            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
+            "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
 
         let transfer_message = contract.is_metadata_correct(msg);
@@ -435,15 +436,16 @@ mod tests {
         let original = TransferMessage {
             chain_id: 5,
             valid_till: current_timestamp,
-            transfer: TransferData {
-                token: AccountId::try_from("alice_near".to_string()).unwrap(),
-                amount: 100,
+            transfer: TransferDataEthereum {
+                token_near: AccountId::try_from("alice_near".to_string()).unwrap(),
+                token_eth: get_eth_address("71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string()),
+                amount: U128(100),
             },
-            fee: TransferData {
+            fee: TransferDataNear {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
-                amount: 100,
+                amount: U128(100),
             },
-            recipient: "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
+            recipient: utils::get_eth_address("71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string()),
         };
         assert_eq!(serde_json::to_string(&original).unwrap(), serde_json::to_string(&transfer_message).unwrap());
     }
@@ -462,14 +464,15 @@ mod tests {
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
-                "token": "alice_near",
-                "amount": 100
+                "token_near": "alice_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "100"
             },
             "fee": {
                 "token": "alice_near",
-                "amount": 100
+                "amount": "100"
             },
-            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
+            "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
         let _transfer_message = contract.is_metadata_correct(msg);
     }
@@ -488,14 +491,15 @@ mod tests {
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
-                "token": "alice_near",
-                "amount": 100
+                "token_near": "alice_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "100"
             },
             "fee": {
                 "token": "alice_near",
-                "amount": 100
+                "amount": "100"
             },
-            "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
+            "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
         let _transfer_message = contract.is_metadata_correct(msg);
     }
@@ -566,14 +570,15 @@ mod tests {
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
-                "token": "token_near",
-                "amount": 50
+                "token_near": "token_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "50"
             },
             "fee": {
                 "token": "token2_near",
-                "amount": 50
+                "amount": "50"
             },
-             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
         contract.lock(msg);
 
@@ -612,14 +617,15 @@ mod tests {
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
-                "token": "token_near",
-                "amount": 50
+                "token_near": "token_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "50"
             },
             "fee": {
                 "token": "token2_near",
-                "amount": 50
+                "amount": "50"
             },
-             "recipient": "71C7656EC7ab88b098defB751B7401B5f6d8976F"
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
         contract.lock(msg);
 
