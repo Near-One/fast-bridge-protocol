@@ -36,4 +36,4 @@ jobs:
         with:
           node-version: 14
       - run: cd eth; npm install
-      - run: cd eth; npm run test
+      - run: cd eth; npm install -g ganache-cli; npm run test
