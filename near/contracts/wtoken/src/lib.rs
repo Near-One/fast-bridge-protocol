@@ -1,12 +1,12 @@
-use near_contract_standards::fungible_token::FungibleToken;
 use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FungibleTokenMetadataProvider, FT_METADATA_SPEC,
 };
-use near_sdk::{AccountId, near_bindgen, PanicOnDefault, PromiseOrValue, env};
+use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
 use near_sdk::json_types::U128;
 use near_sdk::require;
+use near_sdk::{env, near_bindgen, AccountId, PanicOnDefault, PromiseOrValue};
 
 #[near_bindgen]
 #[derive(BorshSerialize, BorshDeserialize, PanicOnDefault)]
@@ -18,11 +18,15 @@ pub struct Contract {
 // example from near
 const DATA_IMAGE_SVG_NEAR_ICON: &str = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 288 288'%3E%3Cg id='l' data-name='l'%3E%3Cpath d='M187.58,79.81l-30.1,44.69a3.2,3.2,0,0,0,4.75,4.2L191.86,103a1.2,1.2,0,0,1,2,.91v80.46a1.2,1.2,0,0,1-2.12.77L102.18,77.93A15.35,15.35,0,0,0,90.47,72.5H87.34A15.34,15.34,0,0,0,72,87.84V201.16A15.34,15.34,0,0,0,87.34,216.5h0a15.35,15.35,0,0,0,13.08-7.31l30.1-44.69a3.2,3.2,0,0,0-4.75-4.2L96.14,186a1.2,1.2,0,0,1-2-.91V104.61a1.2,1.2,0,0,1,2.12-.77l89.55,107.23a15.35,15.35,0,0,0,11.71,5.43h3.13A15.34,15.34,0,0,0,216,201.16V87.84A15.34,15.34,0,0,0,200.66,72.5h0A15.35,15.35,0,0,0,187.58,79.81Z'/%3E%3C/g%3E%3C/svg%3E";
 
-
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new_default_meta(owner_id: AccountId, name: String, symbol: String, total_supply: U128) -> Self {
+    pub fn new_default_meta(
+        owner_id: AccountId,
+        name: String,
+        symbol: String,
+        total_supply: U128,
+    ) -> Self {
         Self::new(
             owner_id,
             total_supply,
@@ -38,13 +42,8 @@ impl Contract {
         )
     }
 
-
     #[init]
-    pub fn new(
-        owner_id: AccountId,
-        total_supply: U128,
-        metadata: FungibleTokenMetadata,
-    ) -> Self {
+    pub fn new(owner_id: AccountId, total_supply: U128, metadata: FungibleTokenMetadata) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
         metadata.assert_valid();
@@ -57,16 +56,13 @@ impl Contract {
         this
     }
 
-
     pub fn mint(&mut self, account_id: AccountId, amount: U128) {
         self.token.internal_register_account(&account_id);
-        self.token
-            .internal_deposit(&account_id, amount.into());
+        self.token.internal_deposit(&account_id, amount.into());
     }
 
     pub fn burn(&mut self, account_id: AccountId, amount: U128) {
-        self.token
-            .internal_withdraw(&account_id, amount.into());
+        self.token.internal_withdraw(&account_id, amount.into());
     }
 }
 
@@ -81,17 +77,15 @@ impl FungibleTokenMetadataProvider for Contract {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use near_sdk::{env, testing_env, Balance};
-    use near_sdk::test_utils::{accounts, VMContextBuilder};
     use near_sdk::test_utils::test_env::{alice, bob};
+    use near_sdk::test_utils::{accounts, VMContextBuilder};
+    use near_sdk::{env, testing_env, Balance};
 
     use super::*;
 
     const TOTAL_SUPPLY: Balance = 1_000_000_000_000_000;
-
 
     fn init() -> (VMContextBuilder, AccountId, Contract) {
         // get VM builer
@@ -99,7 +93,12 @@ mod tests {
         // account for contract
         let _contract_account = alice();
         // init the contract
-        let contract = Contract::new_default_meta(_contract_account.clone(), String::from("Mock Token"), String::from("MOCK"), TOTAL_SUPPLY.into());
+        let contract = Contract::new_default_meta(
+            _contract_account.clone(),
+            String::from("Mock Token"),
+            String::from("MOCK"),
+            TOTAL_SUPPLY.into(),
+        );
         (context, _contract_account, contract)
     }
 
@@ -113,7 +112,6 @@ mod tests {
         builder
     }
 
-
     #[test]
     fn check_total_supply() {
         let (context, _contract_account, contract) = init();
@@ -121,16 +119,17 @@ mod tests {
         assert_eq!(contract.ft_total_supply(), 1_000_000_000_000_000.into());
     }
 
-
     #[test]
     fn test_mint_bob() {
         let (context, _, mut contract) = init();
         testing_env!(context.build());
         let bob_account = bob();
         contract.mint(bob_account.clone(), (TOTAL_SUPPLY / 100).into());
-        assert_eq!(contract.ft_balance_of(bob_account), (TOTAL_SUPPLY / 100).into())
+        assert_eq!(
+            contract.ft_balance_of(bob_account),
+            (TOTAL_SUPPLY / 100).into()
+        )
     }
-
 
     #[test]
     fn test_burn_bob() {
@@ -146,7 +145,12 @@ mod tests {
     fn test_transfer() {
         let mut context = get_context(accounts(2));
         testing_env!(context.build());
-        let mut contract = Contract::new_default_meta(accounts(2), String::from("Mock Token"), String::from("MOCK"), TOTAL_SUPPLY.into());
+        let mut contract = Contract::new_default_meta(
+            accounts(2),
+            String::from("Mock Token"),
+            String::from("MOCK"),
+            TOTAL_SUPPLY.into(),
+        );
         testing_env!(context
             .storage_usage(env::storage_usage())
             .attached_deposit(contract.storage_balance_bounds().min.into())
@@ -162,7 +166,11 @@ mod tests {
             .build());
 
         let transferred_tokens = TOTAL_SUPPLY / 100;
-        contract.ft_transfer(accounts(1), transferred_tokens.into(), Some("you have received some tokens ".to_string()));
+        contract.ft_transfer(
+            accounts(1),
+            transferred_tokens.into(),
+            Some("you have received some tokens ".to_string()),
+        );
 
         testing_env!(context
             .storage_usage(env::storage_usage())
@@ -171,7 +179,10 @@ mod tests {
             .attached_deposit(0)
             .build());
 
-        assert_eq!(contract.ft_balance_of(accounts(2)).0, (TOTAL_SUPPLY - transferred_tokens));
+        assert_eq!(
+            contract.ft_balance_of(accounts(2)).0,
+            (TOTAL_SUPPLY - transferred_tokens)
+        );
         assert_eq!(contract.ft_balance_of(accounts(1)).0, transferred_tokens);
     }
 }

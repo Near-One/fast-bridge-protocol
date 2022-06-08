@@ -1,14 +1,17 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap};
-use near_sdk::{near_bindgen, ext_contract, AccountId, PromiseOrValue, serde_json, env, is_promise_success, require, Duration, PromiseResult};
+use near_sdk::collections::LookupMap;
 use near_sdk::env::{block_timestamp, current_account_id, signer_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use std::str;
-use parse_duration::parse;
-use spectre_bridge_common::*;
 #[allow(unused_imports)]
 use near_sdk::Promise;
+use near_sdk::{
+    env, ext_contract, is_promise_success, near_bindgen, require, serde_json, AccountId, Duration,
+    PromiseOrValue, PromiseResult,
+};
+use parse_duration::parse;
+use spectre_bridge_common::*;
+use std::str;
 
 mod utils;
 
@@ -36,11 +39,7 @@ trait NEP141Token {
 #[ext_contract(ext_self)]
 trait SpectreBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
-    fn verify_log_entry_callback(
-        &mut self,
-        proof: Proof,
-        nonce: U128,
-    ) -> Promise;
+    fn verify_log_entry_callback(&mut self, proof: Proof, nonce: U128) -> Promise;
 }
 
 #[near_bindgen]
@@ -90,34 +89,59 @@ impl Default for SpectreBridge {
 
 #[near_bindgen]
 impl SpectreBridge {
-    pub fn ft_on_transfer(
-        &mut self,
-        token_id: AccountId,
-        amount: u128,
-    ) -> PromiseOrValue<U128> {
+    pub fn ft_on_transfer(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
         self.update_balance(token_id, amount)
     }
 
-    pub fn lock(
-        &mut self,
-        msg: String,
-    ) -> PromiseOrValue<U128> {
+    pub fn lock(&mut self, msg: String) -> PromiseOrValue<U128> {
         let transfer_message = self.is_metadata_correct(msg);
-        let user_token_balance = self.user_balances.get(&env::signer_account_id())
-            .unwrap_or_else(|| panic!("Balance in {} for user {} not found", transfer_message.transfer.token_near, env::signer_account_id()));
+        let user_token_balance = self
+            .user_balances
+            .get(&env::signer_account_id())
+            .unwrap_or_else(|| {
+                panic!(
+                    "Balance in {} for user {} not found",
+                    transfer_message.transfer.token_near,
+                    env::signer_account_id()
+                )
+            });
 
-        let token_transfer_balance = user_token_balance.get(&transfer_message.transfer.token_near)
-            .unwrap_or_else(|| panic!("Balance for token transfer: {} not found", &transfer_message.transfer.token_near));
+        let token_transfer_balance = user_token_balance
+            .get(&transfer_message.transfer.token_near)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Balance for token transfer: {} not found",
+                    &transfer_message.transfer.token_near
+                )
+            });
 
-        require!(token_transfer_balance > u128::from(transfer_message.transfer.amount), "Not enough transfer token balance.");
+        require!(
+            token_transfer_balance > u128::from(transfer_message.transfer.amount),
+            "Not enough transfer token balance."
+        );
 
-        let token_fee_balance = user_token_balance.get(&transfer_message.fee.token)
-            .unwrap_or_else(|| panic!("Balance for token fee: {} not found", &transfer_message.transfer.token_near));
-        require!(token_fee_balance > u128::from(transfer_message.fee.amount), "Not enough fee token balance.");
+        let token_fee_balance = user_token_balance
+            .get(&transfer_message.fee.token)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Balance for token fee: {} not found",
+                    &transfer_message.transfer.token_near
+                )
+            });
+        require!(
+            token_fee_balance > u128::from(transfer_message.fee.amount),
+            "Not enough fee token balance."
+        );
 
-        self.decrease_balance(&transfer_message.transfer.token_near, &u128::from(transfer_message.transfer.amount));
+        self.decrease_balance(
+            &transfer_message.transfer.token_near,
+            &u128::from(transfer_message.transfer.amount),
+        );
 
-        self.decrease_balance(&transfer_message.fee.token, &u128::from(transfer_message.fee.amount));
+        self.decrease_balance(
+            &transfer_message.fee.token,
+            &u128::from(transfer_message.fee.amount),
+        );
 
         let nonce = U128::from(self.store_transfers(transfer_message.clone()));
 
@@ -135,38 +159,55 @@ impl SpectreBridge {
                 amount: transfer_message.fee.amount,
             },
             recipient: transfer_message.recipient,
-        }.emit();
+        }
+        .emit();
 
         PromiseOrValue::Value(nonce)
     }
 
-    pub fn unlock(
-        &mut self,
-        nonce: u128,
-    ) {
+    pub fn unlock(&mut self, nonce: u128) {
         let transaction_id = utils::get_transaction_id(nonce);
-        let transfer = self.pending_transfers.get(&transaction_id)
-            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &transaction_id.to_string()));
+        let transfer = self
+            .pending_transfers
+            .get(&transaction_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Transaction with id: {} not found",
+                    &transaction_id.to_string()
+                )
+            });
         let transfer_data = transfer.1;
 
-        require!(transfer.0 == env::signer_account_id(), format!("Signer: {} transaction not fount:", &env::signer_account_id()));
-        require!(block_timestamp() > transfer_data.valid_till, "Valid time is not correct.");
+        require!(
+            transfer.0 == env::signer_account_id(),
+            format!(
+                "Signer: {} transaction not fount:",
+                &env::signer_account_id()
+            )
+        );
+        require!(
+            block_timestamp() > transfer_data.valid_till,
+            "Valid time is not correct."
+        );
 
-        self.increase_balance(&transfer_data.transfer.token_near, &u128::from(transfer_data.transfer.amount));
-        self.increase_balance(&transfer_data.fee.token, &u128::from(transfer_data.fee.amount));
+        self.increase_balance(
+            &transfer_data.transfer.token_near,
+            &u128::from(transfer_data.transfer.amount),
+        );
+        self.increase_balance(
+            &transfer_data.fee.token,
+            &u128::from(transfer_data.fee.amount),
+        );
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
             nonce: U128(nonce),
             account: signer_account_id(),
-        }.emit();
+        }
+        .emit();
     }
 
-    pub fn lp_unlock(
-        &mut self,
-        nonce: U128,
-        proof: Proof,
-    ) {
+    pub fn lp_unlock(&mut self, nonce: U128, proof: Proof) {
         let proof_1 = proof.clone();
         ext_prover::verify_log_entry(
             proof.log_index,
@@ -179,7 +220,8 @@ impl SpectreBridge {
             AccountId::try_from("prover.goerli.testnet".to_string()).unwrap(),
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
-        ).then(ext_self::verify_log_entry_callback(
+        )
+        .then(ext_self::verify_log_entry_callback(
             proof_1,
             nonce,
             current_account_id(),
@@ -189,17 +231,11 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn verify_log_entry_callback(
-        &mut self,
-        proof: Proof,
-        nonce: U128,
-    ) {
+    pub fn verify_log_entry_callback(&mut self, proof: Proof, nonce: U128) {
         let verification_result = match env::promise_result(0) {
             PromiseResult::NotReady => 0,
             PromiseResult::Failed => 0,
-            PromiseResult::Successful(result) => {
-                result[0]
-            }
+            PromiseResult::Successful(result) => result[0],
         };
 
         let nonce = u128::from(nonce);
@@ -207,33 +243,43 @@ impl SpectreBridge {
             Event::SpectreBridgeEthProoverNotProofedEvent {
                 nonce: U128(nonce),
                 proof: proof,
-            }.emit();
+            }
+            .emit();
             panic!("Failed to verify the proof");
         }
 
-
         let transaction_id = utils::get_transaction_id(nonce);
 
-        let transfer = self.pending_transfers.get(&transaction_id)
-            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &transaction_id.to_string()));
+        let transfer = self
+            .pending_transfers
+            .get(&transaction_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Transaction with id: {} not found",
+                    &transaction_id.to_string()
+                )
+            });
         let transfer_data = transfer.1;
 
-        self.increase_balance(&transfer_data.transfer.token_near, &u128::from(transfer_data.transfer.amount));
-        self.increase_balance(&transfer_data.fee.token, &u128::from(transfer_data.fee.amount));
+        self.increase_balance(
+            &transfer_data.transfer.token_near,
+            &u128::from(transfer_data.transfer.amount),
+        );
+        self.increase_balance(
+            &transfer_data.fee.token,
+            &u128::from(transfer_data.fee.amount),
+        );
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
             nonce: U128(nonce),
             account: signer_account_id(),
-        }.emit();
+        }
+        .emit();
     }
 
     #[private]
-    fn update_balance(
-        &mut self,
-        token_id: AccountId,
-        amount: u128,
-    ) -> PromiseOrValue<U128> {
+    fn update_balance(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
         if let Some(mut user_balances) = self.user_balances.get(&signer_account_id()) {
             if let Some(mut token_amount) = user_balances.get(&token_id) {
                 token_amount += amount;
@@ -241,88 +287,88 @@ impl SpectreBridge {
             } else {
                 user_balances.insert(&token_id, &amount);
             }
-            self.user_balances.insert(&signer_account_id(), &user_balances);
+            self.user_balances
+                .insert(&signer_account_id(), &user_balances);
         } else {
             let mut token_balance = LookupMap::new(b"tb".to_vec());
             token_balance.insert(&token_id, &amount);
-            self.user_balances.insert(&signer_account_id(), &token_balance);
+            self.user_balances
+                .insert(&signer_account_id(), &token_balance);
         }
         Event::SpectreBridgeDepositEvent {
             account: signer_account_id(),
             token: token_id,
             amount: U128(amount),
-        }.emit();
+        }
+        .emit();
         PromiseOrValue::Value(U128::from(0))
     }
 
     #[private]
-    fn decrease_balance(
-        &mut self,
-        token_id: &AccountId,
-        amount: &u128,
-    ) {
+    fn decrease_balance(&mut self, token_id: &AccountId, amount: &u128) {
         let mut user_token_balance = self.user_balances.get(&env::signer_account_id()).unwrap();
         let balance = user_token_balance.get(token_id).unwrap() - amount;
         user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(&env::signer_account_id(), &user_token_balance);
+        self.user_balances
+            .insert(&env::signer_account_id(), &user_token_balance);
     }
 
-
     #[private]
-    fn increase_balance(
-        &mut self,
-        token_id: &AccountId,
-        amount: &u128,
-    ) {
+    fn increase_balance(&mut self, token_id: &AccountId, amount: &u128) {
         let mut user_token_balance = self.user_balances.get(&env::signer_account_id()).unwrap();
         let balance = user_token_balance.get(token_id).unwrap() + amount;
         user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(&env::signer_account_id(), &user_token_balance);
+        self.user_balances
+            .insert(&env::signer_account_id(), &user_token_balance);
     }
 
     #[private]
-    pub fn is_metadata_correct(
-        &mut self,
-        msg: String,
-    ) -> TransferMessage {
-        let transfer_message: TransferMessage = serde_json::from_str(&msg)
-            .expect("Some error with json structure.");
+    pub fn is_metadata_correct(&mut self, msg: String) -> TransferMessage {
+        let transfer_message: TransferMessage =
+            serde_json::from_str(&msg).expect("Some error with json structure.");
 
-        require!(transfer_message.valid_till > block_timestamp(),
-            format!("Transfer valid time:{} not correct, block timestamp:{}.",
-                transfer_message.valid_till, block_timestamp()));
+        require!(
+            transfer_message.valid_till > block_timestamp(),
+            format!(
+                "Transfer valid time:{} not correct, block timestamp:{}.",
+                transfer_message.valid_till,
+                block_timestamp()
+            )
+        );
 
         let lock_period = transfer_message.valid_till - block_timestamp();
-        require!((self.lock_time_min..=self.lock_time_max).contains(&lock_period),
-            format!("Lock period:{} does not fit the terms of the contract.", lock_period));
+        require!(
+            (self.lock_time_min..=self.lock_time_max).contains(&lock_period),
+            format!(
+                "Lock period:{} does not fit the terms of the contract.",
+                lock_period
+            )
+        );
 
         transfer_message
     }
 
     #[private]
-    fn store_transfers(
-        &mut self,
-        transfer_message: TransferMessage,
-    ) -> u128 {
+    fn store_transfers(&mut self, transfer_message: TransferMessage) -> u128 {
         self.nonce += 1;
         let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (signer_account_id(), transfer_message);
-        self.pending_transfers.insert(&transaction_id, &account_pending);
+        self.pending_transfers
+            .insert(&transaction_id, &account_pending);
         self.nonce
     }
 
-    pub fn withdraw(
-        &mut self,
-        token_id: AccountId,
-        amount: u128,
-    ) -> PromiseOrValue<U128> {
-        let user_balance = self.user_balances.get(&env::signer_account_id())
-            .unwrap_or_else(|| { panic!("{}", "User not have balance".to_string()) });
+    pub fn withdraw(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
+        let user_balance = self
+            .user_balances
+            .get(&env::signer_account_id())
+            .unwrap_or_else(|| panic!("{}", "User not have balance".to_string()));
 
-        let balance = user_balance.get(&token_id)
+        let balance = user_balance
+            .get(&token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", &token_id));
 
-        require!( balance >= amount, "Not enough token balance");
+        require!(balance >= amount, "Not enough token balance");
 
         ext_token::ft_transfer(
             env::signer_account_id(),
@@ -330,20 +376,19 @@ impl SpectreBridge {
             env::current_account_id(),
             utils::NO_DEPOSIT,
             utils::TGAS,
-        ).then(ext_self::withdraw_callback(
+        )
+        .then(ext_self::withdraw_callback(
             token_id,
             amount,
             env::current_account_id(),
             utils::NO_DEPOSIT,
-            utils::terra_gas(40))).into()
+            utils::terra_gas(40),
+        ))
+        .into()
     }
 
     #[allow(dead_code)]
-    pub fn withdraw_callback(
-        &mut self,
-        token_id: AccountId,
-        amount: u128,
-    ) -> PromiseOrValue<U128> {
+    pub fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
         require!(is_promise_success(), "Error transfer");
 
         self.decrease_balance(&token_id, &amount);
@@ -352,19 +397,17 @@ impl SpectreBridge {
 
     #[private]
     #[allow(dead_code)]
-    pub fn add_proover_contract(
-        &mut self,
-        chain_id: u32,
-        proover_account: AccountId,
-    ) {
+    pub fn add_proover_contract(&mut self, chain_id: u32, proover_account: AccountId) {
         self.proover_accounts.insert(&chain_id, &proover_account);
     }
 
     #[private]
     #[allow(dead_code)]
-    pub fn set_enear_address(&mut self, near_address: String)
-    {
-        require!(utils::is_valid_eth_address(near_address.clone()), format!("Ethereum address:{} not valid.", near_address));
+    pub fn set_enear_address(&mut self, near_address: String) {
+        require!(
+            utils::is_valid_eth_address(near_address.clone()),
+            format!("Ethereum address:{} not valid.", near_address)
+        );
         self.e_near_address = utils::get_eth_address(near_address);
     }
 
@@ -379,9 +422,9 @@ impl SpectreBridge {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use near_sdk::{testing_env, VMContext};
     use near_sdk::test_utils::VMContextBuilder;
-    use std::convert::{TryFrom};
+    use near_sdk::{testing_env, VMContext};
+    use std::convert::TryFrom;
 
     fn get_context(is_view: bool) -> VMContext {
         VMContextBuilder::new()
@@ -416,7 +459,8 @@ mod tests {
         let mut msg: String = r#"
         {
             "chain_id": 5,
-            "valid_till": "#.to_owned();
+            "valid_till": "#
+            .to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
@@ -445,9 +489,14 @@ mod tests {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
                 amount: U128(100),
             },
-            recipient: utils::get_eth_address("71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string()),
+            recipient: utils::get_eth_address(
+                "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
+            ),
         };
-        assert_eq!(serde_json::to_string(&original).unwrap(), serde_json::to_string(&transfer_message).unwrap());
+        assert_eq!(
+            serde_json::to_string(&original).unwrap(),
+            serde_json::to_string(&transfer_message).unwrap()
+        );
     }
 
     #[test]
@@ -460,7 +509,8 @@ mod tests {
         let mut msg: String = r#"
         {
             "chain_id": 5,
-            "valid_till": "#.to_owned();
+            "valid_till": "#
+            .to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
@@ -487,7 +537,8 @@ mod tests {
         let mut msg: String = r#"
         {
             "chain_id": 5,
-            "valid_till": "#.to_owned();
+            "valid_till": "#
+            .to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
@@ -514,7 +565,10 @@ mod tests {
 
         let balance: u128 = 100;
 
-        contract.ft_on_transfer(AccountId::try_from(transfer_token.to_string()).unwrap(), balance);
+        contract.ft_on_transfer(
+            AccountId::try_from(transfer_token.to_string()).unwrap(),
+            balance,
+        );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(100, amount);
@@ -527,7 +581,6 @@ mod tests {
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
-
 
         let balance: u128 = 100;
 
@@ -561,12 +614,12 @@ mod tests {
         let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
         assert_eq!(100, transfer_token2_amount);
 
-
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
-            "valid_till": "#.to_owned();
+            "valid_till": "#
+            .to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
@@ -608,12 +661,12 @@ mod tests {
         let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
         assert_eq!(100, transfer_token2_amount);
 
-
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
         {
             "chain_id": 5,
-            "valid_till": "#.to_owned();
+            "valid_till": "#
+            .to_owned();
         msg.push_str(&current_timestamp.to_string());
         msg.push_str(r#",
             "transfer": {
