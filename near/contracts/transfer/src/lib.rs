@@ -89,6 +89,21 @@ impl Default for SpectreBridge {
 
 #[near_bindgen]
 impl SpectreBridge {
+    #[init]
+    pub fn new(e_near_address: EthAddress, lock_time_min: String, lock_time_max: String) -> Self {
+        require!(!env::state_exists(), "Already initialized");
+
+        Self {
+            pending_transfers: LookupMap::new(b"a".to_vec()),
+            user_balances: LookupMap::new(b"a".to_vec()),
+            nonce: 0,
+            proover_accounts: LookupMap::new(b"a".to_vec()),
+            e_near_address: e_near_address,
+            lock_time_min: parse(lock_time_min.as_str()).unwrap().as_nanos() as u64,
+            lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
+        }
+    }
+
     pub fn ft_on_transfer(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
         self.update_balance(token_id, amount)
     }
@@ -160,7 +175,7 @@ impl SpectreBridge {
             },
             recipient: transfer_message.recipient,
         }
-        .emit();
+            .emit();
 
         PromiseOrValue::Value(nonce)
     }
@@ -204,7 +219,7 @@ impl SpectreBridge {
             nonce: U128(nonce),
             account: signer_account_id(),
         }
-        .emit();
+            .emit();
     }
 
     pub fn lp_unlock(&mut self, nonce: U128, proof: Proof) {
@@ -221,13 +236,13 @@ impl SpectreBridge {
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         )
-        .then(ext_self::verify_log_entry_callback(
-            proof_1,
-            nonce,
-            current_account_id(),
-            utils::NO_DEPOSIT,
-            utils::terra_gas(50),
-        ));
+            .then(ext_self::verify_log_entry_callback(
+                proof_1,
+                nonce,
+                current_account_id(),
+                utils::NO_DEPOSIT,
+                utils::terra_gas(50),
+            ));
     }
 
     #[private]
@@ -244,7 +259,7 @@ impl SpectreBridge {
                 nonce: U128(nonce),
                 proof: proof,
             }
-            .emit();
+                .emit();
             panic!("Failed to verify the proof");
         }
 
@@ -275,7 +290,7 @@ impl SpectreBridge {
             nonce: U128(nonce),
             account: signer_account_id(),
         }
-        .emit();
+            .emit();
     }
 
     #[private]
@@ -300,7 +315,7 @@ impl SpectreBridge {
             token: token_id,
             amount: U128(amount),
         }
-        .emit();
+            .emit();
         PromiseOrValue::Value(U128::from(0))
     }
 
@@ -377,14 +392,14 @@ impl SpectreBridge {
             utils::NO_DEPOSIT,
             utils::TGAS,
         )
-        .then(ext_self::withdraw_callback(
-            token_id,
-            amount,
-            env::current_account_id(),
-            utils::NO_DEPOSIT,
-            utils::terra_gas(40),
-        ))
-        .into()
+            .then(ext_self::withdraw_callback(
+                token_id,
+                amount,
+                env::current_account_id(),
+                utils::NO_DEPOSIT,
+                utils::terra_gas(40),
+            ))
+            .into()
     }
 
     #[allow(dead_code)]
