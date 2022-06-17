@@ -57,7 +57,10 @@ impl Contract {
     }
 
     pub fn mint(&mut self, account_id: AccountId, amount: U128) {
-        self.token.internal_register_account(&account_id);
+        if self.token.accounts.get(&account_id).is_none() {
+            self.token.internal_register_account(&account_id);
+        };
+
         self.token.internal_deposit(&account_id, amount.into());
     }
 
