@@ -1,6 +1,8 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;
-use near_sdk::env::{block_timestamp, current_account_id, signer_account_id};
+use near_sdk::env::{
+    block_timestamp, current_account_id, predecessor_account_id, signer_account_id,
+};
 use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
@@ -98,14 +100,19 @@ impl SpectreBridge {
             user_balances: LookupMap::new(b"a".to_vec()),
             nonce: 0,
             proover_accounts: LookupMap::new(b"a".to_vec()),
-            e_near_address: e_near_address,
+            e_near_address,
             lock_time_min: parse(lock_time_min.as_str()).unwrap().as_nanos() as u64,
             lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
         }
     }
 
-    pub fn ft_on_transfer(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
-        self.update_balance(token_id, amount)
+    pub fn ft_on_transfer(
+        &mut self,
+        _sender_id: AccountId,
+        amount: u128,
+        _msg: String,
+    ) -> PromiseOrValue<U128> {
+        self.update_balance(signer_account_id(), predecessor_account_id(), amount)
     }
 
     pub fn lock(&mut self, msg: String) -> PromiseOrValue<U128> {
@@ -161,7 +168,7 @@ impl SpectreBridge {
         let nonce = U128::from(self.store_transfers(transfer_message.clone()));
 
         Event::SpectreBridgeTransferEvent {
-            nonce: nonce,
+            nonce,
             chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
             transfer: TransferDataEthereum {
@@ -175,7 +182,7 @@ impl SpectreBridge {
             },
             recipient: transfer_message.recipient,
         }
-            .emit();
+        .emit();
 
         PromiseOrValue::Value(nonce)
     }
@@ -219,7 +226,7 @@ impl SpectreBridge {
             nonce: U128(nonce),
             account: signer_account_id(),
         }
-            .emit();
+        .emit();
     }
 
     pub fn lp_unlock(&mut self, nonce: U128, proof: Proof) {
@@ -236,13 +243,13 @@ impl SpectreBridge {
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         )
-            .then(ext_self::verify_log_entry_callback(
-                proof_1,
-                nonce,
-                current_account_id(),
-                utils::NO_DEPOSIT,
-                utils::terra_gas(50),
-            ));
+        .then(ext_self::verify_log_entry_callback(
+            proof_1,
+            nonce,
+            current_account_id(),
+            utils::NO_DEPOSIT,
+            utils::terra_gas(50),
+        ));
     }
 
     #[private]
@@ -257,9 +264,9 @@ impl SpectreBridge {
         if verification_result == 0 {
             Event::SpectreBridgeEthProoverNotProofedEvent {
                 nonce: U128(nonce),
-                proof: proof,
+                proof,
             }
-                .emit();
+            .emit();
             panic!("Failed to verify the proof");
         }
 
@@ -290,32 +297,35 @@ impl SpectreBridge {
             nonce: U128(nonce),
             account: signer_account_id(),
         }
-            .emit();
+        .emit();
     }
 
     #[private]
-    fn update_balance(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
-        if let Some(mut user_balances) = self.user_balances.get(&signer_account_id()) {
+    fn update_balance(
+        &mut self,
+        account_id: AccountId,
+        token_id: AccountId,
+        amount: u128,
+    ) -> PromiseOrValue<U128> {
+        if let Some(mut user_balances) = self.user_balances.get(&account_id) {
             if let Some(mut token_amount) = user_balances.get(&token_id) {
                 token_amount += amount;
                 user_balances.insert(&token_id, &token_amount);
             } else {
                 user_balances.insert(&token_id, &amount);
             }
-            self.user_balances
-                .insert(&signer_account_id(), &user_balances);
+            self.user_balances.insert(&account_id, &user_balances);
         } else {
             let mut token_balance = LookupMap::new(b"tb".to_vec());
             token_balance.insert(&token_id, &amount);
-            self.user_balances
-                .insert(&signer_account_id(), &token_balance);
+            self.user_balances.insert(&account_id, &token_balance);
         }
         Event::SpectreBridgeDepositEvent {
-            account: signer_account_id(),
+            account: account_id,
             token: token_id,
             amount: U128(amount),
         }
-            .emit();
+        .emit();
         PromiseOrValue::Value(U128::from(0))
     }
 
@@ -392,14 +402,14 @@ impl SpectreBridge {
             utils::NO_DEPOSIT,
             utils::TGAS,
         )
-            .then(ext_self::withdraw_callback(
-                token_id,
-                amount,
-                env::current_account_id(),
-                utils::NO_DEPOSIT,
-                utils::terra_gas(40),
-            ))
-            .into()
+        .then(ext_self::withdraw_callback(
+            token_id,
+            amount,
+            env::current_account_id(),
+            utils::NO_DEPOSIT,
+            utils::terra_gas(40),
+        ))
+        .into()
     }
 
     #[allow(dead_code)]
@@ -445,7 +455,7 @@ mod tests {
         VMContextBuilder::new()
             .current_account_id(AccountId::try_from("alice_near".to_string()).unwrap())
             .signer_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
-            .predecessor_account_id(AccountId::try_from("carol_near".to_string()).unwrap())
+            .predecessor_account_id(AccountId::try_from("token_near".to_string()).unwrap())
             .block_index(101)
             .block_timestamp(1649402222)
             .is_view(is_view)
@@ -583,6 +593,10 @@ mod tests {
         contract.ft_on_transfer(
             AccountId::try_from(transfer_token.to_string()).unwrap(),
             balance,
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
         );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let amount = user_balance.get(&transfer_token).unwrap();
@@ -599,7 +613,14 @@ mod tests {
 
         let balance: u128 = 100;
 
-        contract.ft_on_transfer(transfer_token.clone(), balance);
+        contract.ft_on_transfer(
+            transfer_token.clone(),
+            balance,
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(100, amount);
@@ -616,18 +637,21 @@ mod tests {
         testing_env!(context);
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let transfer_token2: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
-        let balance: u128 = 100;
+        let balance: u128 = 200;
 
-        contract.ft_on_transfer(transfer_token.clone(), balance);
-        contract.ft_on_transfer(transfer_token2.clone(), balance);
+        contract.ft_on_transfer(
+            transfer_token.clone(),
+            balance,
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(100, transfer_token_amount);
-        let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
-        assert_eq!(100, transfer_token2_amount);
+        assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
@@ -640,11 +664,11 @@ mod tests {
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
-                "amount": "50"
+                "amount": "99"
             },
             "fee": {
-                "token": "token2_near",
-                "amount": "50"
+                "token": "token_near",
+                "amount": "99"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
@@ -652,9 +676,7 @@ mod tests {
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(50, transfer_token_amount);
-        let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
-        assert_eq!(50, transfer_token2_amount);
+        assert_eq!(2, transfer_token_amount);
     }
 
     #[test]
@@ -663,18 +685,30 @@ mod tests {
         testing_env!(context);
         let mut contract = SpectreBridge::default();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let transfer_token2: AccountId = AccountId::try_from("token2_near".to_string()).unwrap();
+        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
 
-        contract.ft_on_transfer(transfer_token.clone(), balance);
-        contract.ft_on_transfer(transfer_token2.clone(), balance);
+        contract.ft_on_transfer(
+            transfer_token.clone(),
+            balance,
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
+        contract.ft_on_transfer(
+            transfer_token2.clone(),
+            balance,
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token2, balance
+            ),
+        );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(100, transfer_token_amount);
-        let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
-        assert_eq!(100, transfer_token2_amount);
+        assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let mut msg: String = r#"
@@ -687,11 +721,11 @@ mod tests {
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
-                "amount": "50"
+                "amount": "75"
             },
             "fee": {
-                "token": "token2_near",
-                "amount": "50"
+                "token": "token_near",
+                "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
@@ -700,16 +734,12 @@ mod tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(50, transfer_token_amount);
-        let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
-        assert_eq!(50, transfer_token2_amount);
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
         contract.unlock(1);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(100, transfer_token_amount);
-        let transfer_token2_amount = user_balance.get(&transfer_token2).unwrap();
-        assert_eq!(100, transfer_token2_amount);
+        assert_eq!(200, transfer_token_amount);
     }
 }
