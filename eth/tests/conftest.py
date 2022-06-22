@@ -3,12 +3,7 @@ import brownie
 from pathlib import Path
 from scripts.deploy_testnet.deploy_helpers import encode_function_data
 from brownie import accounts, chain, project, config, Contract
-from brownie import EthErc20FastBridge
-
-
-ERC1967Proxy = project.load(
-    Path.home() / ".brownie" / "packages" / config["dependencies"][0]
-).ERC1967Proxy
+from brownie import EthErc20FastBridge, ERC1967Proxy
 
 
 @pytest.fixture(scope="function", autouse=True)

@@ -5,9 +5,6 @@ from dotenv import load_dotenv, find_dotenv
 from scripts.deploy_testnet.deploy_helpers import *
 from pathlib import Path
 
-ERC1967Proxy = project.load(
-    Path.home() / ".brownie" / "packages" / config["dependencies"][0]
-).ERC1967Proxy
 
 def main():
     load_dotenv(find_dotenv())
