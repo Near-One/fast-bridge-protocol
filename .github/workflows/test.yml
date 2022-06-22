@@ -17,6 +17,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -25,7 +26,7 @@ jobs:
         with:
           command: clippy
           args:  --manifest-path ./near/contracts/Cargo.toml -- -A clippy::too-many-arguments -D warnings
-      - run: cd near; ./build.sh
+      - run: cd near; mkdir res; ./build.sh
       - run: cd near; ./test.sh
       
   test-npm:
