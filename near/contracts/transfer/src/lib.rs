@@ -76,7 +76,7 @@ pub struct SpectreBridge {
     eth_bridge_contract: EthAddress,
     lock_time_min: Duration,
     lock_time_max: Duration,
-    supported_tokens: UnorderedSet<AccountId>,
+    whitelisted_tokens: UnorderedSet<AccountId>,
 }
 
 impl Default for SpectreBridge {
@@ -89,7 +89,7 @@ impl Default for SpectreBridge {
             eth_bridge_contract: [0u8; 20],
             lock_time_min: parse("1h").unwrap().as_nanos() as u64,
             lock_time_max: parse("24h").unwrap().as_nanos() as u64,
-            supported_tokens: UnorderedSet::new(b"b".to_vec()),
+            whitelisted_tokens: UnorderedSet::new(b"b".to_vec()),
         }
     }
 }
@@ -112,7 +112,7 @@ impl SpectreBridge {
             eth_bridge_contract,
             lock_time_min: parse(lock_time_min.as_str()).unwrap().as_nanos() as u64,
             lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
-            supported_tokens: UnorderedSet::new(b"b".to_vec()),
+            whitelisted_tokens: UnorderedSet::new(b"b".to_vec()),
         }
     }
 
@@ -125,8 +125,8 @@ impl SpectreBridge {
         require!(sender_id == env::signer_account_id());
 
         require!(
-            self.supported_tokens.is_empty()
-                || self.supported_tokens.contains(&predecessor_account_id()),
+            self.whitelisted_tokens.is_empty()
+                || self.whitelisted_tokens.contains(&predecessor_account_id()),
             format!("Token: {} not supported.", predecessor_account_id())
         );
 
@@ -406,15 +406,15 @@ impl SpectreBridge {
             )
         );
         require!(
-            self.supported_tokens.is_empty()
+            self.whitelisted_tokens.is_empty()
                 || self
-                    .supported_tokens
+                    .whitelisted_tokens
                     .contains(&transfer_message.transfer.token_near),
             "This transfer token not supported."
         );
         require!(
-            self.supported_tokens.is_empty()
-                || self.supported_tokens.contains(&transfer_message.fee.token),
+            self.whitelisted_tokens.is_empty()
+                || self.whitelisted_tokens.contains(&transfer_message.fee.token),
             "This fee token not supported."
         );
 
@@ -490,7 +490,7 @@ impl SpectreBridge {
 
     #[private]
     pub fn add_supported_token(&mut self, token: AccountId) {
-        self.supported_tokens.insert(&token);
+        self.whitelisted_tokens.insert(&token);
     }
 }
 
@@ -524,13 +524,45 @@ mod tests {
     }
 
     #[test]
-    fn add_supported_token_test() {
+    fn ft_on_transfer_with_empty_whitelist() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
+        
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance = U128(100);
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+    }
+
+    #[test]
+    fn ft_on_transfer_with_token_in_whitelist() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        
         let token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
-        assert!(contract.supported_tokens.contains(&token));
+        assert!(contract.whitelisted_tokens.contains(&token));
+
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance = U128(100);
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+    }
+
+    #[test]
+    #[should_panic]
+    fn ft_on_transfer_with_token_not_in_whitelist() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        
+        let token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
+        contract.add_supported_token(token.clone());
+        assert!(contract.whitelisted_tokens.contains(&token));
+
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance = U128(100);
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
     }
 
     #[test]
