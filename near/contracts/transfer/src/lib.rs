@@ -1,6 +1,6 @@
 use crate::lp_relayer::TransferProof;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LookupMap;
+use near_sdk::collections::{LookupMap, UnorderedSet};
 use near_sdk::env::{
     block_timestamp, current_account_id, predecessor_account_id, signer_account_id,
 };
@@ -76,6 +76,7 @@ pub struct SpectreBridge {
     eth_bridge_contract: EthAddress,
     lock_time_min: Duration,
     lock_time_max: Duration,
+    supported_tokens: UnorderedSet<AccountId>,
 }
 
 impl Default for SpectreBridge {
@@ -88,6 +89,7 @@ impl Default for SpectreBridge {
             eth_bridge_contract: [0u8; 20],
             lock_time_min: parse("1h").unwrap().as_nanos() as u64,
             lock_time_max: parse("24h").unwrap().as_nanos() as u64,
+            supported_tokens: UnorderedSet::new(b"b".to_vec()),
         }
     }
 }
@@ -110,6 +112,7 @@ impl SpectreBridge {
             eth_bridge_contract,
             lock_time_min: parse(lock_time_min.as_str()).unwrap().as_nanos() as u64,
             lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
+            supported_tokens: UnorderedSet::new(b"b".to_vec()),
         }
     }
 
@@ -120,6 +123,12 @@ impl SpectreBridge {
         #[allow(unused_variables)] msg: String,
     ) -> PromiseOrValue<U128> {
         require!(sender_id == env::signer_account_id());
+
+        require!(
+            self.supported_tokens.is_empty()
+                || self.supported_tokens.contains(&predecessor_account_id()),
+            format!("Token: {} not supported.", predecessor_account_id())
+        );
 
         self.update_balance(signer_account_id(), predecessor_account_id(), amount.0)
     }
@@ -396,6 +405,18 @@ impl SpectreBridge {
                 lock_period
             )
         );
+        require!(
+            self.supported_tokens.is_empty()
+                || self
+                    .supported_tokens
+                    .contains(&transfer_message.transfer.token_near),
+            "This transfer token not supported."
+        );
+        require!(
+            self.supported_tokens.is_empty()
+                || self.supported_tokens.contains(&transfer_message.fee.token),
+            "This fee token not supported."
+        );
 
         transfer_message
     }
@@ -469,6 +490,12 @@ impl SpectreBridge {
         self.lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
         self.lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
     }
+
+    #[private]
+    #[allow(dead_code)]
+    pub fn add_supported_token(&mut self, token: AccountId) {
+        self.supported_tokens.insert(&token);
+    }
 }
 
 #[cfg(test)]
@@ -498,6 +525,16 @@ mod tests {
             .block_timestamp(1 + 3600000000000 + 2)
             .is_view(is_view)
             .build()
+    }
+
+    #[test]
+    fn add_supported_token_test() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        contract.add_supported_token(token.clone());
+        assert!(contract.supported_tokens.contains(&token));
     }
 
     #[test]
