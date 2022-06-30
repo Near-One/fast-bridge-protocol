@@ -94,18 +94,17 @@ mod tests {
         // get VM builer
         let context = VMContextBuilder::new();
         // account for contract
-        let _contract_account = alice();
+        let contract_account = alice();
         // init the contract
         let contract = Contract::new_default_meta(
-            _contract_account.clone(),
+            contract_account.clone(),
             String::from("Mock Token"),
             String::from("MOCK"),
             TOTAL_SUPPLY.into(),
         );
-        (context, _contract_account, contract)
+        (context, contract_account, contract)
     }
 
-    #[allow(dead_code)]
     fn get_context(predecessor_account_id: AccountId) -> VMContextBuilder {
         let mut builder = VMContextBuilder::new();
         builder

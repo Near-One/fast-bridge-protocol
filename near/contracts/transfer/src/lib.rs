@@ -460,7 +460,7 @@ impl SpectreBridge {
         .into()
     }
 
-    #[allow(dead_code)]
+    #[private]
     pub fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
         require!(is_promise_success(), "Error transfer");
 
@@ -469,13 +469,11 @@ impl SpectreBridge {
     }
 
     #[private]
-    #[allow(dead_code)]
     pub fn add_proover_contract(&mut self, chain_id: u32, proover_account: AccountId) {
         self.proover_accounts.insert(&chain_id, &proover_account);
     }
 
     #[private]
-    #[allow(dead_code)]
     pub fn set_enear_address(&mut self, near_address: String) {
         require!(
             utils::is_valid_eth_address(near_address.clone()),
@@ -485,14 +483,12 @@ impl SpectreBridge {
     }
 
     #[private]
-    #[allow(dead_code)]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         self.lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
         self.lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
     }
 
     #[private]
-    #[allow(dead_code)]
     pub fn add_supported_token(&mut self, token: AccountId) {
         self.supported_tokens.insert(&token);
     }
