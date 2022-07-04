@@ -16,6 +16,9 @@ use parse_duration::parse;
 use spectre_bridge_common::*;
 use std::str;
 
+pub use crate::ft::*;
+
+mod ft;
 mod lp_relayer;
 mod utils;
 
@@ -38,12 +41,12 @@ pub trait Prover {
 
 #[ext_contract(ext_token)]
 trait NEP141Token {
-    fn ft_transfer(&mut self, receiver_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
 }
 
 #[ext_contract(ext_self)]
 trait SpectreBridgeInterface {
-    fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128>;
+    fn withdraw_callback(&mut self, token_id: AccountId, amount: U128);
     fn verify_log_entry_callback(&mut self, proof: TransferProof) -> Promise;
 }
 
@@ -114,23 +117,6 @@ impl SpectreBridge {
             lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
             whitelisted_tokens: UnorderedSet::new(b"b".to_vec()),
         }
-    }
-
-    pub fn ft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        amount: U128,
-        #[allow(unused_variables)] msg: String,
-    ) -> PromiseOrValue<U128> {
-        require!(sender_id == env::signer_account_id());
-
-        require!(
-            self.whitelisted_tokens.is_empty()
-                || self.whitelisted_tokens.contains(&predecessor_account_id()),
-            format!("Token: {} not supported.", predecessor_account_id())
-        );
-
-        self.update_balance(signer_account_id(), predecessor_account_id(), amount.0)
     }
 
     pub fn lock(&mut self, msg: String) -> PromiseOrValue<U128> {
@@ -414,7 +400,9 @@ impl SpectreBridge {
         );
         require!(
             self.whitelisted_tokens.is_empty()
-                || self.whitelisted_tokens.contains(&transfer_message.fee.token),
+                || self
+                    .whitelisted_tokens
+                    .contains(&transfer_message.fee.token),
             "This fee token not supported."
         );
 
@@ -431,7 +419,8 @@ impl SpectreBridge {
         self.nonce
     }
 
-    pub fn withdraw(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
+    #[payable]
+    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
         let user_balance = self
             .user_balances
             .get(&env::signer_account_id())
@@ -439,33 +428,39 @@ impl SpectreBridge {
 
         let balance = user_balance
             .get(&token_id)
-            .unwrap_or_else(|| panic!("User token: {} , balance is 0", &token_id));
+            .unwrap_or_else(|| panic!("User token: {} , balance is 0", &token_id.clone()));
 
-        require!(balance >= amount, "Not enough token balance");
+        require!(
+            balance >= u128::try_from(amount).unwrap(),
+            "Not enough token balance"
+        );
 
         ext_token::ft_transfer(
             env::signer_account_id(),
             amount,
-            env::current_account_id(),
-            utils::NO_DEPOSIT,
-            utils::TGAS,
+            Some(format!(
+                "Withdraw from: {} amount: {}",
+                current_account_id(),
+                u128::try_from(amount).unwrap()
+            )),
+            token_id.clone(),
+            1,
+            utils::terra_gas(5),
         )
         .then(ext_self::withdraw_callback(
             token_id,
             amount,
             env::current_account_id(),
             utils::NO_DEPOSIT,
-            utils::terra_gas(40),
-        ))
-        .into()
+            utils::terra_gas(2),
+        ));
     }
 
     #[private]
-    pub fn withdraw_callback(&mut self, token_id: AccountId, amount: u128) -> PromiseOrValue<U128> {
+    pub fn withdraw_callback(&mut self, token_id: AccountId, amount: U128) {
         require!(is_promise_success(), "Error transfer");
 
-        self.decrease_balance(&token_id, &amount);
-        PromiseOrValue::Value(U128::from(0))
+        self.decrease_balance(&token_id, &u128::try_from(amount).unwrap());
     }
 
     #[private]
@@ -497,6 +492,7 @@ impl SpectreBridge {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
     use near_sdk::test_utils::VMContextBuilder;
     use near_sdk::{testing_env, VMContext};
     use std::convert::TryFrom;
@@ -528,10 +524,10 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        
+
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
-        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+        contract.ft_on_transfer(transfer_account, balance, "".to_string());
     }
 
     #[test]
@@ -539,14 +535,14 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        
+
         let token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
         assert!(contract.whitelisted_tokens.contains(&token));
 
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
-        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+        contract.ft_on_transfer(transfer_account, balance, "".to_string());
     }
 
     #[test]
@@ -555,14 +551,14 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        
+
         let token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
         assert!(contract.whitelisted_tokens.contains(&token));
 
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
-        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+        contract.ft_on_transfer(transfer_account, balance, "".to_string());
     }
 
     #[test]

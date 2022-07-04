@@ -3,34 +3,148 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+          integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Arvo&display=swap" rel="stylesheet">
 
 </head>
 <body style="background: #eef2fe; font-family: 'Arvo', serif;">
 <div class="container">
-    <div class="deposit">
-        <button class="btn btn-primary" style="background-color: #0072CE;">Deposit</button>
+    <h3>SpectreBridgeProtocol client</h3>
+    <div class="input-group mb-3">
+        <button type="button" class="btn btn-primary sign-in" style="background-color: #0072CE;">Sign In</button>
+        <button type="button" class="btn btn-primary sign-out" style="background-color: #0072CE;">Sign Out</button>
     </div>
-    <div class="withdraw">
-        <button class="btn btn-primary" style="background-color: #0072CE;">Withdraw</button>
-    </div>
-    <div class="lock">
-        <button class="btn btn-primary" style="background-color: #0072CE;">Lock</button>
-    </div>
-    <div class="lp-unlock">
-        <button class="btn btn-primary" style="background-color: #0072CE;">Lp_unlock</button>
+    <div class="jumbotron">
+        <label for="deposit">Deposit</label>
+        <div class="input-group mb-3" id="deposit">
+            <div class="input-group-prepend">
+                <span class="input-group-text">receiver id:</span>
+            </div>
+            <input class="form-control account-id">
+            <div class="input-group-prepend">
+                <span class="input-group-text">amount:</span>
+            </div>
+            <input class="form-control deposit-amount" placeholder="0">
+
+        </div>
+
+        <div class="input-group mb-3" >
+            <div class="input-group-prepend">
+                <span class="input-group-text">message:</span>
+            </div>
+            <input class="form-control msg">
+
+            <div class="input-group-append">
+                <button type="button" class="btn btn-primary autocomplete-deposit" style="background-color: #0072CE;">autocomplete</button>
+                <button class="btn btn-primary deposit" style="background-color: #0072CE;">deposit</button>
+            </div>
+        </div>
     </div>
 
-    <div class="sign-out" >
-        <button class="btn btn-primary" style="background-color: #0072CE;">Sign Out</button>
+    <div class="jumbotron">
+        <label for="lock">Lock</label>
+        <div id="lock">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">chain id:</span>
+                </div>
+                <input type="number" class="form-control chain-id" id="chain-id" placeholder="0">
+            </div>
+            <small id="validtimeHelper" class="form-text text-muted">Valid time must be in nano seconds. You can set it
+                auto.</small>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">valid time:</span>
+                </div>
+                <input type="number" class="form-control valid-time" id="valid-time" aria-describedby="validtimeHelper"
+                       placeholder="valid time">
+                <div class="input-group-append">
+                    <button type="button" class="btn btn-primary set-auto" style="background-color: #0072CE;">set auto
+                    </button>
+                </div>
+            </div>
+
+            <div class="transfer">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">transfer token near:</span>
+                    </div>
+                    <input class="form-control token-near" placeholder="token_near">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">transfer token eth:</span>
+                    </div>
+                    <input class="form-control token-eth" placeholder="token_eth">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">transfer amount:</span>
+                    </div>
+                    <input type="number" class="form-control amount" placeholder="0">
+                </div>
+            </div>
+            <div class="fee">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">fee token near:</span>
+                    </div>
+                    <input class="form-control token-near" placeholder="token_near">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">fee amount:</span>
+                    </div>
+                    <input type="number" class="form-control amount" placeholder="0">
+                </div>
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">recipient:</span>
+                </div>
+                <input class="form-control recipient" placeholder="recipient">
+                <div class="input-group-append">
+                    <button type="button" class="btn btn-primary autocomplete" style="background-color: #0072CE;">autocomplete</button>
+                    <button class="btn btn-primary lock" style="background-color: #0072CE;">Lock</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="sign-in" >
-        <button class="btn btn-primary" style="background-color: #0072CE;">Sign In</button>
+    <div class="jumbotron">
+        <label for="unlock">Unlock</label>
+        <div class="input-group mb-3" id="unlock">
+            <div class="input-group-prepend">
+                <span class="input-group-text">nonce:</span>
+            </div>
+            <input type="number" class="form-control unlock-nonce" placeholder="0">
+            <div class="input-group-append">
+                <button class="btn btn-primary unlock" style="background-color: #0072CE;">unlock</button>
+            </div>
+        </div>
     </div>
 
+    <div class="jumbotron">
+        <label for="withdraw">Withdraw</label>
+        <div class="input-group mb-3" id="withdraw">
+            <div class="input-group-prepend">
+                <span class="input-group-text">receiver id:</span>
+            </div>
+            <input class="form-control receiver-account-id">
+            <div class="input-group-prepend">
+                <span class="input-group-text">amount:</span>
+            </div>
+            <input type="number" class="form-control withdraw-amount" placeholder="0">
+
+            <div class="input-group-append">
+                <button class="btn btn-primary withdraw" style="background-color: #0072CE;">withdraw</button>
+            </div>
+        </div>
+
+
+    </div>
+    <script src="js/example.js"></script>
 </div>
-<script src="js/example.js"></script>
 </body>
 </html>

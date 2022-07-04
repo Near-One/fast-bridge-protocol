@@ -1,0 +1,21 @@
+{
+  "name": "SpectreBridgeProtocol",
+  "description": "Spectre bridge protocol client",
+  "version": "1.0.0",
+  "license": "(MIT AND Apache-2.0)",
+  "scripts": {
+    "start": "echo The app is starting! && env-cmd -f .env parcel index.html --open"
+  },
+  "devDependencies": {
+    "env-cmd": "^10.1.0",
+    "near-cli": "^3.2.0",
+    "nodemon": "~2.0.15",
+    "parcel-bundler": "~1.12.5",
+    "typescript": "^4.6.4",
+    "ts-node": "^10.7.0"
+  },
+  "dependencies": {
+    "near-api-js": "^0.44.2",
+    "regenerator-runtime": "^0.13.9"
+  }
+}

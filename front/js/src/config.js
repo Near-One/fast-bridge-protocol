@@ -1,4 +1,5 @@
-const CONTRACT_NAME = process.env.CONTRACT_NAME || 'transfer.spectrebridge2.testnet'; /* TODO: Change this to the deployed account */
+const CONTRACT_NAME = process.env.CONTRACT_NAME || 'transfer.spectrebridge2.testnet';
+const TOKEN_CONTRACT_NAME = process.env.TOKEN_CONTRACT_NAME || 'token.spectrebridge2.testnet';
 
 export default function getConfig(env) {
     switch (env) {
@@ -17,6 +18,7 @@ export default function getConfig(env) {
                 networkId: 'testnet',
                 nodeUrl: 'https://rpc.testnet.near.org',
                 contractName: CONTRACT_NAME,
+                tokenContractName: TOKEN_CONTRACT_NAME,
                 walletUrl: 'https://wallet.testnet.near.org',
                 helperUrl: 'https://helper.testnet.near.org'
             }

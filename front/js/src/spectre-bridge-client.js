@@ -9,7 +9,10 @@ export async function initContract() {
     window.walletConnection = new WalletConnection(near)
     window.accountId = window.walletConnection.getAccountId()
     window.contract = await new Contract(window.walletConnection.account(), nearConfig.contractName, {
-        changeMethods: ['ft_on_transfer', 'lock', 'unlock', 'lp_unlock'],
+        changeMethods: ['ft_on_transfer', 'lock', 'unlock', 'lp_unlock', 'withdraw'],
+    });
+    window.contract2 = await new Contract(window.walletConnection.account(), nearConfig.tokenContractName, {
+        changeMethods: ['ft_transfer_call'],
     })
 }
 
@@ -22,23 +25,37 @@ export function login() {
     window.walletConnection.requestSignIn(nearConfig.contractName)
 }
 
-export async function deposit(accountId, amount) {
-    await window.contract.ft_on_transfer({args: {token_id: accountId, amount: amount}})
+export async function deposit(accountId, amount, msg) {
+    await window.contract2.ft_transfer_call({
+        args: {receiver_id: accountId, amount: amount, msg: msg},
+        gas: "300000000000000",
+        amount: "1"
+    })
         .catch(err => errorHelper(err))
 }
 
-export async function withdraw(nonce) {
-    await window.contract.unlock({args: {nonce: nonce}})
+export async function unlock(nonce) {
+    await window.contract.unlock({
+        args: {nonce: nonce},
+        gas: "300000000000000",
+    })
+        .catch(err => errorHelper(err))
+}
+
+export async function withdraw(token_id, amount) {
+    await window.contract.withdraw({
+        args: {token_id: token_id, amount: amount},
+        gas: "300000000000000",
+        amount: "1"
+    })
         .catch(err => errorHelper(err))
 }
 
 export async function lock(msg) {
-    await window.contract.lock({args: {msg: msg}})
-        .catch(err => errorHelper(err))
-}
-
-export async function lp_unlock(nonce, proof) {
-    await window.contract.lp_unlock({args: {nonce: nonce, proof: proof}})
+    await window.contract.lock({
+        args: {msg: msg},
+        gas: "300000000000000"
+    })
         .catch(err => errorHelper(err))
 }
 
