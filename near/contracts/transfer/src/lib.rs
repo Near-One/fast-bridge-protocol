@@ -238,6 +238,7 @@ impl SpectreBridge {
 
     pub fn lp_unlock(&mut self, proof: Proof) {
         let parsed_proof = lp_relayer::TransferProof::parse(proof.clone());
+
         let proover_account = self
             .proover_accounts
             .get(&self.current_chain_id)
@@ -247,24 +248,25 @@ impl SpectreBridge {
                     self.current_chain_id
                 )
             });
-        ext_prover::verify_log_entry(
-            proof.log_index,
-            proof.log_entry_data,
-            proof.receipt_index,
-            proof.receipt_data,
-            proof.header_data,
-            proof.proof,
-            true,
-            proover_account,
-            utils::NO_DEPOSIT,
-            utils::terra_gas(50),
-        )
-        .then(ext_self::verify_log_entry_callback(
-            parsed_proof,
-            current_account_id(),
-            utils::NO_DEPOSIT,
-            utils::terra_gas(50),
-        ));
+
+        ext_prover::ext(proover_account)
+            .with_static_gas(utils::terra_gas(50))
+            .with_attached_deposit(utils::NO_DEPOSIT)
+            .verify_log_entry(
+                proof.log_index,
+                proof.log_entry_data,
+                proof.receipt_index,
+                proof.receipt_data,
+                proof.header_data,
+                proof.proof,
+                false,
+            )
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::terra_gas(50))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .verify_log_entry_callback(parsed_proof),
+            );
     }
 
     #[private]
@@ -446,25 +448,24 @@ impl SpectreBridge {
             "Not enough token balance"
         );
 
-        ext_token::ft_transfer(
-            env::signer_account_id(),
-            amount,
-            Some(format!(
-                "Withdraw from: {} amount: {}",
-                current_account_id(),
-                u128::try_from(amount).unwrap()
-            )),
-            token_id.clone(),
-            1,
-            utils::terra_gas(5),
-        )
-        .then(ext_self::withdraw_callback(
-            token_id,
-            amount,
-            env::current_account_id(),
-            utils::NO_DEPOSIT,
-            utils::terra_gas(2),
-        ));
+        ext_token::ext(token_id.clone())
+            .with_static_gas(utils::terra_gas(5))
+            .with_attached_deposit(1)
+            .ft_transfer(
+                signer_account_id(),
+                amount,
+                Some(format!(
+                    "Withdraw from: {} amount: {}",
+                    current_account_id(),
+                    u128::try_from(amount).unwrap()
+                )),
+            )
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::terra_gas(2))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .withdraw_callback(token_id, amount),
+            );
     }
 
     #[private]
