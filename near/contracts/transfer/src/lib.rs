@@ -76,6 +76,7 @@ pub struct SpectreBridge {
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     proover_accounts: LookupMap<u32, AccountId>,
+    current_chain_id: u32,
     eth_bridge_contract: EthAddress,
     lock_time_min: Duration,
     lock_time_max: Duration,
@@ -88,6 +89,7 @@ impl Default for SpectreBridge {
             pending_transfers: LookupMap::new(b"a".to_vec()),
             user_balances: LookupMap::new(b"c".to_vec()),
             nonce: 0,
+            current_chain_id: 4,
             proover_accounts: LookupMap::new(b"pr_ct".to_vec()),
             eth_bridge_contract: [0u8; 20],
             lock_time_min: parse("1h").unwrap().as_nanos() as u64,
@@ -112,6 +114,7 @@ impl SpectreBridge {
             user_balances: LookupMap::new(b"a".to_vec()),
             nonce: 0,
             proover_accounts: LookupMap::new(b"a".to_vec()),
+            current_chain_id: 4,
             eth_bridge_contract,
             lock_time_min: parse(lock_time_min.as_str()).unwrap().as_nanos() as u64,
             lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
@@ -235,7 +238,15 @@ impl SpectreBridge {
 
     pub fn lp_unlock(&mut self, proof: Proof) {
         let parsed_proof = lp_relayer::TransferProof::parse(proof.clone());
-
+        let proover_account = self
+            .proover_accounts
+            .get(&self.current_chain_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Proover account for current chain id:{}",
+                    self.current_chain_id
+                )
+            });
         ext_prover::verify_log_entry(
             proof.log_index,
             proof.log_entry_data,
@@ -244,7 +255,7 @@ impl SpectreBridge {
             proof.header_data,
             proof.proof,
             true,
-            AccountId::try_from("prover.goerli.testnet".to_string()).unwrap(),
+            proover_account,
             utils::NO_DEPOSIT,
             utils::terra_gas(50),
         )
@@ -486,6 +497,11 @@ impl SpectreBridge {
     #[private]
     pub fn add_supported_token(&mut self, token: AccountId) {
         self.whitelisted_tokens.insert(&token);
+    }
+
+    #[private]
+    pub fn set_current_chain_id(&mut self, chain_id: u32) {
+        self.current_chain_id = chain_id;
     }
 }
 
@@ -792,5 +808,17 @@ mod tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
+    }
+
+    #[test]
+    fn set_current_chain_id() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let new_current_chain_id = 33;
+
+        assert_eq!(4, contract.current_chain_id);
+        contract.set_current_chain_id(new_current_chain_id);
+        assert_eq!(new_current_chain_id, contract.current_chain_id);
     }
 }
