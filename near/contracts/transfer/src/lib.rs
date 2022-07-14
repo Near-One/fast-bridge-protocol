@@ -109,6 +109,13 @@ impl SpectreBridge {
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
+        let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        require!(
+            lock_time_max > lock_time_min,
+            "Error initialize: lock_time_min must be less than lock_time_max"
+        );
+
         Self {
             pending_transfers: LookupMap::new(b"a".to_vec()),
             user_balances: LookupMap::new(b"a".to_vec()),
@@ -116,8 +123,8 @@ impl SpectreBridge {
             proover_accounts: LookupMap::new(b"a".to_vec()),
             current_chain_id: 4,
             eth_bridge_contract,
-            lock_time_min: parse(lock_time_min.as_str()).unwrap().as_nanos() as u64,
-            lock_time_max: parse(lock_time_max.as_str()).unwrap().as_nanos() as u64,
+            lock_time_min,
+            lock_time_max,
             whitelisted_tokens: UnorderedSet::new(b"b".to_vec()),
         }
     }
@@ -194,8 +201,8 @@ impl SpectreBridge {
         PromiseOrValue::Value(nonce)
     }
 
-    pub fn unlock(&mut self, nonce: u128) {
-        let transaction_id = utils::get_transaction_id(nonce);
+    pub fn unlock(&mut self, nonce: U128) {
+        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let transfer = self
             .pending_transfers
             .get(&transaction_id)
@@ -230,7 +237,7 @@ impl SpectreBridge {
         self.pending_transfers.remove(&transaction_id);
 
         Event::SpectreBridgeUnlockEvent {
-            nonce: U128(nonce),
+            nonce,
             account: signer_account_id(),
         }
         .emit();
@@ -486,7 +493,7 @@ impl SpectreBridge {
             utils::is_valid_eth_address(near_address.clone()),
             format!("Ethereum address:{} not valid.", near_address)
         );
-        self.eth_bridge_contract = utils::get_eth_address(near_address);
+        self.eth_bridge_contract = spectre_bridge_common::get_eth_address(near_address);
     }
 
     #[private]
@@ -618,7 +625,7 @@ mod tests {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
                 amount: U128(100),
             },
-            recipient: utils::get_eth_address(
+            recipient: spectre_bridge_common::get_eth_address(
                 "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
             ),
         };
@@ -805,7 +812,8 @@ mod tests {
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock(1);
+        let nonce = U128(1);
+        contract.unlock(nonce);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);

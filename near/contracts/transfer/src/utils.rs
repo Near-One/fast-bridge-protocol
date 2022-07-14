@@ -18,11 +18,3 @@ pub fn is_valid_eth_address(address: String) -> bool {
 
     hex::decode(address).unwrap().len() == 20
 }
-
-pub fn get_eth_address(address: String) -> spectre_bridge_common::EthAddress {
-    let data = hex::decode(address).expect("address should be a valid hex string.");
-    assert_eq!(data.len(), 20, "address should be 20 bytes long");
-    let mut result = [0u8; 20];
-    result.copy_from_slice(&data);
-    result
-}

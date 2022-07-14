@@ -80,7 +80,6 @@ impl TransferProof {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils;
 
     fn create_proof() -> Proof {
         Proof {
@@ -256,9 +255,15 @@ mod tests {
         let param = TransferProof::parse(proof);
 
         assert_eq!(nonce, param.nonce);
-        assert_eq!(utils::get_eth_address(relayer), param.relayer);
-        assert_eq!(utils::get_eth_address(token), param.token);
-        assert_eq!(utils::get_eth_address(recipient), param.recipient);
+        assert_eq!(
+            spectre_bridge_common::get_eth_address(relayer),
+            param.relayer
+        );
+        assert_eq!(spectre_bridge_common::get_eth_address(token), param.token);
+        assert_eq!(
+            spectre_bridge_common::get_eth_address(recipient),
+            param.recipient
+        );
         assert_eq!(amount, param.amount);
     }
 }
