@@ -21,8 +21,7 @@ The bridge consist of three main components:
 Current repo is for ethereum and near contracts, node is located [here](https://github.com/spectrebridge/spectre-bridge-service)
 
 ### Ethereum
-#### Requirements
-* Ubunutu 20.04 or later
-* python 3.8 or later
-* pip3 20.0 or later
-* npm 8.13.1+
+Described in the corresponding [README](eth/README.md)
+
+### Near
+Described in the corresponding [README](near/README.md)
