@@ -16,6 +16,12 @@ To build and test contracts run following snippet
 ./test.sh
 ```
 
+### Configuring contract
+Before deployment you may want to set following parameters
+* eth_bridge_contract - ethereum bridge countrerpart address (default is null address)
+* lock_time_min - minimum time at which user tokens are locked (default is 1 hour)
+* lock_time_max - maximum time at which user tokens are locked (default is 24 hour)
+
 ### Deploy
 Deployment is configured only for `testnet` testnet and could be done with the following scirpt
 
