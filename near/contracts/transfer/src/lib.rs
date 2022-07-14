@@ -85,17 +85,7 @@ pub struct SpectreBridge {
 
 impl Default for SpectreBridge {
     fn default() -> Self {
-        Self {
-            pending_transfers: LookupMap::new(b"a".to_vec()),
-            user_balances: LookupMap::new(b"c".to_vec()),
-            nonce: 0,
-            current_chain_id: 4,
-            proover_accounts: LookupMap::new(b"pr_ct".to_vec()),
-            eth_bridge_contract: [0u8; 20],
-            lock_time_min: parse("1h").unwrap().as_nanos() as u64,
-            lock_time_max: parse("24h").unwrap().as_nanos() as u64,
-            whitelisted_tokens: UnorderedSet::new(b"b".to_vec()),
-        }
+        SpectreBridge::new([0u8; 20], "1h".to_string(), "24h".to_string())
     }
 }
 
@@ -117,15 +107,15 @@ impl SpectreBridge {
         );
 
         Self {
-            pending_transfers: LookupMap::new(b"a".to_vec()),
-            user_balances: LookupMap::new(b"a".to_vec()),
+            pending_transfers: LookupMap::new(b"pt".to_vec()),
+            user_balances: LookupMap::new(b"ub".to_vec()),
             nonce: 0,
-            proover_accounts: LookupMap::new(b"a".to_vec()),
+            proover_accounts: LookupMap::new(b"pa".to_vec()),
             current_chain_id: 4,
             eth_bridge_contract,
             lock_time_min,
             lock_time_max,
-            whitelisted_tokens: UnorderedSet::new(b"b".to_vec()),
+            whitelisted_tokens: UnorderedSet::new(b"wt".to_vec()),
         }
     }
 
@@ -257,7 +247,7 @@ impl SpectreBridge {
             });
 
         ext_prover::ext(proover_account)
-            .with_static_gas(utils::terra_gas(50))
+            .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
             .verify_log_entry(
                 proof.log_index,
@@ -270,7 +260,7 @@ impl SpectreBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::terra_gas(50))
+                    .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
             );
@@ -456,7 +446,7 @@ impl SpectreBridge {
         );
 
         ext_token::ext(token_id.clone())
-            .with_static_gas(utils::terra_gas(5))
+            .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
                 signer_account_id(),
@@ -469,7 +459,7 @@ impl SpectreBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::terra_gas(2))
+                    .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount),
             );

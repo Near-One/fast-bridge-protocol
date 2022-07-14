@@ -3,7 +3,7 @@ use near_sdk::Gas;
 pub const TGAS: Gas = near_sdk::Gas::ONE_TERA;
 pub const NO_DEPOSIT: u128 = 0;
 
-pub fn terra_gas(gas: u64) -> Gas {
+pub fn tera_gas(gas: u64) -> Gas {
     TGAS * gas
 }
 

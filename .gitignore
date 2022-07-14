@@ -4,3 +4,5 @@ near/**/res/**
 near/**/target/**
 
 # js
+eth/node_modules/**
+eth/package-lock.json
