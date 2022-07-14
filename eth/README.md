@@ -17,7 +17,7 @@ npm run test
 ```
 
 ### Deploy
-Deployment is configured only for `Goerli` testnet and cound be done with the following scirpt
+Deployment is configured only for `Goerli` testnet and could be done with the following scirpt
 
 ```
 npm run deploy:tokens:goerli
