@@ -9,6 +9,6 @@ overflow-checks = true
 
 [workspace]
 members = [
-    "transfer",
-    "wtoken"
+    "bridge",
+    "mock_token"
 ]
