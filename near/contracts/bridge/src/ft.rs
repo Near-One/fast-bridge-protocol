@@ -11,7 +11,10 @@ impl FungibleTokenReceiver for SpectreBridge {
         amount: U128,
         #[allow(unused_variables)] msg: String,
     ) -> PromiseOrValue<U128> {
-        require!(sender_id == env::signer_account_id());
+        require!(
+            sender_id == env::signer_account_id(),
+            "Sender is not the same as the signer"
+        );
 
         require!(
             self.whitelisted_tokens.is_empty()
