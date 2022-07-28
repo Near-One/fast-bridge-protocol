@@ -83,6 +83,9 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         whenNotPaused
         isWhitelisted(_token)
     {
+        require(_recipient != address(0) && _recipient != msg.sender, "Wrong recipient provided");
+        require(_amount != 0, "Wrong amount provided");
+
         IERC20 token = IERC20(_token);
         bytes32 processedHash = keccak256(
             abi.encodePacked(_token, _recipient, _nonce, _amount));
@@ -92,7 +95,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
         token.safeTransferFrom(msg.sender, _recipient, _amount);
 
-        emit TransferTokens(_nonce, msg.sender, _recipient, _token, _amount);
+        emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount);
     }
 
     function withdrawStuckTokens(

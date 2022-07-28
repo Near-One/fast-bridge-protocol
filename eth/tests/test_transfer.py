@@ -140,3 +140,59 @@ def test_two_NOT_equal_transfers(
 
     assert token.balanceOf(someone) == relayer_balance_before * 2
     
+
+def test_cant_transfer_to_zero_or_self(
+    bridge, 
+    relayer, 
+    another_relayer,
+    someone, 
+    owner, 
+    token
+    ) -> None:
+    bridge.setWhitelistedTokens(
+        [token],
+        [True],
+        {'from': owner}
+    )
+    # Cant transfer to zero address
+    with brownie.reverts("Wrong recipient provided"):
+        bridge.transferTokens(
+            token,
+            "0x0000000000000000000000000000000000000000",
+            1,
+            10000000000,
+            {'from': relayer}
+        )
+    # Cant transfer to msg.sender
+    with brownie.reverts("Wrong recipient provided"):
+        bridge.transferTokens(
+            token,
+            relayer,
+            1,
+            10000000000,
+            {'from': relayer}
+        )
+
+
+def test_cant_transfer_zero_amount(
+    bridge, 
+    relayer, 
+    another_relayer,
+    someone, 
+    owner, 
+    token
+    ) -> None:
+    bridge.setWhitelistedTokens(
+        [token],
+        [True],
+        {'from': owner}
+    )
+
+    with brownie.reverts("Wrong amount provided"):
+        bridge.transferTokens(
+            token,
+            someone,
+            1,
+            0,
+            {'from': relayer}
+        )
