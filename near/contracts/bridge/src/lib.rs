@@ -119,7 +119,7 @@ impl SpectreBridge {
         }
     }
 
-    pub fn lock(&mut self, msg: String) -> PromiseOrValue<U128> {
+    pub fn init_transfer(&mut self, msg: String) -> PromiseOrValue<U128> {
         let transfer_message = self.is_metadata_correct(msg);
         let user_token_balance = self
             .user_balances
@@ -787,7 +787,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -829,7 +829,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
