@@ -187,4 +187,23 @@ mod tests {
         );
         assert_eq!(contract.ft_balance_of(accounts(1)).0, transferred_tokens);
     }
+
+    #[test]
+    fn test_ft_metadata() {
+        let context = get_context(accounts(2));
+        testing_env!(context.build());
+        let contract = Contract::new_default_meta(
+            accounts(2),
+            String::from("Mock Token"),
+            String::from("MOCK"),
+            TOTAL_SUPPLY.into(),
+        );
+        let some_metadata = contract.ft_metadata();
+        let contract_metadata = contract.metadata.get().unwrap();
+        assert_eq!(some_metadata.spec, contract_metadata.spec);
+        assert_eq!(some_metadata.name, contract_metadata.name);
+        assert_eq!(some_metadata.symbol, contract_metadata.symbol);
+        assert_eq!(some_metadata.icon, contract_metadata.icon);
+        assert_eq!(some_metadata.decimals, contract_metadata.decimals);
+    }
 }

@@ -171,7 +171,7 @@ impl SpectreBridge {
 
         let nonce = U128::from(self.store_transfers(transfer_message.clone()));
 
-        Event::SpectreBridgeTransferEvent {
+        Event::SpectreBridgeInitTransferEvent {
             nonce,
             chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
@@ -207,7 +207,7 @@ impl SpectreBridge {
         require!(
             transfer.0 == env::signer_account_id(),
             format!(
-                "Signer: {} transaction not fount:",
+                "Signer: {} transaction not found:",
                 &env::signer_account_id()
             )
         );
@@ -527,8 +527,43 @@ mod tests {
             .current_account_id(AccountId::try_from("alice_near".to_string()).unwrap())
             .signer_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
             .predecessor_account_id(AccountId::try_from("carol_near".to_string()).unwrap())
-            .block_index(36003)
-            .block_timestamp(1 + 3600000000000 + 2)
+            .block_index(200)
+            //10800000000000 = lock_time_min
+            .block_timestamp(1649402222 + 10800000000000 + 30)
+            .is_view(is_view)
+            .build()
+    }
+
+    fn get_context_dex(is_view: bool) -> VMContext {
+        VMContextBuilder::new()
+            .current_account_id(AccountId::try_from("dex_near".to_string()).unwrap())
+            .signer_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
+            .predecessor_account_id(AccountId::try_from("token_near2".to_string()).unwrap())
+            .block_index(101)
+            .block_timestamp(1649402222)
+            .is_view(is_view)
+            .build()
+    }
+
+    fn get_context_custom_signer(is_view: bool, signer: String) -> VMContext {
+        VMContextBuilder::new()
+            .current_account_id(AccountId::try_from("dex_near".to_string()).unwrap())
+            .signer_account_id(AccountId::try_from(signer).unwrap())
+            .predecessor_account_id(AccountId::try_from("token_near".to_string()).unwrap())
+            .block_index(101)
+            .block_timestamp(1649402222)
+            .is_view(is_view)
+            .build()
+    }
+
+    fn get_panic_context_for_unlock(is_view: bool) -> VMContext {
+        VMContextBuilder::new()
+            .current_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
+            .signer_account_id(AccountId::try_from("dex_near".to_string()).unwrap())
+            .predecessor_account_id(AccountId::try_from("carol_near".to_string()).unwrap())
+            .block_index(200)
+            //10800000000000 = lock_time_min
+            .block_timestamp(1649402222 + 10800000000000 + 30)
             .is_view(is_view)
             .build()
     }
@@ -809,15 +844,409 @@ mod tests {
         assert_eq!(200, transfer_token_amount);
     }
 
+    //audit tests
     #[test]
-    fn set_current_chain_id() {
+    #[should_panic(expected = r#"Balance in token_near for user bob_near not found"#)]
+    fn test_lock_no_balance() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
+
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let mut msg: String = r#"
+        {
+            "chain_id": 5,
+            "valid_till": "#
+            .to_owned();
+        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(r#",
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "75"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "75"
+            },
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+        }"#);
+        contract.lock(msg);
+    }
+
+    #[test]
+    #[should_panic(expected = r#"Balance for token transfer: token_near299 not found"#)]
+    fn test_lock_balance_not_found() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
+
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
+        let balance: u128 = 100;
+
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token2, balance
+            ),
+        );
+
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let mut msg: String = r#"
+        {
+            "chain_id": 5,
+            "valid_till": "#
+            .to_owned();
+        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(r#",
+            "transfer": {
+                "token_near": "token_near299",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "75"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "75"
+            },
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+        }"#);
+        contract.lock(msg);
+    }
+
+    #[test]
+    #[should_panic(expected = r#"Balance for token fee: token_near not found"#)]
+    fn test_lock_fee_balance_not_found() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
+
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
+        let balance: u128 = 100;
+
+        let context = get_context_custom_signer(false, "token_near".to_string());
+        testing_env!(context);
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
+
+        let context = get_context_custom_signer(false, "token_near2".to_string());
+        testing_env!(context);
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token2, balance
+            ),
+        );
+
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let mut msg: String = r#"
+        {
+            "chain_id": 5,
+            "valid_till": "#
+            .to_owned();
+        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(r#",
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "75"
+            },
+            "fee": {
+                "token": "token_near299",
+                "amount": "75"
+            },
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+        }"#);
+        contract.lock(msg);
+    }
+
+    #[test]
+    #[should_panic(expected = r#"Transaction with id:"#)]
+    fn test_unlock_transaction_not_found() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
-        let new_current_chain_id = 33;
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap(); // signer account
+        let balance: u128 = 100;
 
-        assert_eq!(4, contract.current_chain_id);
-        contract.set_current_chain_id(new_current_chain_id);
-        assert_eq!(new_current_chain_id, contract.current_chain_id);
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
+
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token2, balance
+            ),
+        );
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(200, transfer_token_amount);
+
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let mut msg: String = r#"
+        {
+            "chain_id": 5,
+            "valid_till": "#
+            .to_owned();
+        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(r#",
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "75"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "75"
+            },
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+        }"#);
+        contract.lock(msg);
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(50, transfer_token_amount);
+
+        let context = get_context_for_unlock(false);
+        testing_env!(context);
+        contract.unlock(U128(9));
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(200, transfer_token_amount);
+    }
+
+    #[test]
+    #[should_panic(expected = r#"Signer: dex_near transaction not found:"#)]
+    fn test_unlock_invalid_account() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance: u128 = 100;
+
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, balance
+            ),
+        );
+        let context = get_context_dex(false);
+        testing_env!(context);
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token2, balance
+            ),
+        );
+        let user_balance = contract.user_balances.get(&signer_account_id()).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+
+        assert_eq!(100, transfer_token_amount);
+
+        let context = get_context(false);
+        testing_env!(context);
+        contract.ft_on_transfer(
+            signer_account_id(),
+            U128(balance),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token2, balance
+            ),
+        );
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+
+        assert_eq!(200, transfer_token_amount);
+
+        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let mut msg: String = r#"
+        {
+            "chain_id": 5,
+            "valid_till": "#
+            .to_owned();
+        msg.push_str(&current_timestamp.to_string());
+        msg.push_str(r#",
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "amount": "75"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "75"
+            },
+             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+        }"#);
+        contract.lock(msg);
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(50, transfer_token_amount);
+
+        let context = get_panic_context_for_unlock(false);
+        testing_env!(context);
+        contract.unlock(U128(1));
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(200, transfer_token_amount);
+    }
+
+    #[test]
+    fn test_add_proover_contract() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let chain_id: u32 = 42;
+        let proover_account = AccountId::try_from("test".to_string()).unwrap();
+        let contains_proover = contract.proover_accounts.contains_key(&chain_id);
+
+        assert!(!contains_proover);
+
+        contract.add_proover_contract(chain_id, proover_account);
+        let contains_proover = contract.proover_accounts.contains_key(&chain_id);
+
+        assert!(contains_proover);
+    }
+
+    #[test]
+    #[should_panic(expected = r#"User not have balance"#)]
+    fn test_withdraw_no_balance() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let amount = 42;
+        contract.withdraw(transfer_token, U128(amount));
+    }
+
+    #[test]
+    #[should_panic(expected = r#"User not have balance"#)]
+    fn test_withdraw_wrong_balance() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let amount = 42;
+        let context = get_context_custom_signer(false, String::from("token_near"));
+        testing_env!(context);
+        contract.ft_on_transfer(
+            transfer_token.clone(),
+            U128(amount),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, amount
+            ),
+        );
+        let context = get_context(false);
+        testing_env!(context);
+        contract.withdraw(transfer_token, U128(amount));
+    }
+
+    #[test]
+    #[should_panic(expected = r#"User not have balance"#)]
+    fn test_withdraw_not_enough_balance() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let amount = 42;
+        let context = get_context_custom_signer(false, String::from("token_near"));
+        testing_env!(context);
+        contract.ft_on_transfer(
+            transfer_token.clone(),
+            U128(amount),
+            format!(
+                "Was transferred token:{}, amount:{}",
+                transfer_token, amount
+            ),
+        );
+        let amount = 100;
+
+        let context = get_context(false);
+        testing_env!(context);
+        contract.withdraw(transfer_token, U128(amount));
+    }
+
+    #[test]
+    #[should_panic(expected = r#"Contract expected a result on the callback"#)]
+    fn test_withdraw_callback() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let token_id: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let amount = 42;
+        contract.withdraw_callback(token_id, U128(amount));
+    }
+
+    #[test]
+    #[should_panic(expected = r#"Ethereum address:test_addr not valid"#)]
+    fn test_set_enear_address_invalid_address() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let invalid_address = "test_addr".to_string();
+        contract.set_enear_address(invalid_address);
+    }
+
+    #[test]
+    fn test_set_enear_address() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let valid_address: String = "42".repeat(20);
+        let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
+        contract.set_enear_address(valid_address);
+
+        assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
+    }
+
+    #[test]
+    fn test_set_lock_time() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = SpectreBridge::default();
+        let lock_time_min = "420h".to_string();
+        let lock_time_max = "42h".to_string();
+        let convert_nano = 36 * u64::pow(10, 11);
+        contract.set_lock_time(lock_time_min, lock_time_max);
+
+        assert_eq!(contract.lock_time_min as u64 / convert_nano, 420);
+        assert_eq!(contract.lock_time_max as u64 / convert_nano, 42);
     }
 }
