@@ -142,7 +142,7 @@ impl SpectreBridge {
             });
 
         require!(
-            token_transfer_balance > u128::from(transfer_message.transfer.amount),
+            token_transfer_balance >= u128::from(transfer_message.transfer.amount),
             "Not enough transfer token balance."
         );
 
@@ -154,8 +154,9 @@ impl SpectreBridge {
                     &transfer_message.transfer.token_near
                 )
             });
+
         require!(
-            token_fee_balance > u128::from(transfer_message.fee.amount),
+            token_fee_balance >= u128::from(transfer_message.fee.amount),
             "Not enough fee token balance."
         );
 
@@ -779,19 +780,20 @@ mod tests {
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
-                "amount": "99"
+                "amount": "100"
             },
             "fee": {
                 "token": "token_near",
-                "amount": "99"
+                "amount": "100"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
+
         contract.init_transfer(msg);
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(2, transfer_token_amount);
+        assert_eq!(0, transfer_token_amount);
     }
 
     #[test]
@@ -871,7 +873,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
     }
 
     #[test]
@@ -921,7 +923,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
     }
 
     #[test]
@@ -976,7 +978,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
     }
 
     #[test]
@@ -1031,7 +1033,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1113,7 +1115,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         }"#);
-        contract.lock(msg);
+        contract.init_transfer(msg);
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
