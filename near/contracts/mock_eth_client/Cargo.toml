@@ -1,0 +1,11 @@
+[package]
+name = "mock_eth_client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eth_types =  { path = "../eth_types" }
+admin_controlled =  { path = "../admin_controlled" }
+near-sdk = "4.0.0"
+borsh = "0.9.3"
+rlp = "0.4.2"
