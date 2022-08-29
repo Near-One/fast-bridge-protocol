@@ -1,0 +1,6 @@
+{
+    "filter_paths": "mocks/|interfaces/|hardhat/|@openzeppelin/",
+    "detectors_to_exclude": "naming-convention|solc-version",
+    "ignore_compile": true,
+    "solc": "0.8.13"
+}
