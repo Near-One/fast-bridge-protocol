@@ -2,7 +2,10 @@
     "name": "project-name",
     "version": "1.0.0",
     "description": "Project description",
-    "files": ["/contracts/**/*.sol", "!/contracts/mocks/**/*"],
+    "files": [
+        "/contracts/**/*.sol",
+        "!/contracts/mocks/**/*"
+    ],
     "scripts": {
         "compile": "npx hardhat compile",
         "compile-all": "npx hardhat compile --force",
@@ -32,20 +35,27 @@
         "clean": "npx shx rm -rf artifacts cache coverage coverage.json .openzeppelin && npx shx echo Cleaned",
         "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin"
     },
-    "keywords": ["blockchain", "ethereum", "solidity", "js", "hardhat", "contracts"],
+    "keywords": [
+        "blockchain",
+        "ethereum",
+        "solidity",
+        "js",
+        "hardhat",
+        "contracts"
+    ],
     "author": "Author Name <author@email.com>",
     "license": "MIT",
     "dependencies": {
+        "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
+        "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
+        "@nomiclabs/hardhat-ethers": "^2.1.1",
         "@openzeppelin/contracts": "4.6.0",
         "@openzeppelin/contracts-upgradeable": "^4.5.2"
     },
     "devDependencies": {
         "@commitlint/cli": "^16.2.4",
         "@commitlint/config-conventional": "^16.2.4",
-        "@nomiclabs/hardhat-ethers": "^2.0.6",
-        "@nomiclabs/hardhat-etherscan": "^3.0.3",
-        "@nomiclabs/hardhat-waffle": "^2.0.3",
-        "@nomiclabs/hardhat-web3": "^2.0.0",
+        "@nomicfoundation/hardhat-toolbox": "^1.0.2",
         "@openzeppelin/hardhat-upgrades": "^1.17.0",
         "@openzeppelin/test-helpers": "^0.5.15",
         "chai": "^4.3.6",
@@ -54,12 +64,10 @@
         "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-prettier": "^4.0.0",
-        "ethereum-waffle": "^3.4.4",
         "ethers": "^5.6.5",
         "hardhat": "^2.9.5",
         "hardhat-abi-exporter": "^2.9.0",
         "hardhat-contract-sizer": "^2.5.1",
-        "hardhat-gas-reporter": "^1.0.8",
         "husky": "^8.0.1",
         "mocha": "^10.0.0",
         "prettier": "^2.6.2",
@@ -68,7 +76,6 @@
         "solc": "0.8.13",
         "solhint": "^3.3.7",
         "solhint-plugin-prettier": "^0.0.5",
-        "solidity-coverage": "^0.7.21",
         "solidity-docgen": "0.5.16",
         "web3": "^1.7.3"
     },
