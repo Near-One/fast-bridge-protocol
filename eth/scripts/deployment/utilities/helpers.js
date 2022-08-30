@@ -23,9 +23,7 @@ async function verify(address, args) {
                 address,
                 constructorArguments: args
             })
-            // .catch(console.error);
             .catch(() => console.log("Verification failed"));
-        // console.log("Verification is completed")
     }
 }
 

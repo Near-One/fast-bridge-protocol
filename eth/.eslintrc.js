@@ -8,12 +8,11 @@ module.exports = {
     plugins: ["node", "prettier"],
     extends: ["eslint:recommended", "plugin:node/recommended", "plugin:prettier/recommended", "prettier"],
     globals: {
-        abi: false, // Equivalent to "readonly"
+        abi: false, 
         artifacts: false,
         contract: false
     },
     parserOptions: {
-        // ecmaVersion: 12, // Equivalent to 2021, and automatically sets by `es2021`
         sourceType: "module"
     },
     root: true,
@@ -22,16 +21,13 @@ module.exports = {
         "eol-last": ["error"],
         "max-len": [
             "error",
-            { "code": 120, "ignoreUrls": true }
+            { "code": 140, "ignoreUrls": true }
         ],
         "no-trailing-spaces": ["error"]
     },
     overrides: [
         {
-            files: ["hardhat.config.js"],
-            // globals: {
-            //     task: true // Equivalent to "writable"
-            // }
+            files: ["hardhat.config.js"]
         }
     ]
 };
