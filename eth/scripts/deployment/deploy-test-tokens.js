@@ -10,9 +10,13 @@ async function main() {
 
     const TestToken = (await ethers.getContractFactory("TestToken")).connect(deployer);
 
-    const testUSDC = await TestToken.deploy(6, "TEST_USDC", "TUSDC");
-    const testWBTC = await TestToken.deploy(8, "TEST_WBTC", "TWBTC");
-    const testWETH = await TestToken.deploy(18, "TEST_WETH", "TWETH");
+    const usdcDecimals = 6;
+    const wbtcDecimals = 8;
+    const wethDecimals = 18;
+
+    const testUSDC = await TestToken.deploy(usdcDecimals, "TEST_USDC", "TUSDC");
+    const testWBTC = await TestToken.deploy(wbtcDecimals, "TEST_WBTC", "TWBTC");
+    const testWETH = await TestToken.deploy(wethDecimals, "TEST_WETH", "TWETH");
     
     console.log(`TEST USDC at ${testUSDC.address}`);
     console.log(`TEST WBTC at ${testWBTC.address}`);
