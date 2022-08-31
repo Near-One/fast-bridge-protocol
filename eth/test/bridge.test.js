@@ -25,7 +25,6 @@ describe("Spectre Bridge", () => {
         tokenInstance = await ethers.getContractAt("ERC20", tokenAddress);
         weth = await ethers.getContractAt("ERC20", WETH);
 
-
         await buyTokenForEth(relayer, router, ethers.utils.parseEther("100", "ether"), [WETH, tokenAddress]);
         await buyTokenForEth(anotherRelayer, router, ethers.utils.parseEther("100", "ether"), [WETH, tokenAddress]);
         let balance = await tokenInstance.balanceOf(relayer.address);
@@ -248,21 +247,22 @@ describe("Spectre Bridge", () => {
         })
     })
 
-    it("Only admin can withdraw the stuck tokens", async () => {
-        let balanceSomeoneWithTokens = await tokenInstance.balanceOf(someoneWithTokens.address);
-        await tokenInstance.connect(someoneWithTokens).transfer(
-            proxy.address,
-            balanceSomeoneWithTokens,
-        );
-
-        expect(await tokenInstance.balanceOf(someoneWithTokens.address)).to.be.equal(0);
-
-        await expect(proxy.connect(someone).withdrawStuckTokens(tokenAddress)).to.be.reverted;
-
-        let bridgeBalanceBefore = await tokenInstance.balanceOf(proxy.address);
-        await proxy.connect(owner).withdrawStuckTokens(tokenAddress);
-
-        expect(await tokenInstance.balanceOf(owner.address)).to.be.equal(bridgeBalanceBefore);
+    describe("Admin functionality", () => {
+        it("Only admin can withdraw the stuck tokens", async () => {
+            let balanceSomeoneWithTokens = await tokenInstance.balanceOf(someoneWithTokens.address);
+            await tokenInstance.connect(someoneWithTokens).transfer(
+                proxy.address,
+                balanceSomeoneWithTokens,
+            );
+    
+            expect(await tokenInstance.balanceOf(someoneWithTokens.address)).to.be.equal(0);
+    
+            await expect(proxy.connect(someone).withdrawStuckTokens(tokenAddress)).to.be.reverted;
+    
+            let bridgeBalanceBefore = await tokenInstance.balanceOf(proxy.address);
+            await proxy.connect(owner).withdrawStuckTokens(tokenAddress);
+    
+            expect(await tokenInstance.balanceOf(owner.address)).to.be.equal(bridgeBalanceBefore);
+        })
     })
-
 })
