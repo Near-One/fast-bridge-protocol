@@ -14,13 +14,13 @@ const buyTokenForEth = async (buyer, router, ethAmount, path) => {
 
 describe("Spectre Bridge", () => {
     let router, tokenInstance, weth;
-    let owner, someone, relayer, anotherRelayer, someoneWithTokens;
+    let owner, someone, relayer, anotherRelayer, someoneWithTokens, pausableAdmin, unpausableAdmin, whitelistingAdmin;
     let bridge, proxy;
     let nonce, anotherNonce;
     let snapshotA = SnapshotRestorer;
 
     before(async () => {
-        [owner, someone, relayer, anotherRelayer, someoneWithTokens] = await ethers.getSigners();
+        [owner, someone, relayer, anotherRelayer, someoneWithTokens, pausableAdmin, unpausableAdmin, whitelistingAdmin] = await ethers.getSigners();
         router = await ethers.getContractAt("IUniswapV2Router01", Uniswap);
         tokenInstance = await ethers.getContractAt("ERC20", tokenAddress);
         weth = await ethers.getContractAt("ERC20", WETH);
@@ -36,6 +36,10 @@ describe("Spectre Bridge", () => {
         bridge = await ethers.getContractFactory("EthErc20FastBridge");
         proxy = await upgrades.deployProxy(bridge, [[], []], { unsafeAllow: ['delegatecall'] });
         await proxy.deployed();
+
+        await proxy.connect(owner).grantRole(await proxy.PAUSABLE_ADMIN_ROLE(), pausableAdmin.address);
+        await proxy.connect(owner).grantRole(await proxy.UNPAUSABLE_ADMIN_ROLE(), unpausableAdmin.address);
+        await proxy.connect(owner).grantRole(await proxy.WHITELISTING_TOKENS_ADMIN_ROLE(), whitelistingAdmin.address);
 
         nonce = 11231231;
         anotherNonce = 11231232;
@@ -57,7 +61,7 @@ describe("Spectre Bridge", () => {
         ]
 
         it("Should add tokens to whitelist", async () => {
-            await expect(proxy.connect(owner).setWhitelistedTokens(tokensAddresses, tokensWhitelistStatuses)).to.emit(proxy, "SetTokens").withArgs(tokensAddresses, tokensWhitelistStatuses);
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(tokensAddresses, tokensWhitelistStatuses)).to.emit(proxy, "SetTokens").withArgs(tokensAddresses, tokensWhitelistStatuses);
 
             expect(await proxy.isTokenInWhitelist(tokensAddresses[0])).to.be.true;
             expect(await proxy.isTokenInWhitelist(tokensAddresses[1])).to.be.true;
@@ -70,12 +74,12 @@ describe("Spectre Bridge", () => {
     })
 
     it("Should deploy Bridge with tokens and whitelist states", async () => {
-        tokensAddresses = [
+        let tokensAddresses = [
             "0xb2d75C5a142A68BDA438e6a318C7FBB2242f9693",
             "0xa1f5A105d73204b45778983038f733d8867fBea0",
             "0x3195D5df0521d2Fcd5b02413E23e4b1219790767"
         ];
-        tokensWhitelistStatuses = [
+        let tokensWhitelistStatuses = [
             true,
             true,
             false
@@ -98,7 +102,7 @@ describe("Spectre Bridge", () => {
 
     describe("Transfer", () => {
         it("Should transfer token", async () => {
-            await expect(proxy.connect(owner).setWhitelistedTokens(
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
                 [tokenAddress],
                 [true]
             )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
@@ -120,12 +124,12 @@ describe("Spectre Bridge", () => {
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart);
 
-            await proxy.connect(owner).pause();
+            await proxy.connect(pausableAdmin).pause();
 
             let relayerBalanceAfter = tokenInstance.balanceOf(relayer.address);
             await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalanceAfter)).to.be.revertedWith("Pausable: paused");
 
-            await proxy.connect(owner).unPause();
+            await proxy.connect(unpausableAdmin).unPause();
 
             const amount = 100;
             await expect(proxy.connect(relayer).transferTokens(
@@ -140,7 +144,7 @@ describe("Spectre Bridge", () => {
         })
 
         it("Shouldn't process the same transfer twice", async () => {
-            await expect(proxy.connect(owner).setWhitelistedTokens(
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
                 [tokenAddress],
                 [true]
             )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
@@ -177,7 +181,7 @@ describe("Spectre Bridge", () => {
         })
 
         it("Should transfer token via two not equal transfers", async () => {
-            await expect(proxy.connect(owner).setWhitelistedTokens(
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
                 [tokenAddress],
                 [true],
             )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
@@ -212,7 +216,7 @@ describe("Spectre Bridge", () => {
         })
 
         it("Shouldn't transfer token to zero address or self", async () => {
-            await expect(proxy.connect(owner).setWhitelistedTokens(
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
                 [tokenAddress],
                 [true]
             )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
@@ -233,7 +237,7 @@ describe("Spectre Bridge", () => {
         })
 
         it("Shouldn't process the transfer with zero amount specified", async () => {
-            await expect(proxy.connect(owner).setWhitelistedTokens(
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
                 [tokenAddress],
                 [true]
             )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
@@ -263,6 +267,49 @@ describe("Spectre Bridge", () => {
             await proxy.connect(owner).withdrawStuckTokens(tokenAddress);
     
             expect(await tokenInstance.balanceOf(owner.address)).to.be.equal(bridgeBalanceBefore);
+        })
+
+        it("Only pausable admin can pause contract", async () => {
+            await expect(proxy.connect(owner).pause()).to.be.reverted;
+            await expect(proxy.connect(pausableAdmin).pause()).to.emit(proxy, "Paused").withArgs(pausableAdmin.address);
+        })
+
+        it("Only unpausable admin can unpause contract", async () => {
+            await expect(proxy.connect(pausableAdmin).pause()).to.emit(proxy, "Paused").withArgs(pausableAdmin.address);
+            await expect(proxy.connect(owner).unPause()).to.be.reverted;
+            await expect(proxy.connect(unpausableAdmin).unPause()).to.emit(proxy, "Unpaused").withArgs(unpausableAdmin.address);
+        })
+
+        it("Only admin and whitelisting admin can whitelisted tokens", async () => {
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
+                [tokenAddress],
+                [true]
+            )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
+
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
+                [tokenAddress],
+                [false]
+            )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [false]);
+
+            await expect(proxy.connect(owner).setWhitelistedTokens(
+                [tokenAddress],
+                [true]
+            )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
+
+        })
+
+        it("Only admin and whitelisting admin can add/remove token to/from white list", async () => {
+            await expect(proxy.connect(whitelistingAdmin).addTokenToWhitelist(tokenAddress)).to.emit(proxy, "AddTokenToWhitelist").withArgs(tokenAddress, true);
+            await expect(proxy.connect(whitelistingAdmin).removeTokenFromWhitelist(tokenAddress)).to.emit(proxy, "RemoveTokenFromWhitelist").withArgs(tokenAddress, false);
+            
+            await expect(proxy.connect(owner).addTokenToWhitelist(tokenAddress)).to.emit(proxy, "AddTokenToWhitelist").withArgs(tokenAddress, true);
+            await expect(proxy.connect(owner).addTokenToWhitelist(tokenAddress)).to.be.revertedWith("Token already whitelisted!");
+            
+            await expect(proxy.connect(owner).removeTokenFromWhitelist(tokenAddress)).to.emit(proxy, "RemoveTokenFromWhitelist").withArgs(tokenAddress, false);
+            await expect(proxy.connect(owner).removeTokenFromWhitelist(tokenAddress)).to.be.revertedWith("Token not whitelisted!");
+            
+            await expect(proxy.connect(someone).removeTokenFromWhitelist(tokenAddress)).to.be.reverted;
+            await expect(proxy.connect(someone).addTokenToWhitelist(tokenAddress)).to.be.reverted;
         })
     })
 })
