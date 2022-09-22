@@ -4,8 +4,7 @@
 To build and test contracts run following snippet
 ```
 npm i
-npm run preinstall
-npm run test
+npm run test:mainnet-fork
 ```
 ### Deploy
 Deployment is configured only for `Goerli` testnet and could be done with the following scirpt

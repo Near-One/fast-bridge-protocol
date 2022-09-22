@@ -9,10 +9,16 @@
         "WBTC": true,
         "WETH": true
     },
+    "goerli": {
+        "old": {},
+        "new": {
+            "bridge": ""
+        }
+    },
     "homestead": {
         "old": {},
         "new": {
-            "bridge": "0xdF46e54aAadC1d55198A4a8b4674D7a4c927097A"
+            "bridge": "0x8d4c0531F6A7e0dA759A6675A38127EBcf5c2AA5"
         }
     }
 }

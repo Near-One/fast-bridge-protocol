@@ -11,8 +11,14 @@ require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
+const PRIVATE_KEY = process.env.PRIVATE_KEY || '11'.repeat(32);
+
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
+const INFURA_API_KEY = process.env.INFURA_API_KEY;
+
+const FORKING = true;
 const ENABLED_OPTIMIZER = true;
-const OPTIMIZER_RUNS = 200; 
+const OPTIMIZER_RUNS = 200;
 
 module.exports = {
     solidity: {
@@ -33,7 +39,7 @@ module.exports = {
             allowUnlimitedContractSize: !ENABLED_OPTIMIZER,
             forking: {
                 url: process.env.FORKING_URL || "https://eth-mainnet.g.alchemy.com/v2/YIMyfAgTDcuPIBL5V9VAhRNug0wEqSvT",
-                enabled: process.env.FORKING !== undefined
+                enabled: FORKING !== undefined
             }
         },
         mainnet: {
@@ -51,7 +57,13 @@ module.exports = {
         kovan: {
             url: process.env.KOVAN_URL || "",
             accounts: [...PRIVATE_KEYS]
-        }
+        },
+        goerli: {
+            url: INFURA_API_KEY
+                ? `https://goerli.infura.io/v3/${INFURA_API_KEY}`
+                : `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
+            accounts: [`${PRIVATE_KEY}`]
+        },
     },
     gasReporter: {
         enabled: process.env.REPORT_GAS !== undefined,
