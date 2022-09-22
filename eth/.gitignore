@@ -54,5 +54,4 @@ __pycache__
 # Flatten script input
 json_inputs
 
-# Track of all the implementation contracts of the `@openzeppelin/hardhat-upgrades` plugin
-.openzeppelin
+
