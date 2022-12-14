@@ -9,8 +9,8 @@ use near_sdk::serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use near_sdk::Promise;
 use near_sdk::{
-    env, ext_contract, is_promise_success, near_bindgen, require, serde_json, AccountId, Duration,
-    PromiseOrValue, PromiseResult,
+    env, ext_contract, is_promise_success, near_bindgen, require, AccountId, BorshStorageKey,
+    Duration, PromiseOrValue, PromiseResult,
 };
 use parse_duration::parse;
 use spectre_bridge_common::*;
@@ -50,7 +50,6 @@ trait SpectreBridgeInterface {
     fn verify_log_entry_callback(&mut self, proof: TransferProof) -> Promise;
 }
 
-#[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferData {
@@ -58,7 +57,6 @@ pub struct TransferData {
     amount: u128,
 }
 
-#[near_bindgen]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferMessage {
@@ -69,13 +67,28 @@ pub struct TransferMessage {
     recipient: EthAddress,
 }
 
+#[derive(BorshSerialize, BorshStorageKey)]
+enum StorageKey {
+    PendingTransfers,
+    ProverAccounts,
+    UserBalances,
+    WhitelistedTokens,
+}
+
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub struct LockDuration {
+    lock_time_min: Duration,
+    lock_time_max: Duration,
+}
+
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct SpectreBridge {
     pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
-    proover_accounts: LookupMap<u32, AccountId>,
+    prover_accounts: LookupMap<u32, AccountId>,
     current_chain_id: u32,
     eth_bridge_contract: EthAddress,
     lock_time_min: Duration,
@@ -92,6 +105,7 @@ impl Default for SpectreBridge {
 #[near_bindgen]
 impl SpectreBridge {
     #[init]
+    #[private]
     pub fn new(
         eth_bridge_contract: EthAddress,
         lock_time_min: String,
@@ -107,20 +121,20 @@ impl SpectreBridge {
         );
 
         Self {
-            pending_transfers: LookupMap::new(b"pt".to_vec()),
-            user_balances: LookupMap::new(b"ub".to_vec()),
+            pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
+            user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
-            proover_accounts: LookupMap::new(b"pa".to_vec()),
+            prover_accounts: LookupMap::new(StorageKey::ProverAccounts),
             current_chain_id: 4,
             eth_bridge_contract,
             lock_time_min,
             lock_time_max,
-            whitelisted_tokens: UnorderedSet::new(b"wt".to_vec()),
+            whitelisted_tokens: UnorderedSet::new(StorageKey::WhitelistedTokens),
         }
     }
 
-    pub fn init_transfer(&mut self, msg: String) -> PromiseOrValue<U128> {
-        let transfer_message = self.is_metadata_correct(msg);
+    pub fn init_transfer(&mut self, transfer_message: TransferMessage) -> PromiseOrValue<U128> {
+        self.validate_transfer_message(&transfer_message);
         let user_token_balance = self
             .user_balances
             .get(&env::signer_account_id())
@@ -237,17 +251,17 @@ impl SpectreBridge {
     pub fn lp_unlock(&mut self, proof: Proof) {
         let parsed_proof = lp_relayer::TransferProof::parse(proof.clone());
 
-        let proover_account = self
-            .proover_accounts
+        let prover_account = self
+            .prover_accounts
             .get(&self.current_chain_id)
             .unwrap_or_else(|| {
                 panic!(
-                    "Proover account for current chain id:{}",
+                    "Prover account for current chain id:{}",
                     self.current_chain_id
                 )
             });
 
-        ext_prover::ext(proover_account)
+        ext_prover::ext(prover_account)
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
             .verify_log_entry(
@@ -381,14 +395,11 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn is_metadata_correct(&mut self, msg: String) -> TransferMessage {
-        let transfer_message: TransferMessage =
-            serde_json::from_str(&msg).expect("Some error with json structure.");
-
+    fn validate_transfer_message(&self, transfer_message: &TransferMessage) {
         require!(
             transfer_message.valid_till > block_timestamp(),
             format!(
-                "Transfer valid time:{} not correct, block timestamp:{}.",
+                "Transfer valid time:{} not correct, current block timestamp:{}.",
                 transfer_message.valid_till,
                 block_timestamp()
             )
@@ -416,8 +427,6 @@ impl SpectreBridge {
                     .contains(&transfer_message.fee.token),
             "This fee token not supported."
         );
-
-        transfer_message
     }
 
     #[private]
@@ -474,8 +483,8 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn add_proover_contract(&mut self, chain_id: u32, proover_account: AccountId) {
-        self.proover_accounts.insert(&chain_id, &proover_account);
+    pub fn add_prover_contract(&mut self, chain_id: u32, prover_account: AccountId) {
+        self.prover_accounts.insert(&chain_id, &prover_account);
     }
 
     #[private]
@@ -485,6 +494,13 @@ impl SpectreBridge {
             format!("Ethereum address:{} not valid.", near_address)
         );
         self.eth_bridge_contract = spectre_bridge_common::get_eth_address(near_address);
+    }
+
+    pub fn get_lock_duration(&self) -> LockDuration {
+        LockDuration {
+            lock_time_min: self.lock_time_min,
+            lock_time_max: self.lock_time_max,
+        }
     }
 
     #[private]
@@ -508,6 +524,7 @@ impl SpectreBridge {
 mod tests {
     use super::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
+    use near_sdk::serde_json::{self, json};
     use near_sdk::test_utils::VMContextBuilder;
     use near_sdk::{testing_env, VMContext};
     use std::convert::TryFrom;
@@ -615,16 +632,12 @@ mod tests {
     fn is_metadata_correct_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let contract = SpectreBridge::default();
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -635,9 +648,10 @@ mod tests {
                 "amount": "100"
             },
             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
+        });
 
-        let transfer_message = contract.is_metadata_correct(msg);
+        let transfer_message = serde_json::from_value(msg).unwrap();
+        contract.validate_transfer_message(&transfer_message);
 
         let original = TransferMessage {
             chain_id: 5,
@@ -666,15 +680,11 @@ mod tests {
     fn metadata_not_correct_valid_time_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let contract = SpectreBridge::default();
         let current_timestamp = block_timestamp() - 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -685,8 +695,8 @@ mod tests {
                 "amount": "100"
             },
             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        let _transfer_message = contract.is_metadata_correct(msg);
+        });
+        contract.validate_transfer_message(&serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -694,15 +704,11 @@ mod tests {
     fn metadata_lock_period_not_correct_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let contract = SpectreBridge::default();
         let current_timestamp = block_timestamp();
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -713,8 +719,8 @@ mod tests {
                 "amount": "100"
             },
             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        let _transfer_message = contract.is_metadata_correct(msg);
+        });
+        contract.validate_transfer_message(&serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -770,13 +776,9 @@ mod tests {
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 1;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -787,9 +789,9 @@ mod tests {
                 "amount": "100"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
+        });
 
-        contract.init_transfer(msg);
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -813,13 +815,9 @@ mod tests {
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 1;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -830,8 +828,8 @@ mod tests {
                 "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        contract.init_transfer(msg);
+        });
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -855,13 +853,9 @@ mod tests {
         let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -872,8 +866,8 @@ mod tests {
                 "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        contract.init_transfer(msg);
+        });
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -905,13 +899,9 @@ mod tests {
         );
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near299",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -922,8 +912,8 @@ mod tests {
                 "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        contract.init_transfer(msg);
+        });
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -960,13 +950,9 @@ mod tests {
         );
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -977,8 +963,8 @@ mod tests {
                 "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        contract.init_transfer(msg);
+        });
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -1015,13 +1001,9 @@ mod tests {
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -1032,8 +1014,8 @@ mod tests {
                 "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        contract.init_transfer(msg);
+        });
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1097,13 +1079,9 @@ mod tests {
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
-        let mut msg: String = r#"
-        {
+        let msg = json!({
             "chain_id": 5,
-            "valid_till": "#
-            .to_owned();
-        msg.push_str(&current_timestamp.to_string());
-        msg.push_str(r#",
+            "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
                 "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
@@ -1114,8 +1092,8 @@ mod tests {
                 "amount": "75"
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
-        }"#);
-        contract.init_transfer(msg);
+        });
+        contract.init_transfer(serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1130,20 +1108,20 @@ mod tests {
     }
 
     #[test]
-    fn test_add_proover_contract() {
+    fn test_add_prover_contract() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = SpectreBridge::default();
         let chain_id: u32 = 42;
-        let proover_account = AccountId::try_from("test".to_string()).unwrap();
-        let contains_proover = contract.proover_accounts.contains_key(&chain_id);
+        let prover_account = AccountId::try_from("test".to_string()).unwrap();
+        let contains_prover = contract.prover_accounts.contains_key(&chain_id);
 
-        assert!(!contains_proover);
+        assert!(!contains_prover);
 
-        contract.add_proover_contract(chain_id, proover_account);
-        let contains_proover = contract.proover_accounts.contains_key(&chain_id);
+        contract.add_prover_contract(chain_id, prover_account);
+        let contains_prover = contract.prover_accounts.contains_key(&chain_id);
 
-        assert!(contains_proover);
+        assert!(contains_prover);
     }
 
     #[test]

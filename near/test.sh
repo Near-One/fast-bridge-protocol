@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
 
-cargo test --manifest-path ./contracts/Cargo.toml -- --nocapture
+cd contracts
+cargo test -- --nocapture
