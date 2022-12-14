@@ -13,7 +13,7 @@ MIN_TIME_LOCK_NS=3600000000000
 near delete $BRIDGE_ACCOUNT $MASTER_ACCOUNT
 near delete $TOKEN_ACCOUNT $MASTER_ACCOUNT
 
-# create corresponding accoutns
+# create corresponding accounts
 near create-account $BRIDGE_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBalance 20
 near create-account $TOKEN_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBalance 10
 
