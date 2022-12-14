@@ -1,3 +1,0 @@
-[submodule "near/spectre-bridge-common"]
-	path = near/spectre-bridge-common
-	url = git@github.com:spectrebridge/spectre-bridge-common.git

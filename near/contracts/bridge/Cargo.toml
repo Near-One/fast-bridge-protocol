@@ -9,17 +9,14 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-near-sdk = "=4.0.0"
-serde = { version = "1.0"}
-eth-types =  { git = "https://github.com/near/rainbow-bridge", rev = "3a5373168e720d237ab451e8d41e81010693f876" }
-near-contract-standards = "4.0.0"
+near-sdk = "4.1.1"
+near-contract-standards = "4.1.1"
+serde = { version = "1.0" }
 uint = { version = "0.8.3", default-features = false }
 hex = "0.4.2"
 ethabi = "12.0.0"
 rlp = "0.4.2"
 tiny-keccak = "1.4.0"
-spectre-bridge-common = { path = "../../spectre-bridge-common" }
 parse_duration = "2.1.1"
-
-[dev-dependencies]
-near-sdk-sim = "3.1.1"
+eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", rev = "3e859904f445105850c2a08b5a4b0fdc7680c841", default-features = false, features = ["eip1559"] }
+spectre-bridge-common = { git = "ssh://git@github.com/aurora-is-near/spectre-bridge-common.git", rev = "862e52375010ae4aa1105492f880cb18985e5c40" }
