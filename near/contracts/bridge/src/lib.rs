@@ -10,7 +10,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::Promise;
 use near_sdk::{
     env, ext_contract, is_promise_success, near_bindgen, require, AccountId, BorshStorageKey,
-    Duration, PromiseOrValue, PromiseResult,
+    Duration, PanicOnDefault, PromiseOrValue, PromiseResult,
 };
 use parse_duration::parse;
 use spectre_bridge_common::*;
@@ -83,7 +83,7 @@ pub struct LockDuration {
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct SpectreBridge {
     pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
@@ -94,12 +94,6 @@ pub struct SpectreBridge {
     lock_time_min: Duration,
     lock_time_max: Duration,
     whitelisted_tokens: UnorderedSet<AccountId>,
-}
-
-impl Default for SpectreBridge {
-    fn default() -> Self {
-        SpectreBridge::new([0u8; 20], "1h".to_string(), "24h".to_string())
-    }
 }
 
 #[near_bindgen]
@@ -586,11 +580,15 @@ mod tests {
             .build()
     }
 
+    fn get_bridge_contract() -> SpectreBridge {
+        SpectreBridge::new([0u8; 20], "1h".to_string(), "24h".to_string())
+    }
+
     #[test]
     fn ft_on_transfer_with_empty_whitelist() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
 
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
@@ -601,7 +599,7 @@ mod tests {
     fn ft_on_transfer_with_token_in_whitelist() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
 
         let token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
@@ -617,7 +615,7 @@ mod tests {
     fn ft_on_transfer_with_token_not_in_whitelist() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
 
         let token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
@@ -632,7 +630,7 @@ mod tests {
     fn is_metadata_correct_test() {
         let context = get_context(false);
         testing_env!(context);
-        let contract = SpectreBridge::default();
+        let contract = get_bridge_contract();
 
         let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
         let msg = json!({
@@ -680,7 +678,7 @@ mod tests {
     fn metadata_not_correct_valid_time_test() {
         let context = get_context(false);
         testing_env!(context);
-        let contract = SpectreBridge::default();
+        let contract = get_bridge_contract();
         let current_timestamp = block_timestamp() - 20;
         let msg = json!({
             "chain_id": 5,
@@ -704,7 +702,7 @@ mod tests {
     fn metadata_lock_period_not_correct_test() {
         let context = get_context(false);
         testing_env!(context);
-        let contract = SpectreBridge::default();
+        let contract = get_bridge_contract();
         let current_timestamp = block_timestamp();
         let msg = json!({
             "chain_id": 5,
@@ -727,7 +725,7 @@ mod tests {
     fn increase_balance_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
 
@@ -743,7 +741,7 @@ mod tests {
     fn decrease_balance_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
 
@@ -764,7 +762,7 @@ mod tests {
     fn lock_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(200);
@@ -802,7 +800,7 @@ mod tests {
     fn unlock_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
@@ -972,7 +970,7 @@ mod tests {
     fn test_unlock_transaction_not_found() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap(); // signer account
@@ -1034,7 +1032,7 @@ mod tests {
     fn test_unlock_invalid_account() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
@@ -1111,7 +1109,7 @@ mod tests {
     fn test_add_prover_contract() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let chain_id: u32 = 42;
         let prover_account = AccountId::try_from("test".to_string()).unwrap();
         let contains_prover = contract.prover_accounts.contains_key(&chain_id);
@@ -1129,7 +1127,7 @@ mod tests {
     fn test_withdraw_no_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         contract.withdraw(transfer_token, U128(amount));
@@ -1140,7 +1138,7 @@ mod tests {
     fn test_withdraw_wrong_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         let context = get_context_custom_signer(false, String::from("token_near"));
@@ -1163,7 +1161,7 @@ mod tests {
     fn test_withdraw_not_enough_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         let context = get_context_custom_signer(false, String::from("token_near"));
@@ -1188,7 +1186,7 @@ mod tests {
     fn test_withdraw_callback() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let token_id: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         contract.withdraw_callback(token_id, U128(amount));
@@ -1199,7 +1197,7 @@ mod tests {
     fn test_set_enear_address_invalid_address() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let invalid_address = "test_addr".to_string();
         contract.set_enear_address(invalid_address);
     }
@@ -1208,7 +1206,7 @@ mod tests {
     fn test_set_enear_address() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
         contract.set_enear_address(valid_address);
@@ -1220,7 +1218,7 @@ mod tests {
     fn test_set_lock_time() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::default();
+        let mut contract = get_bridge_contract();
         let lock_time_min = "420h".to_string();
         let lock_time_max = "42h".to_string();
         let convert_nano = 36 * u64::pow(10, 11);

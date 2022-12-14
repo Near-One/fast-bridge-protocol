@@ -18,7 +18,7 @@ near create-account $BRIDGE_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBal
 near create-account $TOKEN_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBalance 10
 
 # redeploy contracts
-near deploy $BRIDGE_ACCOUNT --wasmFile ./res/bridge.wasm
+near deploy $BRIDGE_ACCOUNT --wasmFile ./res/bridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], "lock_time_min": "1h", "lock_time_max": "24h"}'
 near deploy $TOKEN_ACCOUNT --wasmFile ./res/mock_token.wasm --initFunction 'new_default_meta' --initArgs '{"owner_id": "'"$MASTER_ACCOUNT"'", "name": "Wrapped Near", "symbol": "WNEAR", "total_supply": "1"}'
 
 
@@ -31,6 +31,7 @@ near call $TOKEN_ACCOUNT storage_deposit '{"account_id": "'"$BRIDGE_ACCOUNT"'"}'
 # near call $BRIDGE_ACCOUNT ft_on_transfer '{"token_id": "'"$TOKEN_ACCOUNT"'", "amount": 10000000000000000000000000}' --account-id $MASTER_ACCOUNT
 near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "10000000000000000000000000", "msg": ""}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
 
+# get initialized lock duration
 near view $BRIDGE_ACCOUNT get_lock_duration
 
 sec_to_ns=1000000000
