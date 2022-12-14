@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: webfactory/ssh-agent@v0.7.0
         with:
-          submodules: recursive
-          ssh-key: ${{ secrets.submodulessh }}
+            ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
