@@ -18,7 +18,7 @@ near create-account $BRIDGE_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBal
 near create-account $TOKEN_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBalance 10
 
 # redeploy contracts
-near deploy $BRIDGE_ACCOUNT --wasmFile ./res/bridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], "lock_time_min": "1h", "lock_time_max": "24h"}'
+near deploy $BRIDGE_ACCOUNT --wasmFile ./res/bridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": "6b175474e89094c44da98b954eedeac495271d0f", "lock_time_min": "1h", "lock_time_max": "24h"}'
 near deploy $TOKEN_ACCOUNT --wasmFile ./res/mock_token.wasm --initFunction 'new_default_meta' --initArgs '{"owner_id": "'"$MASTER_ACCOUNT"'", "name": "Wrapped Near", "symbol": "WNEAR", "total_supply": "1"}'
 
 
