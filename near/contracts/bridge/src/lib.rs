@@ -248,8 +248,8 @@ impl SpectreBridge {
             parsed_proof.eth_bridge_contract,
             self.eth_bridge_contract,
             "Event's address {} does not match the eth bridge address {}",
-            hex::encode(&parsed_proof.eth_bridge_contract),
-            hex::encode(&self.eth_bridge_contract),
+            hex::encode(parsed_proof.eth_bridge_contract),
+            hex::encode(self.eth_bridge_contract),
         );
 
         ext_prover::ext(self.prover_account.clone())
