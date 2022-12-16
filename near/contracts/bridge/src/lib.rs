@@ -76,8 +76,7 @@ pub struct TransferMessage {
     transfer: TransferDataEthereum,
     fee: TransferDataNear,
     recipient: EthAddress,
-    lock_period: Option<u64>,
-    client_block_height: Option<u64>,
+    valid_min_block_height: Option<u64>,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -167,8 +166,9 @@ impl SpectreBridge {
         #[serializer(borsh)] transfer_message: TransferMessage,
     ) -> PromiseOrValue<U128> {
         let mut transfer_message = transfer_message;
-        transfer_message.lock_period = Some(transfer_message.valid_till - block_timestamp());
-        transfer_message.client_block_height = Some(last_block_height);
+        let lock_period = transfer_message.valid_till - block_timestamp();
+        transfer_message.valid_min_block_height =
+            Some(last_block_height + lock_period / self.block_time);
 
         self.validate_transfer_message(&transfer_message);
 
@@ -237,6 +237,7 @@ impl SpectreBridge {
                 amount: transfer_message.fee.amount,
             },
             recipient: transfer_message.recipient,
+            valid_min_block_height: transfer_message.valid_min_block_height.unwrap(),
         }
         .emit();
 
@@ -286,13 +287,12 @@ impl SpectreBridge {
             "Valid time is not correct."
         );
 
-        let min_block_height = transfer_data.client_block_height.unwrap()
-            + transfer_data.lock_period.unwrap() / self.block_time;
         require!(
-            last_block_height > min_block_height,
+            last_block_height > transfer_data.valid_min_block_height.unwrap(),
             format!(
                 "Minimum allowed block height is {}, but current client's block height is {}",
-                min_block_height, last_block_height
+                transfer_data.valid_min_block_height.unwrap(),
+                last_block_height
             )
         );
 
@@ -797,8 +797,7 @@ mod tests {
             recipient: spectre_bridge_common::get_eth_address(
                 "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
             ),
-            lock_period: None,
-            client_block_height: None,
+            valid_min_block_height: None,
         };
         assert_eq!(
             serde_json::to_string(&original).unwrap(),
