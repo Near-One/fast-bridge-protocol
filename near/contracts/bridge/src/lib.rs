@@ -39,6 +39,12 @@ pub trait Prover {
     ) -> bool;
 }
 
+#[ext_contract(ext_eth_client)]
+pub trait EthClient {
+    #[result_serializer(borsh)]
+    fn last_block_number(&self) -> u64;
+}
+
 #[ext_contract(ext_token)]
 trait NEP141Token {
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
@@ -48,6 +54,11 @@ trait NEP141Token {
 trait SpectreBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: U128);
     fn verify_log_entry_callback(&mut self, proof: TransferProof) -> Promise;
+    fn unlock_callback(&self, #[serializer(borsh)] nonce: U128);
+    fn init_transfer_callback(
+        &mut self,
+        #[serializer(borsh)] transfer_message: TransferMessage,
+    ) -> PromiseOrValue<U128>;
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -65,6 +76,8 @@ pub struct TransferMessage {
     transfer: TransferDataEthereum,
     fee: TransferDataNear,
     recipient: EthAddress,
+    lock_period: Option<u64>,
+    client_block_height: Option<u64>,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -89,8 +102,10 @@ pub struct SpectreBridge {
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     prover_account: AccountId,
+    eth_client_account: AccountId,
     eth_bridge_contract: EthAddress,
     lock_duration: LockDuration,
+    block_time: Duration,
     whitelisted_tokens: UnorderedSet<AccountId>,
 }
 
@@ -101,8 +116,10 @@ impl SpectreBridge {
     pub fn new(
         eth_bridge_contract: String,
         prover_account: AccountId,
+        eth_client_account: AccountId,
         lock_time_min: String,
         lock_time_max: String,
+        block_time: Duration,
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
@@ -118,17 +135,43 @@ impl SpectreBridge {
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
             prover_account,
+            eth_client_account,
             eth_bridge_contract: get_eth_address(eth_bridge_contract),
             lock_duration: LockDuration {
                 lock_time_min,
                 lock_time_max,
             },
+            block_time,
             whitelisted_tokens: UnorderedSet::new(StorageKey::WhitelistedTokens),
         }
     }
 
     pub fn init_transfer(&mut self, transfer_message: TransferMessage) -> PromiseOrValue<U128> {
+        ext_eth_client::ext(self.eth_client_account.clone())
+            .with_static_gas(utils::tera_gas(5))
+            .last_block_number()
+            .then(
+                ext_self::ext(env::current_account_id())
+                    .with_static_gas(utils::tera_gas(200))
+                    .init_transfer_callback(transfer_message),
+            )
+            .into()
+    }
+
+    #[private]
+    pub fn init_transfer_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        last_block_height: u64,
+        #[serializer(borsh)] transfer_message: TransferMessage,
+    ) -> PromiseOrValue<U128> {
+        let mut transfer_message = transfer_message;
+        transfer_message.lock_period = Some(transfer_message.valid_till - block_timestamp());
+        transfer_message.client_block_height = Some(last_block_height);
+
         self.validate_transfer_message(&transfer_message);
+
         let user_token_balance = self
             .user_balances
             .get(&env::signer_account_id())
@@ -200,7 +243,26 @@ impl SpectreBridge {
         PromiseOrValue::Value(nonce)
     }
 
-    pub fn unlock(&mut self, nonce: U128) {
+    pub fn unlock(&self, nonce: U128) -> Promise {
+        ext_eth_client::ext(self.eth_client_account.clone())
+            .with_static_gas(utils::tera_gas(5))
+            .last_block_number()
+            .then(
+                ext_self::ext(env::current_account_id())
+                    .with_static_gas(utils::tera_gas(50))
+                    .unlock_callback(nonce),
+            )
+            .into()
+    }
+
+    #[private]
+    pub fn unlock_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        last_block_height: u64,
+        #[serializer(borsh)] nonce: U128,
+    ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let transfer = self
             .pending_transfers
@@ -223,6 +285,16 @@ impl SpectreBridge {
         require!(
             block_timestamp() > transfer_data.valid_till,
             "Valid time is not correct."
+        );
+
+        let min_block_height = transfer_data.client_block_height.unwrap()
+            + transfer_data.lock_period.unwrap() / self.block_time;
+        require!(
+            last_block_height > min_block_height,
+            format!(
+                "Minimum allowed block height is {}, but current client's block height is {}",
+                min_block_height, last_block_height
+            )
         );
 
         self.increase_balance(
@@ -598,6 +670,7 @@ mod tests {
     struct BridgeInitArgs {
         eth_bridge_contract: Option<String>,
         prover_account: Option<AccountId>,
+        client_account: Option<AccountId>,
         lock_time_min: Option<String>,
         lock_time_max: Option<String>,
     }
@@ -606,6 +679,7 @@ mod tests {
         BridgeInitArgs {
             eth_bridge_contract: None,
             prover_account: None,
+            client_account: None,
             lock_time_min: Some(String::from("3h")),
             lock_time_max: Some(String::from("12h")),
         }
@@ -615,21 +689,30 @@ mod tests {
         "6b175474e89094c44da98b954eedeac495271d0f".to_string()
     }
 
+    fn prover() -> AccountId {
+        "prover.near".parse().unwrap()
+    }
+
+    fn eth_client() -> AccountId {
+        "client.near".parse().unwrap()
+    }
+
     fn get_bridge_contract(config: Option<BridgeInitArgs>) -> SpectreBridge {
         let config = config.unwrap_or(BridgeInitArgs {
             eth_bridge_contract: None,
             prover_account: None,
+            client_account: None,
             lock_time_min: None,
             lock_time_max: None,
         });
 
         SpectreBridge::new(
             config.eth_bridge_contract.unwrap_or(eth_bridge_address()),
-            config
-                .prover_account
-                .unwrap_or("prover.near".parse().unwrap()),
+            config.prover_account.unwrap_or(prover()),
+            config.client_account.unwrap_or(eth_client()),
             config.lock_time_min.unwrap_or("1h".to_string()),
             config.lock_time_max.unwrap_or("24h".to_string()),
+            12_000_000_000,
         )
     }
 
@@ -715,6 +798,8 @@ mod tests {
             recipient: spectre_bridge_common::get_eth_address(
                 "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
             ),
+            lock_period: None,
+            client_block_height: None,
         };
         assert_eq!(
             serde_json::to_string(&original).unwrap(),
@@ -838,7 +923,7 @@ mod tests {
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
 
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -876,7 +961,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -885,7 +970,7 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock(nonce);
+        contract.unlock_callback(312, nonce);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -914,7 +999,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -960,7 +1045,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -1011,7 +1096,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
     }
 
     #[test]
@@ -1062,7 +1147,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1070,7 +1155,7 @@ mod tests {
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock(U128(9));
+        contract.unlock_callback(10, U128(9));
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1140,7 +1225,7 @@ mod tests {
             },
              "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
         });
-        contract.init_transfer(serde_json::from_value(msg).unwrap());
+        contract.init_transfer_callback(10, serde_json::from_value(msg).unwrap());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1148,7 +1233,7 @@ mod tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock(U128(1));
+        contract.unlock_callback(10, U128(1));
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
