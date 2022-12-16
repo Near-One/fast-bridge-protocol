@@ -76,7 +76,7 @@ pub struct TransferMessage {
     transfer: TransferDataEthereum,
     fee: TransferDataNear,
     recipient: EthAddress,
-    valid_min_block_height: Option<u64>,
+    valid_till_block_height: Option<u64>,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -167,7 +167,7 @@ impl SpectreBridge {
     ) -> PromiseOrValue<U128> {
         let mut transfer_message = transfer_message;
         let lock_period = transfer_message.valid_till - block_timestamp();
-        transfer_message.valid_min_block_height =
+        transfer_message.valid_till_block_height =
             Some(last_block_height + lock_period / self.block_time);
 
         self.validate_transfer_message(&transfer_message);
@@ -237,7 +237,7 @@ impl SpectreBridge {
                 amount: transfer_message.fee.amount,
             },
             recipient: transfer_message.recipient,
-            valid_min_block_height: transfer_message.valid_min_block_height.unwrap(),
+            valid_till_block_height: transfer_message.valid_till_block_height.unwrap(),
         }
         .emit();
 
@@ -288,10 +288,10 @@ impl SpectreBridge {
         );
 
         require!(
-            last_block_height > transfer_data.valid_min_block_height.unwrap(),
+            last_block_height > transfer_data.valid_till_block_height.unwrap(),
             format!(
                 "Minimum allowed block height is {}, but current client's block height is {}",
-                transfer_data.valid_min_block_height.unwrap(),
+                transfer_data.valid_till_block_height.unwrap(),
                 last_block_height
             )
         );
@@ -797,7 +797,7 @@ mod tests {
             recipient: spectre_bridge_common::get_eth_address(
                 "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
             ),
-            valid_min_block_height: None,
+            valid_till_block_height: None,
         };
         assert_eq!(
             serde_json::to_string(&original).unwrap(),
