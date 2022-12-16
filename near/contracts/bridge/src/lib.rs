@@ -252,7 +252,6 @@ impl SpectreBridge {
                     .with_static_gas(utils::tera_gas(50))
                     .unlock_callback(nonce),
             )
-            .into()
     }
 
     #[private]
