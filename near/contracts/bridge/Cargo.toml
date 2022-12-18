@@ -19,4 +19,4 @@ rlp = "0.4.2"
 tiny-keccak = "1.4.0"
 parse_duration = "2.1.1"
 eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", rev = "3e859904f445105850c2a08b5a4b0fdc7680c841", default-features = false, features = ["eip1559"] }
-spectre-bridge-common = { git = "ssh://git@github.com/aurora-is-near/spectre-bridge-common.git", rev = "862e52375010ae4aa1105492f880cb18985e5c40" }
+spectre-bridge-common = { git = "ssh://git@github.com/aurora-is-near/spectre-bridge-common.git", rev = "8f98314ee9d7627a429fbc2ab4c5a59d98d4c2d9" }
