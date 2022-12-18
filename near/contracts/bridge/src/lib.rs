@@ -103,7 +103,7 @@ pub struct SpectreBridge {
     eth_client_account: AccountId,
     eth_bridge_contract: EthAddress,
     lock_duration: LockDuration,
-    block_time: Duration,
+    eth_block_time: Duration,
     whitelisted_tokens: UnorderedSet<AccountId>,
 }
 
@@ -117,7 +117,7 @@ impl SpectreBridge {
         eth_client_account: AccountId,
         lock_time_min: String,
         lock_time_max: String,
-        block_time: Duration,
+        eth_block_time: Duration,
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
@@ -139,7 +139,7 @@ impl SpectreBridge {
                 lock_time_min,
                 lock_time_max,
             },
-            block_time,
+            eth_block_time,
             whitelisted_tokens: UnorderedSet::new(StorageKey::WhitelistedTokens),
         }
     }
@@ -167,7 +167,7 @@ impl SpectreBridge {
         let mut transfer_message = transfer_message;
         let lock_period = transfer_message.valid_till - block_timestamp();
         transfer_message.valid_till_block_height =
-            Some(last_block_height + lock_period / self.block_time);
+            Some(last_block_height + lock_period / self.eth_block_time);
 
         self.validate_transfer_message(&transfer_message);
 
@@ -667,7 +667,7 @@ mod tests {
     struct BridgeInitArgs {
         eth_bridge_contract: Option<String>,
         prover_account: Option<AccountId>,
-        client_account: Option<AccountId>,
+        eth_client_account: Option<AccountId>,
         lock_time_min: Option<String>,
         lock_time_max: Option<String>,
     }
@@ -676,7 +676,7 @@ mod tests {
         BridgeInitArgs {
             eth_bridge_contract: None,
             prover_account: None,
-            client_account: None,
+            eth_client_account: None,
             lock_time_min: Some(String::from("3h")),
             lock_time_max: Some(String::from("12h")),
         }
@@ -698,7 +698,7 @@ mod tests {
         let config = config.unwrap_or(BridgeInitArgs {
             eth_bridge_contract: None,
             prover_account: None,
-            client_account: None,
+            eth_client_account: None,
             lock_time_min: None,
             lock_time_max: None,
         });
@@ -706,7 +706,7 @@ mod tests {
         SpectreBridge::new(
             config.eth_bridge_contract.unwrap_or(eth_bridge_address()),
             config.prover_account.unwrap_or(prover()),
-            config.client_account.unwrap_or(eth_client()),
+            config.eth_client_account.unwrap_or(eth_client()),
             config.lock_time_min.unwrap_or("1h".to_string()),
             config.lock_time_max.unwrap_or("24h".to_string()),
             12_000_000_000,
