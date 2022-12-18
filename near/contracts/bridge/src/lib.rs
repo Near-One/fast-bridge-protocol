@@ -71,7 +71,6 @@ pub struct TransferData {
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferMessage {
-    chain_id: u32,
     valid_till: u64,
     transfer: TransferDataEthereum,
     fee: TransferDataNear,
@@ -225,7 +224,6 @@ impl SpectreBridge {
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
-            chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
             transfer: TransferDataEthereum {
                 token_near: transfer_message.transfer.token_near,
@@ -765,7 +763,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
@@ -783,7 +780,6 @@ mod tests {
         contract.validate_transfer_message(&transfer_message);
 
         let original = TransferMessage {
-            chain_id: 5,
             valid_till: current_timestamp,
             transfer: TransferDataEthereum {
                 token_near: AccountId::try_from("alice_near".to_string()).unwrap(),
@@ -813,7 +809,6 @@ mod tests {
         let contract = get_bridge_contract(None);
         let current_timestamp = block_timestamp() - 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
@@ -837,7 +832,6 @@ mod tests {
         let contract = get_bridge_contract(None);
         let current_timestamp = block_timestamp();
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
@@ -907,7 +901,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -946,7 +939,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -984,7 +976,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -1030,7 +1021,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near299",
@@ -1081,7 +1071,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -1132,7 +1121,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -1210,7 +1198,6 @@ mod tests {
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
