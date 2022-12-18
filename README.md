@@ -4,7 +4,7 @@ Spectre bridge is one-way semi-decentralized bridge created to speed up transfer
 
 ## How it works
 1) User initiate unique transfer `{nonce, amount, {fee_token, fee_amount}, recipient, valid_till}` that is valid for some reasonably small period of time. That locks `amount` and `fee_amount` on NearErc20FastBridge contract
-2) NearErc20FastBridge contract generates `SpectreBridgeTransferEvent` with the following metadata `{nonce, chain_id, valid_till, transfer: {token_near, token_eth, amount}, fee: {token, amount}, recipient}`
+2) NearErc20FastBridge contract generates `SpectreBridgeTransferEvent` with the following metadata `{nonce, valid_till, transfer: {token_near, token_eth, amount}, fee: {token, amount}, recipient}`
 3) LP-relayer receives an event and makes a decision to process or not the transfer
 4) LP-Relayer transfers `amount` to `recipient` on Ethereum side via EthErc20FastBridge on Ethereum side
 5) Light-client Relayer submits the block to `EthOnNearClient` contract and after the needed amount of confirmations is done, the LP-relayer is ready to receive the `amount` and `fee` for the fast bridge transfer.

@@ -60,7 +60,6 @@ pub struct TransferData {
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TransferMessage {
-    chain_id: u32,
     valid_till: u64,
     transfer: TransferDataEthereum,
     fee: TransferDataNear,
@@ -70,8 +69,8 @@ pub struct TransferMessage {
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
     PendingTransfers,
-    ProverAccounts,
     UserBalances,
+    UserBalancePrefix,
     WhitelistedTokens,
 }
 
@@ -88,11 +87,9 @@ pub struct SpectreBridge {
     pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
-    prover_accounts: LookupMap<u32, AccountId>,
-    current_chain_id: u32,
+    prover_account: AccountId,
     eth_bridge_contract: EthAddress,
-    lock_time_min: Duration,
-    lock_time_max: Duration,
+    lock_duration: LockDuration,
     whitelisted_tokens: UnorderedSet<AccountId>,
 }
 
@@ -101,7 +98,8 @@ impl SpectreBridge {
     #[init]
     #[private]
     pub fn new(
-        eth_bridge_contract: EthAddress,
+        eth_bridge_contract: String,
+        prover_account: AccountId,
         lock_time_min: String,
         lock_time_max: String,
     ) -> Self {
@@ -118,11 +116,12 @@ impl SpectreBridge {
             pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
-            prover_accounts: LookupMap::new(StorageKey::ProverAccounts),
-            current_chain_id: 4,
-            eth_bridge_contract,
-            lock_time_min,
-            lock_time_max,
+            prover_account,
+            eth_bridge_contract: get_eth_address(eth_bridge_contract),
+            lock_duration: LockDuration {
+                lock_time_min,
+                lock_time_max,
+            },
             whitelisted_tokens: UnorderedSet::new(StorageKey::WhitelistedTokens),
         }
     }
@@ -182,7 +181,6 @@ impl SpectreBridge {
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
-            chain_id: transfer_message.chain_id,
             valid_till: transfer_message.valid_till,
             transfer: TransferDataEthereum {
                 token_near: transfer_message.transfer.token_near,
@@ -244,18 +242,15 @@ impl SpectreBridge {
 
     pub fn lp_unlock(&mut self, proof: Proof) {
         let parsed_proof = lp_relayer::TransferProof::parse(proof.clone());
+        assert_eq!(
+            parsed_proof.eth_bridge_contract,
+            self.eth_bridge_contract,
+            "Event's address {} does not match the eth bridge address {}",
+            hex::encode(parsed_proof.eth_bridge_contract),
+            hex::encode(self.eth_bridge_contract),
+        );
 
-        let prover_account = self
-            .prover_accounts
-            .get(&self.current_chain_id)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Prover account for current chain id:{}",
-                    self.current_chain_id
-                )
-            });
-
-        ext_prover::ext(prover_account)
+        ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
             .verify_log_entry(
@@ -341,6 +336,17 @@ impl SpectreBridge {
         .emit();
     }
 
+    fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> u128 {
+        let user_balance = self
+            .user_balances
+            .get(account_id)
+            .unwrap_or_else(|| panic!("{}", "User doesn't have balance".to_string()));
+
+        user_balance
+            .get(token_id)
+            .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
+    }
+
     #[private]
     fn update_balance(
         &mut self,
@@ -357,7 +363,15 @@ impl SpectreBridge {
             }
             self.user_balances.insert(&account_id, &user_balances);
         } else {
-            let mut token_balance = LookupMap::new(b"tb".to_vec());
+            let storage_key = [
+                StorageKey::UserBalancePrefix
+                    .try_to_vec()
+                    .unwrap()
+                    .as_slice(),
+                account_id.try_to_vec().unwrap().as_slice(),
+            ]
+            .concat();
+            let mut token_balance = LookupMap::new(storage_key);
             token_balance.insert(&token_id, &amount);
             self.user_balances.insert(&account_id, &token_balance);
         }
@@ -401,7 +415,8 @@ impl SpectreBridge {
 
         let lock_period = transfer_message.valid_till - block_timestamp();
         require!(
-            (self.lock_time_min..=self.lock_time_max).contains(&lock_period),
+            (self.lock_duration.lock_time_min..=self.lock_duration.lock_time_max)
+                .contains(&lock_period),
             format!(
                 "Lock period:{} does not fit the terms of the contract.",
                 lock_period
@@ -435,25 +450,15 @@ impl SpectreBridge {
 
     #[payable]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
-        let user_balance = self
-            .user_balances
-            .get(&env::signer_account_id())
-            .unwrap_or_else(|| panic!("{}", "User not have balance".to_string()));
+        let balance = self.get_user_balance(&env::predecessor_account_id(), &token_id);
 
-        let balance = user_balance
-            .get(&token_id)
-            .unwrap_or_else(|| panic!("User token: {} , balance is 0", &token_id.clone()));
-
-        require!(
-            balance >= u128::try_from(amount).unwrap(),
-            "Not enough token balance"
-        );
+        require!(balance >= amount.into(), "Not enough token balance");
 
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                signer_account_id(),
+                predecessor_account_id(),
                 amount,
                 Some(format!(
                     "Withdraw from: {} amount: {}",
@@ -477,8 +482,8 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn add_prover_contract(&mut self, chain_id: u32, prover_account: AccountId) {
-        self.prover_accounts.insert(&chain_id, &prover_account);
+    pub fn set_prover_account(&mut self, prover_account: AccountId) {
+        self.prover_account = prover_account;
     }
 
     #[private]
@@ -490,27 +495,24 @@ impl SpectreBridge {
         self.eth_bridge_contract = spectre_bridge_common::get_eth_address(near_address);
     }
 
-    pub fn get_lock_duration(&self) -> LockDuration {
-        LockDuration {
-            lock_time_min: self.lock_time_min,
-            lock_time_max: self.lock_time_max,
-        }
+    pub fn get_lock_duration(self) -> LockDuration {
+        self.lock_duration
     }
 
     #[private]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
-        self.lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
-        self.lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+
+        self.lock_duration = LockDuration {
+            lock_time_min,
+            lock_time_max,
+        };
     }
 
     #[private]
     pub fn add_supported_token(&mut self, token: AccountId) {
         self.whitelisted_tokens.insert(&token);
-    }
-
-    #[private]
-    pub fn set_current_chain_id(&mut self, chain_id: u32) {
-        self.current_chain_id = chain_id;
     }
 }
 
@@ -568,6 +570,17 @@ mod tests {
             .build()
     }
 
+    fn get_context_custom_predecessor(is_view: bool, predecessor: String) -> VMContext {
+        VMContextBuilder::new()
+            .current_account_id(AccountId::try_from("dex_near".to_string()).unwrap())
+            .signer_account_id(AccountId::try_from("token_near".to_string()).unwrap())
+            .predecessor_account_id(AccountId::try_from(predecessor).unwrap())
+            .block_index(101)
+            .block_timestamp(1649402222)
+            .is_view(is_view)
+            .build()
+    }
+
     fn get_panic_context_for_unlock(is_view: bool) -> VMContext {
         VMContextBuilder::new()
             .current_account_id(AccountId::try_from("bob_near".to_string()).unwrap())
@@ -580,15 +593,49 @@ mod tests {
             .build()
     }
 
-    fn get_bridge_contract() -> SpectreBridge {
-        SpectreBridge::new([0u8; 20], "1h".to_string(), "24h".to_string())
+    struct BridgeInitArgs {
+        eth_bridge_contract: Option<String>,
+        prover_account: Option<AccountId>,
+        lock_time_min: Option<String>,
+        lock_time_max: Option<String>,
+    }
+
+    fn get_bridge_config_v1() -> BridgeInitArgs {
+        BridgeInitArgs {
+            eth_bridge_contract: None,
+            prover_account: None,
+            lock_time_min: Some(String::from("3h")),
+            lock_time_max: Some(String::from("12h")),
+        }
+    }
+
+    fn eth_bridge_address() -> String {
+        "6b175474e89094c44da98b954eedeac495271d0f".to_string()
+    }
+
+    fn get_bridge_contract(config: Option<BridgeInitArgs>) -> SpectreBridge {
+        let config = config.unwrap_or(BridgeInitArgs {
+            eth_bridge_contract: None,
+            prover_account: None,
+            lock_time_min: None,
+            lock_time_max: None,
+        });
+
+        SpectreBridge::new(
+            config.eth_bridge_contract.unwrap_or(eth_bridge_address()),
+            config
+                .prover_account
+                .unwrap_or("prover.near".parse().unwrap()),
+            config.lock_time_min.unwrap_or("1h".to_string()),
+            config.lock_time_max.unwrap_or("24h".to_string()),
+        )
     }
 
     #[test]
     fn ft_on_transfer_with_empty_whitelist() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
 
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
@@ -599,7 +646,7 @@ mod tests {
     fn ft_on_transfer_with_token_in_whitelist() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
 
         let token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
@@ -615,7 +662,7 @@ mod tests {
     fn ft_on_transfer_with_token_not_in_whitelist() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
 
         let token: AccountId = AccountId::try_from("token1_near".to_string()).unwrap();
         contract.add_supported_token(token.clone());
@@ -630,11 +677,10 @@ mod tests {
     fn is_metadata_correct_test() {
         let context = get_context(false);
         testing_env!(context);
-        let contract = get_bridge_contract();
+        let contract = get_bridge_contract(None);
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
@@ -652,7 +698,6 @@ mod tests {
         contract.validate_transfer_message(&transfer_message);
 
         let original = TransferMessage {
-            chain_id: 5,
             valid_till: current_timestamp,
             transfer: TransferDataEthereum {
                 token_near: AccountId::try_from("alice_near".to_string()).unwrap(),
@@ -678,10 +723,9 @@ mod tests {
     fn metadata_not_correct_valid_time_test() {
         let context = get_context(false);
         testing_env!(context);
-        let contract = get_bridge_contract();
+        let contract = get_bridge_contract(None);
         let current_timestamp = block_timestamp() - 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
@@ -702,10 +746,9 @@ mod tests {
     fn metadata_lock_period_not_correct_test() {
         let context = get_context(false);
         testing_env!(context);
-        let contract = get_bridge_contract();
+        let contract = get_bridge_contract(None);
         let current_timestamp = block_timestamp();
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "alice_near",
@@ -725,7 +768,7 @@ mod tests {
     fn increase_balance_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
 
@@ -741,7 +784,7 @@ mod tests {
     fn decrease_balance_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
 
@@ -762,7 +805,7 @@ mod tests {
     fn lock_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(200);
@@ -773,9 +816,8 @@ mod tests {
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 1;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -800,7 +842,7 @@ mod tests {
     fn unlock_test() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance = U128(100);
@@ -812,9 +854,8 @@ mod tests {
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 1;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -848,11 +889,10 @@ mod tests {
     fn test_lock_no_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -873,7 +913,7 @@ mod tests {
     fn test_lock_balance_not_found() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
 
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
@@ -896,9 +936,8 @@ mod tests {
             ),
         );
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near299",
@@ -919,7 +958,7 @@ mod tests {
     fn test_lock_fee_balance_not_found() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = SpectreBridge::new([0u8; 20], String::from("3h"), String::from("12h"));
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
 
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
@@ -947,9 +986,8 @@ mod tests {
             ),
         );
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -970,7 +1008,7 @@ mod tests {
     fn test_unlock_transaction_not_found() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap(); // signer account
@@ -998,9 +1036,8 @@ mod tests {
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -1032,7 +1069,7 @@ mod tests {
     fn test_unlock_invalid_account() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
@@ -1076,9 +1113,8 @@ mod tests {
 
         assert_eq!(200, transfer_token_amount);
 
-        let current_timestamp = block_timestamp() + contract.lock_time_min + 20;
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
-            "chain_id": 5,
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
@@ -1106,42 +1142,25 @@ mod tests {
     }
 
     #[test]
-    fn test_add_prover_contract() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = get_bridge_contract();
-        let chain_id: u32 = 42;
-        let prover_account = AccountId::try_from("test".to_string()).unwrap();
-        let contains_prover = contract.prover_accounts.contains_key(&chain_id);
-
-        assert!(!contains_prover);
-
-        contract.add_prover_contract(chain_id, prover_account);
-        let contains_prover = contract.prover_accounts.contains_key(&chain_id);
-
-        assert!(contains_prover);
-    }
-
-    #[test]
-    #[should_panic(expected = r#"User not have balance"#)]
+    #[should_panic(expected = r#"User doesn't have balance"#)]
     fn test_withdraw_no_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         contract.withdraw(transfer_token, U128(amount));
     }
 
     #[test]
-    #[should_panic(expected = r#"User not have balance"#)]
+    #[should_panic(expected = r#"User doesn't have balance"#)]
     fn test_withdraw_wrong_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
-        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let mut contract = get_bridge_contract(None);
+        let transfer_token: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let amount = 42;
-        let context = get_context_custom_signer(false, String::from("token_near"));
+        let context = get_context_custom_signer(false, transfer_token.to_string());
         testing_env!(context);
         contract.ft_on_transfer(
             transfer_token.clone(),
@@ -1151,17 +1170,17 @@ mod tests {
                 transfer_token, amount
             ),
         );
-        let context = get_context(false);
+        let context = get_context_custom_predecessor(false, String::from("token_near"));
         testing_env!(context);
         contract.withdraw(transfer_token, U128(amount));
     }
 
     #[test]
-    #[should_panic(expected = r#"User not have balance"#)]
+    #[should_panic(expected = r#"Not enough token balance"#)]
     fn test_withdraw_not_enough_balance() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         let context = get_context_custom_signer(false, String::from("token_near"));
@@ -1174,11 +1193,10 @@ mod tests {
                 transfer_token, amount
             ),
         );
-        let amount = 100;
 
         let context = get_context(false);
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, U128(amount + 1));
     }
 
     #[test]
@@ -1186,7 +1204,7 @@ mod tests {
     fn test_withdraw_callback() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let token_id: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
         contract.withdraw_callback(token_id, U128(amount));
@@ -1197,7 +1215,7 @@ mod tests {
     fn test_set_enear_address_invalid_address() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let invalid_address = "test_addr".to_string();
         contract.set_enear_address(invalid_address);
     }
@@ -1206,7 +1224,7 @@ mod tests {
     fn test_set_enear_address() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
         contract.set_enear_address(valid_address);
@@ -1218,13 +1236,52 @@ mod tests {
     fn test_set_lock_time() {
         let context = get_context(false);
         testing_env!(context);
-        let mut contract = get_bridge_contract();
+        let mut contract = get_bridge_contract(None);
         let lock_time_min = "420h".to_string();
         let lock_time_max = "42h".to_string();
         let convert_nano = 36 * u64::pow(10, 11);
         contract.set_lock_time(lock_time_min, lock_time_max);
 
-        assert_eq!(contract.lock_time_min as u64 / convert_nano, 420);
-        assert_eq!(contract.lock_time_max as u64 / convert_nano, 42);
+        assert_eq!(
+            contract.lock_duration.lock_time_min as u64 / convert_nano,
+            420
+        );
+        assert_eq!(
+            contract.lock_duration.lock_time_max as u64 / convert_nano,
+            42
+        );
+    }
+
+    #[test]
+    fn test_update_balance() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        let tokens: [AccountId; 3] = [
+            "token1.near".parse().unwrap(),
+            "token2.near".parse().unwrap(),
+            "token3.near".parse().unwrap(),
+        ];
+        let users: [AccountId; 3] = [
+            "user1.near".parse().unwrap(),
+            "user2.near".parse().unwrap(),
+            "user3.near".parse().unwrap(),
+        ];
+
+        for user in users.iter() {
+            for token in tokens.iter() {
+                for _ in 0..3 {
+                    contract.update_balance(user.clone(), token.clone(), 10);
+                }
+            }
+        }
+
+        for user in users.iter() {
+            for token in tokens.iter() {
+                for _ in 0..3 {
+                    assert_eq!(contract.get_user_balance(user, token), 30);
+                }
+            }
+        }
     }
 }
