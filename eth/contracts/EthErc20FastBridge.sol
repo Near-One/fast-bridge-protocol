@@ -80,7 +80,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         address _recipient, 
         uint256 _nonce,  
         uint256 _amount,
-        string _unlock_recipient
+        string memory _unlock_recipient
     ) 
         external 
         whenNotPaused
