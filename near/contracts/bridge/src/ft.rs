@@ -16,12 +16,13 @@ impl FungibleTokenReceiver for SpectreBridge {
             "Sender is not the same as the signer"
         );
 
+        let token_account_id = env::predecessor_account_id();
         require!(
             self.whitelisted_tokens.is_empty()
-                || self.whitelisted_tokens.contains(&predecessor_account_id()),
-            format!("Token: {} not supported.", predecessor_account_id())
+                || self.whitelisted_tokens.contains(&token_account_id),
+            format!("Token: {} not supported.", token_account_id)
         );
 
-        self.update_balance(signer_account_id(), predecessor_account_id(), amount.0)
+        self.update_balance(sender_id, token_account_id, amount.0)
     }
 }
