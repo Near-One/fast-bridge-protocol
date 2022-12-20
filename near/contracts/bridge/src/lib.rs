@@ -1,4 +1,4 @@
-use crate::lp_relayer::TransferProof;
+use crate::lp_relayer::EthTransferEvent;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -51,7 +51,10 @@ trait NEP141Token {
 #[ext_contract(ext_self)]
 trait SpectreBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId);
-    fn verify_log_entry_callback(&mut self, proof: TransferProof) -> Promise;
+    fn verify_log_entry_callback(
+        &mut self,
+        #[serializer(borsh)] proof: EthTransferEvent,
+    ) -> Promise;
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
@@ -314,7 +317,7 @@ impl SpectreBridge {
     }
 
     pub fn lp_unlock(&mut self, proof: Proof) {
-        let parsed_proof = lp_relayer::TransferProof::parse(proof.clone());
+        let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
         assert_eq!(
             parsed_proof.eth_bridge_contract,
             self.eth_bridge_contract,
@@ -344,7 +347,7 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn verify_log_entry_callback(&mut self, proof: TransferProof) {
+    pub fn verify_log_entry_callback(&mut self, #[serializer(borsh)] proof: EthTransferEvent) {
         let verification_result = match env::promise_result(0) {
             PromiseResult::NotReady => 0,
             PromiseResult::Failed => 0,

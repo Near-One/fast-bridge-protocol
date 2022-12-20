@@ -2,7 +2,6 @@ use eth_types::{LogEntry, H256};
 use ethabi::{Event, EventParam, Hash, ParamType, RawLog};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::near_bindgen;
-use serde::{Deserialize, Serialize};
 use spectre_bridge_common::*;
 
 type EthEventParams = Vec<(String, ParamType, bool)>;
@@ -10,8 +9,8 @@ type EthEventParams = Vec<(String, ParamType, bool)>;
 const EVENT_NAME: &str = "TransferTokens";
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Default)]
-pub struct TransferProof {
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct EthTransferEvent {
     pub eth_bridge_contract: EthAddress,
     pub nonce: u128,
     pub relayer: EthAddress,
@@ -22,7 +21,7 @@ pub struct TransferProof {
     pub transfer_id: H256,
 }
 
-impl TransferProof {
+impl EthTransferEvent {
     pub fn event_params() -> EthEventParams {
         vec![
             ("nonce".to_string(), ParamType::Uint(256), true),
@@ -37,7 +36,7 @@ impl TransferProof {
 
     pub fn parse(proof: Proof) -> Self {
         let data = proof.log_entry_data;
-        let params = TransferProof::event_params();
+        let params = EthTransferEvent::event_params();
         let event = Event {
             name: EVENT_NAME.to_string(),
             inputs: params
@@ -154,10 +153,10 @@ mod tests {
         sponge.finalize(result);
     }
 
-    fn to_log_entry_data(event: &TransferProof) -> Vec<u8> {
+    fn to_log_entry_data(event: &EthTransferEvent) -> Vec<u8> {
         EthEvent::to_log_entry_data(
             EVENT_NAME,
-            TransferProof::event_params(),
+            EthTransferEvent::event_params(),
             event.eth_bridge_contract,
             vec![
                 event.nonce.to_be_bytes().to_vec(),
@@ -173,7 +172,7 @@ mod tests {
         )
     }
 
-    fn create_proof(transfer_event: &TransferProof) -> Proof {
+    fn create_proof(transfer_event: &EthTransferEvent) -> Proof {
         Proof {
             log_index: 0,
             log_entry_data: to_log_entry_data(&transfer_event),
@@ -200,7 +199,7 @@ mod tests {
             amount.to_be_bytes().to_vec(),
         ]
         .concat();
-        let transfer_event = TransferProof {
+        let transfer_event = EthTransferEvent {
             eth_bridge_contract,
             token,
             recipient,
@@ -212,7 +211,7 @@ mod tests {
         };
 
         let proof: Proof = create_proof(&transfer_event);
-        let param = TransferProof::parse(proof);
+        let param = EthTransferEvent::parse(proof);
 
         assert_eq!(nonce, param.nonce);
         assert_eq!(relayer, param.relayer);
