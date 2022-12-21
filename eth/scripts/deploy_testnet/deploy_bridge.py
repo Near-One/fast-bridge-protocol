@@ -23,7 +23,7 @@ def main():
     print(f"You are using: 'deployer' [{deployer.address}]")
     tokens_addresses = list(tokens.values())
     whitelisted_tokens = list(whitelisted_tokens.values())
-    bridge = deployer.deploy(EthErc20FastBridge)
+    bridge = deployer.deploy(EthErc20FastBridge, publish_source=True)
 
     bridge_encoded_initializer_function = encode_function_data(
         bridge.initialize, 
@@ -36,7 +36,8 @@ def main():
     proxy = ERC1967Proxy.deploy(
         bridge.address,
         bridge_encoded_initializer_function, 
-        {"from": deployer}
+        {"from": deployer},
+        publish_source=True
     )
     print(f"EthErc20FastBridge proxy at {proxy}")
     f.close()

@@ -33,6 +33,10 @@ def token(interface):
     return interface.ERC20('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')
 
 @pytest.fixture
+def unlock_recipient(interface):
+    return "near_recipient.near"
+
+@pytest.fixture
 def relayer(accounts, token, uniswap, weth):
     relayer = accounts[1]
 
