@@ -105,6 +105,10 @@ pub struct LockDuration {
 pub enum Role {
     /// May pause and unpause features.
     PauseManager,
+    /// May call `unlock` even when it is paused.
+    UnrestrictedUnlock,
+    /// May call `lp_unlock` even when it is paused.
+    UnrestrictedLpUnlock,
 }
 
 #[access_control(role_type(Role))]
@@ -265,7 +269,7 @@ impl SpectreBridge {
         PromiseOrValue::Value(nonce)
     }
 
-    #[pause]
+    #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128) -> Promise {
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
@@ -335,7 +339,7 @@ impl SpectreBridge {
         .emit();
     }
 
-    #[pause]
+    #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
         assert_eq!(
