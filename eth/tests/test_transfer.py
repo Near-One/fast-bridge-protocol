@@ -95,6 +95,7 @@ def test_two_equal_transfers(
             someone,
             11231231,
             relayer_balance_before,
+            unlock_recipient,
             {'from': another_relayer}
         )
     # Check that transfer not happend.
