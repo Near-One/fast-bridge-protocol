@@ -530,8 +530,8 @@ impl SpectreBridge {
             )
         );
 
-        self.check_whitelist_token_and_account(&transfer_message.transfer.token_near, &sender_id);
-        self.check_whitelist_token_and_account(&transfer_message.fee.token, &sender_id);
+        self.check_whitelist_token_and_account(&transfer_message.transfer.token_near, sender_id);
+        self.check_whitelist_token_and_account(&transfer_message.fee.token, sender_id);
     }
 
     fn store_transfers(&mut self, sender_id: AccountId, transfer_message: TransferMessage) -> u128 {

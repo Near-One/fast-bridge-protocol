@@ -43,7 +43,7 @@ impl SpectreBridge {
             return;
         }
 
-        let token_whitelist_mode = self.whitelist_tokens.get(&token).unwrap_or_else(|| {
+        let token_whitelist_mode = self.whitelist_tokens.get(token).unwrap_or_else(|| {
             env::panic_str(format!("The token {} is not whitelisted", token).as_str())
         });
 
