@@ -271,13 +271,13 @@ describe("Spectre Bridge", () => {
         })
 
         it("Only pausable admin can pause contract", async () => {
-            await expect(proxy.connect(owner).pause()).to.be.reverted;
+            await expect(proxy.connect(someone).pause()).to.be.reverted;
             await expect(proxy.connect(pausableAdmin).pause()).to.emit(proxy, "Paused").withArgs(pausableAdmin.address);
         })
 
         it("Only unpausable admin can unpause contract", async () => {
             await expect(proxy.connect(pausableAdmin).pause()).to.emit(proxy, "Paused").withArgs(pausableAdmin.address);
-            await expect(proxy.connect(owner).unPause()).to.be.reverted;
+            await expect(proxy.connect(someone).unPause()).to.be.reverted;
             await expect(proxy.connect(unpausableAdmin).unPause()).to.emit(proxy, "Unpaused").withArgs(unpausableAdmin.address);
         })
 
@@ -300,13 +300,13 @@ describe("Spectre Bridge", () => {
         })
 
         it("Only admin and whitelisting admin can add/remove token to/from white list", async () => {
-            await expect(proxy.connect(whitelistingAdmin).addTokenToWhitelist(tokenAddress)).to.emit(proxy, "AddTokenToWhitelist").withArgs(tokenAddress, true);
-            await expect(proxy.connect(whitelistingAdmin).removeTokenFromWhitelist(tokenAddress)).to.emit(proxy, "RemoveTokenFromWhitelist").withArgs(tokenAddress, false);
+            await expect(proxy.connect(whitelistingAdmin).addTokenToWhitelist(tokenAddress)).to.emit(proxy, "AddTokenToWhitelist").withArgs(tokenAddress);
+            await expect(proxy.connect(whitelistingAdmin).removeTokenFromWhitelist(tokenAddress)).to.emit(proxy, "RemoveTokenFromWhitelist").withArgs(tokenAddress);
             
-            await expect(proxy.connect(owner).addTokenToWhitelist(tokenAddress)).to.emit(proxy, "AddTokenToWhitelist").withArgs(tokenAddress, true);
+            await expect(proxy.connect(owner).addTokenToWhitelist(tokenAddress)).to.emit(proxy, "AddTokenToWhitelist").withArgs(tokenAddress);
             await expect(proxy.connect(owner).addTokenToWhitelist(tokenAddress)).to.be.revertedWith("Token already whitelisted!");
             
-            await expect(proxy.connect(owner).removeTokenFromWhitelist(tokenAddress)).to.emit(proxy, "RemoveTokenFromWhitelist").withArgs(tokenAddress, false);
+            await expect(proxy.connect(owner).removeTokenFromWhitelist(tokenAddress)).to.emit(proxy, "RemoveTokenFromWhitelist").withArgs(tokenAddress);
             await expect(proxy.connect(owner).removeTokenFromWhitelist(tokenAddress)).to.be.revertedWith("Token not whitelisted!");
             
             await expect(proxy.connect(someone).removeTokenFromWhitelist(tokenAddress)).to.be.reverted;

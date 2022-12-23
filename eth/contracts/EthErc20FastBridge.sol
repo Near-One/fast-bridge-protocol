@@ -30,13 +30,11 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     );
 
     event AddTokenToWhitelist(
-        address token,
-        bool state
+        address token
     );
 
     event RemoveTokenFromWhitelist(
-        address token,
-        bool state
+        address token
     );
 
     modifier isWhitelisted(address _token) {
@@ -56,6 +54,8 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(WHITELISTING_TOKENS_ADMIN_ROLE, _msgSender());
+        _setupRole(PAUSABLE_ADMIN_ROLE, _msgSender());
+        _setupRole(UNPAUSABLE_ADMIN_ROLE, _msgSender());
         setWhitelistedTokens(_tokens, _states);
     }
 
@@ -90,13 +90,13 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     function addTokenToWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(!whitelistedTokens[_token], "Token already whitelisted!");
         whitelistedTokens[_token] = true;
-        emit AddTokenToWhitelist(_token, true);
+        emit AddTokenToWhitelist(_token);
     }
 
     function removeTokenFromWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(whitelistedTokens[_token], "Token not whitelisted!");
         whitelistedTokens[_token] = false;
-        emit RemoveTokenFromWhitelist(_token, false);
+        emit RemoveTokenFromWhitelist(_token);
     }
 
     function transferTokens(
