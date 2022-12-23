@@ -1,0 +1,22 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: near-erc20-fast-bridge
+  title: NearErc20FastBridge
+  description: |
+    Initiates swap for given amount and fee and locks user token for given period of time.
+    Generates SwapEvent that then processed by LP-Relayer node.
+    Unlock tokens to user if swap period has ended.
+    Unlock tokens to LP-Relayer if valid proof is provided.
+  tags:
+    - contract
+    - near
+  links: []
+  annotations:
+    aurora.dev/security-tier: "2"
+spec:
+  owner: bridge-team
+  type: contract
+  lifecycle: production
+  system: spectre-bridge
