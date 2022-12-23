@@ -37,4 +37,4 @@ jobs:
         with:
           node-version: 16
       - run: cd eth; npm install; npm install -g ganache-cli
-      - run: cd eth; WEB3_INFURA_PROJECT_ID=${{secrets.WEB3_INFURA_PROJECT_ID}} npm run test:mainnet-fork
+      - run: cd eth; INFURA_API_KEY=${{secrets.WEB3_INFURA_PROJECT_ID}} npm run test:mainnet-fork
