@@ -29,7 +29,6 @@
         "flatten": "node scripts/flatten/flatten.js contracts/",
         "dev:slither": "npm run compile && slither .",
         "postinstall": "npm run compile && npm run dev:abi",
-        "prepare": "npx husky install",
         "clean": "npx shx rm -rf artifacts cache coverage coverage.json .openzeppelin && npx shx echo Cleaned",
         "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin"
     },
@@ -66,7 +65,6 @@
         "hardhat": "^2.9.5",
         "hardhat-abi-exporter": "^2.9.0",
         "hardhat-contract-sizer": "^2.5.1",
-        "husky": "^8.0.1",
         "mocha": "^10.0.0",
         "prettier": "^2.6.2",
         "prettier-plugin-solidity": "^1.0.0-beta.19",
