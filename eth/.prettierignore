@@ -1,0 +1,15 @@
+.*
+abi
+artifacts
+cache
+coverage*
+docgen
+docs
+flatten
+gas-report.txt
+json_inputs
+node_modules
+hardhat.config.js
+README.md
+reports
+__pycache__
