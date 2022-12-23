@@ -1,31 +1,82 @@
 {
-  "name": "spectrebridge",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "test": "tests"
-  },
-  "scripts": {
-    "flatten:bridge": "./node_modules/.bin/poa-solidity-flattener ./contracts/EthErc20FastBridge.sol",
-    "flatten:token": "./node_modules/.bin/poa-solidity-flattener ./contracts/TestToken.sol",
-    "env": "source .env",
-    "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin",
-    "preinstall": "pip3 install -r requirements-dev.txt",
-    "dev:docgen": "npx solidity-docgen -i ./contracts -o ./docs -t docgen -- solsolc-modulec -H docgen/helpers.js",
-    "test": "brownie test",
-    "test:mainnet-fork": "brownie test --network mainnet-fork",
-    "deploy:tokens:goerli": "brownie run ./scripts/deploy_testnet/deploy_test_tokens.py --network goerli",
-    "deploy:bridge:goerli": "brownie run ./scripts/deploy_testnet/deploy_bridge.py --network goerli"
-  },
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@openzeppelin/contracts": "^4.5.0",
-    "@openzeppelin/contracts-upgradeable": "^4.5.2",
-    "@poanet/solidity-flattener": "^3.0.7",
-    "dotenv": "^16.0.1",
-    "solc": "0.8.11",
-    "solidity-docgen": "^0.5.16"
-  }
+    "name": "project-name",
+    "version": "1.0.0",
+    "description": "Project description",
+    "files": [
+        "/contracts/**/*.sol",
+        "!/contracts/mocks/**/*"
+    ],
+    "scripts": {
+        "compile": "npx hardhat compile",
+        "compile-all": "npx hardhat compile --force",
+        "test": "npx hardhat test",
+        "test:mainnet-fork": "npx hardhat test --network hardhat",
+        "node": "npx hardhat node",
+        "dev:size-contracts": "npm run compile-all && npx hardhat size-contracts",
+        "deploy:all": "npx hardhat run scripts/deployment/",
+        "deploy:test-tokens": "npm run compile-all && npx hardhat run scripts/deployment/deploy-test-tokens.js --network goerli",
+        "deploy:bridge": "npm run compile-all && npx hardhat run scripts/deployment/deploy-bridge.js --network goerli",
+        "dev:abi": "npx hardhat clear-abi && npx hardhat export-abi",
+        "dev:coverage": "npx hardhat coverage",
+        "docgen": "npx shx rm -rf docs && npx solidity-docgen --solc-module solc -t docgen -H docgen/helpers.js -o docs/",
+        "dev:lint": "npm run dev:eslint && npm run dev:solhint",
+        "dev:eslint": "npx eslint \"**/*.js\"",
+        "dev:eslint-fix": "npx eslint \"**/*.js\" --fix",
+        "dev:solhint": "npx solhint \"contracts/**/*.sol\"",
+        "dev:solhint-fix": "npx solhint \"contracts/**/*.sol\" --fix",
+        "dev:prettier": "npx prettier --check \"**/*.{json,sol,md,js,yaml,yml}\"",
+        "dev:prettier-fix": "npx prettier --write \"**/*.{json,sol,md,js,yaml,yml}\"",
+        "flatten": "node scripts/flatten/flatten.js contracts/",
+        "dev:slither": "npm run compile && slither .",
+        "postinstall": "npm run compile && npm run dev:abi",
+        "clean": "npx shx rm -rf artifacts cache coverage coverage.json .openzeppelin && npx shx echo Cleaned",
+        "sec:slither": "slither contracts/EthErc20FastBridge.sol --solc-remaps @openzeppelin=node_modules/@openzeppelin"
+    },
+    "keywords": [
+        "blockchain",
+        "ethereum",
+        "solidity",
+        "js",
+        "hardhat",
+        "contracts"
+    ],
+    "author": "Author Name <author@email.com>",
+    "license": "MIT",
+    "dependencies": {
+        "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
+        "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
+        "@nomiclabs/hardhat-ethers": "^2.2.1",
+        "@openzeppelin/contracts": "4.8.0",
+        "@openzeppelin/contracts-upgradeable": "^4.8.0"
+    },
+    "devDependencies": {
+        "@commitlint/cli": "^17.3.0",
+        "@commitlint/config-conventional": "^17.3.0",
+        "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+        "@openzeppelin/hardhat-upgrades": "^1.22.0",
+        "@openzeppelin/test-helpers": "^0.5.16",
+        "chai": "^4.3.7",
+        "dotenv": "^16.0.3",
+        "eslint": "^8.30.0",
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prettier": "^4.2.1",
+        "ethers": "^5.7.2",
+        "hardhat": "^2.12.4",
+        "hardhat-abi-exporter": "^2.10.1",
+        "hardhat-contract-sizer": "^2.6.1",
+        "mocha": "^10.2.0",
+        "prettier": "^2.8.1",
+        "prettier-plugin-solidity": "^1.1.0",
+        "shx": "^0.3.4",
+        "solc": "0.8.17",
+        "solhint": "^3.3.7",
+        "solhint-plugin-prettier": "^0.0.5",
+        "solidity-docgen": "0.5.17",
+        "web3": "^1.8.1"
+    },
+    "engines": {
+        "node": ">= 16.0.0",
+        "npm": ">= 7.0.0"
+    }
 }
