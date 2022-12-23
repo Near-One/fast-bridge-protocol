@@ -38,7 +38,7 @@ module.exports = {
         hardhat: {
             allowUnlimitedContractSize: !ENABLED_OPTIMIZER,
             forking: {
-                url: process.env.FORKING_URL || "https://eth-mainnet.g.alchemy.com/v2/YIMyfAgTDcuPIBL5V9VAhRNug0wEqSvT",
+                url: process.env.FORKING_URL || `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
                 enabled: FORKING !== undefined
             }
         },
