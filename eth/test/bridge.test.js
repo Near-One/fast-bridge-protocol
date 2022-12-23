@@ -264,9 +264,10 @@ describe("Spectre Bridge", () => {
             await expect(proxy.connect(someone).withdrawStuckTokens(tokenAddress)).to.be.reverted;
     
             let bridgeBalanceBefore = await tokenInstance.balanceOf(proxy.address);
+            let ownerBalanceBefore = await tokenInstance.balanceOf(owner.address);
             await proxy.connect(owner).withdrawStuckTokens(tokenAddress);
     
-            expect(await tokenInstance.balanceOf(owner.address)).to.be.equal(bridgeBalanceBefore);
+            expect(await tokenInstance.balanceOf(owner.address)).to.be.equal(bridgeBalanceBefore.add(ownerBalanceBefore));
         })
 
         it("Only pausable admin can pause contract", async () => {
