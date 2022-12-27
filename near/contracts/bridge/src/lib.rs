@@ -612,11 +612,12 @@ impl SpectreBridge {
 mod tests {
     use super::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-    use near_sdk::env::signer_account_id;
+    use near_sdk::env::{sha256, signer_account_id};
     use near_sdk::serde_json::{self, json};
-    use near_sdk::test_utils::VMContextBuilder;
+    use near_sdk::test_utils::{accounts, VMContextBuilder};
     use near_sdk::{testing_env, VMContext};
     use std::convert::TryFrom;
+    use uint::rustc_hex::ToHex;
 
     fn get_context(is_view: bool) -> VMContext {
         VMContextBuilder::new()
@@ -684,6 +685,38 @@ mod tests {
             .block_timestamp(1649402222 + 10800000000000 + 30)
             .is_view(is_view)
             .build()
+    }
+
+    macro_rules! inner_set_env {
+        ($builder:ident) => {
+            $builder
+        };
+
+        ($builder:ident, $key:ident:$value:expr $(,$key_tail:ident:$value_tail:expr)*) => {
+            {
+               $builder.$key($value.try_into().unwrap());
+               inner_set_env!($builder $(,$key_tail:$value_tail)*)
+            }
+        };
+    }
+
+    macro_rules! set_env {
+        ($($key:ident:$value:expr),* $(,)?) => {
+            let mut builder = VMContextBuilder::new();
+            let mut builder = &mut builder;
+            builder = inner_set_env!(builder, $($key: $value),*);
+            testing_env!(builder.build());
+        };
+    }
+
+    /// Generate a valid ethereum address.
+    fn ethereum_address_from_id(id: u8) -> String {
+        let mut buffer = vec![id];
+        sha256(buffer.as_mut())
+            .into_iter()
+            .take(20)
+            .collect::<Vec<_>>()
+            .to_hex()
     }
 
     struct BridgeInitArgs {
@@ -781,7 +814,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "The token `new_token.near` is not whitelisted")]
     fn ft_on_transfer_with_token_not_in_whitelist() {
         let context = get_context(false);
         testing_env!(context);
@@ -791,10 +824,12 @@ mod tests {
         contract.set_token_whitelist_mode(token.clone(), WhitelistMode::CheckToken);
         assert!(contract.whitelist_tokens.get(&token).unwrap() == WhitelistMode::CheckToken);
 
-        let transfer_account: AccountId =
-            AccountId::try_from("new_token.near".to_string()).unwrap();
+        let sender_account = accounts(1);
+        let token_account: AccountId = AccountId::try_from("new_token.near".to_string()).unwrap();
         let balance = U128(100);
-        contract.ft_on_transfer(transfer_account, balance, "".to_string());
+
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+        contract.ft_on_transfer(sender_account, balance, "".to_string());
     }
 
     #[test]
@@ -845,7 +880,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "attempt to subtract with overflow")]
     fn metadata_not_correct_valid_time_test() {
         let context = get_context(false);
         testing_env!(context);
@@ -873,7 +908,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "not correct, current block timestamp")]
     fn metadata_lock_period_not_correct_test() {
         let context = get_context(false);
         testing_env!(context);
@@ -1445,6 +1480,148 @@ mod tests {
                 for _ in 0..3 {
                     assert_eq!(contract.get_user_balance(user, token), 30);
                 }
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "is blocked")]
+    fn test_blocked_token() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let token_account = accounts(1);
+        let sender_account = accounts(2);
+        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
+        contract.set_token_whitelist_mode(token_account, WhitelistMode::Blocked);
+        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+    }
+
+    #[test]
+    #[should_panic(expected = "isn't whitelisted for the account")]
+    fn test_account_not_in_whitelist() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let token_account = accounts(1);
+        let sender_account = accounts(2);
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+        contract.set_token_whitelist_mode(accounts(1), WhitelistMode::CheckAccountAndToken);
+        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+    }
+
+    #[test]
+    #[should_panic(expected = "is not whitelisted")]
+    fn test_token_not_in_whitelist() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let token_account = accounts(1);
+        let sender_account = accounts(2);
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+    }
+
+    #[test]
+    fn test_account_in_whitelist() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let token_account = accounts(1);
+        let sender_account = accounts(2);
+        contract
+            .set_token_whitelist_mode(token_account.clone(), WhitelistMode::CheckAccountAndToken);
+        contract
+            .add_token_to_account_whitelist(Some(token_account.clone()), sender_account.clone());
+
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+    }
+
+    #[test]
+    #[should_panic(expected = "isn't whitelisted for the account")]
+    fn test_remove_account_from_whitelist() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let token_account = accounts(1);
+        let sender_account = accounts(2);
+        contract
+            .set_token_whitelist_mode(token_account.clone(), WhitelistMode::CheckAccountAndToken);
+        contract
+            .add_token_to_account_whitelist(Some(token_account.clone()), sender_account.clone());
+
+        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
+        contract.ft_on_transfer(
+            sender_account.clone(),
+            U128(1_000_000),
+            ethereum_address_from_id(0),
+        );
+
+        contract.remove_token_from_account_whitelist(
+            Some(token_account.clone()),
+            sender_account.clone(),
+        );
+        contract.ft_on_transfer(
+            sender_account.clone(),
+            U128(1_000_000),
+            ethereum_address_from_id(0),
+        );
+    }
+
+    #[test]
+    fn test_tokens_in_whitelist() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let whitelist_tokens = ["token1.near", "token2.near", "token3.near"];
+
+        for token_id in whitelist_tokens {
+            contract.set_token_whitelist_mode(token_id.parse().unwrap(), WhitelistMode::CheckToken);
+        }
+
+        for token_id in whitelist_tokens {
+            let token_account: AccountId = token_id.parse().unwrap();
+            let sender_account = accounts(2);
+            set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+            contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+        }
+    }
+
+    #[test]
+    fn test_accounts_in_whitelist() {
+        set_env!(predecessor_account_id: accounts(0));
+        let mut contract = get_bridge_contract(None);
+
+        let whitelist_tokens = ["token1.near", "token2.near", "token3.near"];
+        let whitelist_accounts = ["account1.near", "account2.near", "account3.near"];
+
+        for token_id in whitelist_tokens {
+            let token_account: AccountId = token_id.parse().unwrap();
+            contract.set_token_whitelist_mode(
+                token_account.clone(),
+                WhitelistMode::CheckAccountAndToken,
+            );
+
+            for account_id in whitelist_accounts {
+                let sender_account: AccountId = account_id.parse().unwrap();
+                contract.add_token_to_account_whitelist(
+                    Some(token_account.clone()),
+                    sender_account.clone(),
+                );
+            }
+        }
+
+        for token_id in whitelist_tokens {
+            for account_id in whitelist_accounts {
+                let token_account: AccountId = token_id.parse().unwrap();
+                let sender_account: AccountId = account_id.parse().unwrap();
+                set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+                contract.ft_on_transfer(
+                    sender_account,
+                    U128(1_000_000),
+                    ethereum_address_from_id(0),
+                );
             }
         }
     }
