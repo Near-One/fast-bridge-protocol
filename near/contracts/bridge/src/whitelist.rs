@@ -30,7 +30,7 @@ impl SpectreBridge {
     pub fn add_token_to_account_whitelist(&mut self, token: Option<AccountId>, account: AccountId) {
         if let Some(token) = &token {
             assert!(
-                self.whitelist_tokens.get(&token).is_some(),
+                self.whitelist_tokens.get(token).is_some(),
                 "The whitelisted token mode is not set",
             );
         }
