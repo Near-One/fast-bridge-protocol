@@ -4,7 +4,7 @@
 # build & test
 ./build.sh && ./test.sh
 
-MASTER_ACCOUNT="test1-dev.testnet"
+MASTER_ACCOUNT="<YOUR_ACCOUNT>"
 BRIDGE_ACCOUNT=fast-bridge.$MASTER_ACCOUNT
 TOKEN_ACCOUNT=token.$MASTER_ACCOUNT
 MIN_TIME_LOCK_NS=3600000000000
