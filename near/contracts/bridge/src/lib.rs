@@ -83,6 +83,7 @@ pub struct TransferMessage {
     valid_till: u64,
     transfer: TransferDataEthereum,
     fee: TransferDataNear,
+    #[serde(with = "hex::serde")]
     recipient: EthAddress,
     valid_till_block_height: Option<u64>,
 }
@@ -844,14 +845,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
 
         let transfer_message = serde_json::from_value(msg).unwrap();
@@ -891,14 +892,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
 
         contract.validate_transfer_message(
@@ -919,14 +920,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
 
         contract.validate_transfer_message(
@@ -992,14 +993,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "100"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "100"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
 
         contract.init_transfer_callback(
@@ -1034,14 +1035,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
         contract.init_transfer_callback(
             10,
@@ -1075,14 +1076,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
         contract.init_transfer_callback(
             10,
@@ -1124,14 +1125,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near299",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
         contract.init_transfer_callback(
             10,
@@ -1178,14 +1179,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near299",
                 "amount": "75"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
         contract.init_transfer_callback(
             10,
@@ -1232,14 +1233,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
         contract.init_transfer_callback(
             10,
@@ -1313,14 +1314,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111],
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": [113, 199, 101, 110, 199, 171, 136, 176, 152, 222, 251, 117, 27, 116, 1, 181, 246, 216, 151, 111]
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
         });
         contract.init_transfer_callback(
             10,

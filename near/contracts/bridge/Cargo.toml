@@ -13,12 +13,12 @@ near-sdk = "4.1.1"
 near-contract-standards = "4.1.1"
 serde = { version = "1.0" }
 uint = { version = "0.8.3", default-features = false }
-hex = "0.4.2"
+hex = { version = "0.4.3", features = ["serde"] }
 ethabi = "12.0.0"
 rlp = "0.4.2"
 tiny-keccak = "1.4.0"
 parse_duration = "2.1.1"
 eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", rev = "3e859904f445105850c2a08b5a4b0fdc7680c841", default-features = false, features = ["eip1559"] }
-spectre-bridge-common = { git = "ssh://git@github.com/aurora-is-near/spectre-bridge-common.git", rev = "38f269038eb4f885764be47633fd628e5bbfb7f5" }
+spectre-bridge-common = { git = "ssh://git@github.com/aurora-is-near/spectre-bridge-common.git", rev = "93276eaaf797baa0ed1490297cfd2ed083e2bf7c" }
 near-plugins = { git = "https://github.com/aurora-is-near/near-plugins", rev = "cdd2ea3c7bafc3546db3bd4ebcd5c0795cfaf0b9" }
 near-plugins-derive = { git = "https://github.com/aurora-is-near/near-plugins", rev = "cdd2ea3c7bafc3546db3bd4ebcd5c0795cfaf0b9" }
