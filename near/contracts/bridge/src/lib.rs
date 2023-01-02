@@ -232,6 +232,12 @@ impl SpectreBridge {
             "Not enough transfer token balance."
         );
 
+        self.decrease_balance(
+            &sender_id,
+            &transfer_message.transfer.token_near,
+            &u128::from(transfer_message.transfer.amount),
+        );
+
         let token_fee_balance = user_token_balance
             .get(&transfer_message.fee.token)
             .unwrap_or_else(|| {
@@ -244,12 +250,6 @@ impl SpectreBridge {
         require!(
             token_fee_balance >= u128::from(transfer_message.fee.amount),
             "Not enough fee token balance."
-        );
-
-        self.decrease_balance(
-            &sender_id,
-            &transfer_message.transfer.token_near,
-            &u128::from(transfer_message.transfer.amount),
         );
 
         self.decrease_balance(
