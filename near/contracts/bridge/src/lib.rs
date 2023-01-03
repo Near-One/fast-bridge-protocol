@@ -1492,8 +1492,8 @@ mod tests {
 
         let token_account = accounts(1);
         let sender_account = accounts(2);
-        contract.set_token_whitelist_mode(token_account, WhitelistMode::Blocked);
-        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
+        contract.set_token_whitelist_mode(token_account.clone(), WhitelistMode::Blocked);
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
         contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
     }
 
@@ -1558,10 +1558,13 @@ mod tests {
             ethereum_address_from_id(0),
         );
 
+        set_env!(predecessor_account_id: accounts(0));
         contract.remove_token_from_account_whitelist(
             Some(token_account.clone()),
             sender_account.clone(),
         );
+
+        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
         contract.ft_on_transfer(
             sender_account.clone(),
             U128(1_000_000),
