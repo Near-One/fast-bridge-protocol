@@ -546,8 +546,8 @@ impl SpectreBridge {
     #[payable]
     #[pause]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
-        let sender_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&sender_id, &token_id);
+        let receiver_id = env::predecessor_account_id();
+        let balance = self.get_user_balance(&receiver_id, &token_id);
 
         require!(balance >= amount.into(), "Not enough token balance");
 
@@ -555,7 +555,7 @@ impl SpectreBridge {
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                sender_id.clone(),
+                receiver_id.clone(),
                 amount,
                 Some(format!(
                     "Withdraw from: {} amount: {}",
@@ -567,7 +567,7 @@ impl SpectreBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, sender_id),
+                    .withdraw_callback(token_id, amount, receiver_id),
             );
     }
 

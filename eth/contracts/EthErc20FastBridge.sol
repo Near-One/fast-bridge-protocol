@@ -7,9 +7,12 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-
 contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
+    bytes32 public constant PAUSABLE_ADMIN_ROLE = keccak256("PAUSABLE_ADMIN_ROLE");
+    bytes32 public constant UNPAUSABLE_ADMIN_ROLE = keccak256("UNPAUSABLE_ADMIN_ROLE");
+    bytes32 public constant WHITELISTING_TOKENS_ADMIN_ROLE = keccak256("WHITELISTING_TOKENS_ADMIN_ROLE");
+
     mapping (address => bool) public whitelistedTokens;
     mapping (bytes32 => bool) public processedHashes;
     
@@ -28,6 +31,14 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         bytes32 indexed _transfer_id
     );
 
+    event AddTokenToWhitelist(
+        address token
+    );
+
+    event RemoveTokenFromWhitelist(
+        address token
+    );
+
     modifier isWhitelisted(address _token) {
         require(whitelistedTokens[_token], "Token not whitelisted!");
         _;
@@ -44,6 +55,9 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(WHITELISTING_TOKENS_ADMIN_ROLE, _msgSender());
+        _setupRole(PAUSABLE_ADMIN_ROLE, _msgSender());
+        _setupRole(UNPAUSABLE_ADMIN_ROLE, _msgSender());
         setWhitelistedTokens(_tokens, _states);
     }
 
@@ -51,11 +65,11 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         return whitelistedTokens[_token];
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() external onlyRole(PAUSABLE_ADMIN_ROLE) {
         _pause();
     }
 
-    function unPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unPause() external onlyRole(UNPAUSABLE_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -64,7 +78,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         bool[] memory _states
     ) 
         public 
-        onlyRole(DEFAULT_ADMIN_ROLE) 
+        onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) 
     {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
@@ -73,7 +87,19 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         }
 
         emit SetTokens(_tokens, _states);
-    }   
+    }  
+
+    function addTokenToWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
+        require(!whitelistedTokens[_token], "Token already whitelisted!");
+        whitelistedTokens[_token] = true;
+        emit AddTokenToWhitelist(_token);
+    }
+
+    function removeTokenFromWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
+        require(whitelistedTokens[_token], "Token not whitelisted!");
+        whitelistedTokens[_token] = false;
+        emit RemoveTokenFromWhitelist(_token);
+    }
 
     function transferTokens(
         address _token, 
