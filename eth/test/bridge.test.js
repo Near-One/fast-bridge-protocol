@@ -7,6 +7,11 @@ const { time, takeSnapshot, SnapshotRestorer } = require("@nomicfoundation/hardh
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const Uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
 const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const unlockRecipient = "near_recipient.near";
+
+function getTransferId(token, recipient, nonce, amount) {
+    return ethers.utils.solidityKeccak256([ "address", "address", "uint256", "uint256" ], [ token, recipient, nonce, amount ]);
+}
 
 const buyTokenForEth = async (buyer, router, ethAmount, path) => {
     await router.connect(buyer).swapExactETHForTokens(0, path, buyer.address, ethers.constants.MaxUint256, { value: ethAmount });
@@ -115,29 +120,33 @@ describe("Spectre Bridge", () => {
 
             let transferPart = relayerBalance - 100;
 
+            let transferId = getTransferId(tokenAddress, someone.address, nonce, transferPart);
             await expect(proxy.connect(relayer).transferTokens(
                 tokenAddress,
                 someone.address,
                 nonce,
-                transferPart
-            )).to.emit(proxy, "TransferTokens").withArgs(nonce, relayer.address, tokenAddress, someone.address, transferPart);
+                transferPart,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(nonce, relayer.address, tokenAddress, someone.address, transferPart, unlockRecipient, transferId);
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart);
 
             await proxy.connect(pausableAdmin).pause();
 
             let relayerBalanceAfter = tokenInstance.balanceOf(relayer.address);
-            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalanceAfter)).to.be.revertedWith("Pausable: paused");
+            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalanceAfter, unlockRecipient)).to.be.revertedWith("Pausable: paused");
 
             await proxy.connect(unpausableAdmin).unPause();
 
             const amount = 100;
+            transferId = getTransferId(tokenAddress, someone.address, anotherNonce, amount);
             await expect(proxy.connect(relayer).transferTokens(
                 tokenAddress,
                 someone.address,
                 anotherNonce,
-                amount
-            )).to.emit(proxy, "TransferTokens").withArgs(anotherNonce, relayer.address, tokenAddress, someone.address, amount);
+                amount,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(anotherNonce, relayer.address, tokenAddress, someone.address, amount, unlockRecipient, transferId);
 
             let transferPart2 = transferPart + 100;
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart2);
@@ -161,12 +170,14 @@ describe("Spectre Bridge", () => {
                 balanceAnotherRelayer
             );
 
+            transferId = getTransferId(tokenAddress, someone.address, nonce, balanceRelayer);
             await expect(proxy.connect(anotherRelayer).transferTokens(
                 tokenAddress,
                 someone.address,
                 nonce,
-                balanceRelayer
-            )).to.emit(proxy, "TransferTokens").withArgs(nonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer);
+                balanceRelayer,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(nonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer, unlockRecipient, transferId);
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
 
@@ -174,7 +185,8 @@ describe("Spectre Bridge", () => {
                 tokenAddress,
                 someone.address,
                 nonce,
-                balanceRelayer
+                balanceRelayer,
+                unlockRecipient
             )).to.be.revertedWith("This transaction has already been processed!");
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
@@ -197,20 +209,25 @@ describe("Spectre Bridge", () => {
                 proxy.address,
                 balanceAnotherRelayer
             );
+
+            let transferId = getTransferId(tokenAddress, someone.address, nonce, balanceRelayer);
             await expect(proxy.connect(relayer).transferTokens(
                 tokenAddress,
                 someone.address,
                 nonce,
-                balanceRelayer
-            )).to.emit(proxy, "TransferTokens").withArgs(nonce, relayer.address, tokenAddress, someone.address, balanceRelayer);
+                balanceRelayer,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(nonce, relayer.address, tokenAddress, someone.address, balanceRelayer, unlockRecipient, transferId);
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
 
+            transferId = getTransferId(tokenAddress, someone.address, anotherNonce, balanceRelayer);
             await expect(proxy.connect(anotherRelayer).transferTokens(
                 tokenAddress,
                 someone.address,
                 anotherNonce,
-                balanceRelayer
-            )).to.emit(proxy, "TransferTokens").withArgs(anotherNonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer);
+                balanceRelayer,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(anotherNonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer, unlockRecipient, transferId);
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer * 2);
         })
@@ -225,14 +242,16 @@ describe("Spectre Bridge", () => {
                 tokenAddress,
                 ethers.constants.AddressZero,
                 1,
-                10000000000
+                10000000000,
+                unlockRecipient
             )).to.be.revertedWith("Wrong recipient provided");
 
             await expect(proxy.connect(relayer).transferTokens(
                 tokenAddress,
                 relayer.address,
                 1,
-                10000000000
+                10000000000,
+                unlockRecipient
             )).to.be.revertedWith("Wrong recipient provided");
         })
 
@@ -247,6 +266,7 @@ describe("Spectre Bridge", () => {
                 someone.address,
                 1,
                 0,
+                unlockRecipient
             )).to.be.revertedWith("Wrong amount provided");
         })
     })

@@ -22,11 +22,13 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     );
 
     event TransferTokens(
-        uint256 _nonce,
+        uint256 indexed _nonce,
         address _relayer,
         address _token,
         address _recipient,
-        uint256 _amount
+        uint256 _amount,
+        string _unlock_recipient,
+        bytes32 indexed _transfer_id
     );
 
     event AddTokenToWhitelist(
@@ -103,7 +105,8 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         address _token, 
         address _recipient, 
         uint256 _nonce,  
-        uint256 _amount
+        uint256 _amount,
+        string memory _unlock_recipient
     ) 
         external 
         whenNotPaused
@@ -121,7 +124,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
         token.safeTransferFrom(msg.sender, _recipient, _amount);
 
-        emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount);
+        emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
     }
 
     function withdrawStuckTokens(
