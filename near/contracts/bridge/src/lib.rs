@@ -1,4 +1,6 @@
 use crate::lp_relayer::EthTransferEvent;
+use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
+use near_plugins_derive::pause;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -12,7 +14,6 @@ use near_sdk::{
 };
 use parse_duration::parse;
 use spectre_bridge_common::*;
-use std::str;
 
 pub use crate::ft::*;
 
@@ -99,8 +100,21 @@ pub struct LockDuration {
     lock_time_max: Duration,
 }
 
+#[derive(AccessControlRole, Deserialize, Serialize, Copy, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub enum Role {
+    /// May pause and unpause features.
+    PauseManager,
+    /// May call `unlock` even when it is paused.
+    UnrestrictedUnlock,
+    /// May call `lp_unlock` even when it is paused.
+    UnrestrictedLpUnlock,
+}
+
+#[access_control(role_type(Role))]
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
+#[pausable(manager_roles(Role::PauseManager))]
 pub struct SpectreBridge {
     pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
@@ -134,7 +148,7 @@ impl SpectreBridge {
             "Error initialize: lock_time_min must be less than lock_time_max"
         );
 
-        Self {
+        let mut contract = Self {
             pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
@@ -147,9 +161,17 @@ impl SpectreBridge {
             },
             eth_block_time,
             whitelisted_tokens: UnorderedSet::new(StorageKey::WhitelistedTokens),
-        }
+            __acl: Default::default(),
+        };
+
+        near_sdk::require!(
+            contract.acl_init_super_admin(near_sdk::env::predecessor_account_id()),
+            "Failed to initialize super admin",
+        );
+        contract
     }
 
+    #[pause]
     pub fn init_transfer(&mut self, transfer_message: TransferMessage) -> PromiseOrValue<U128> {
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
@@ -247,6 +269,7 @@ impl SpectreBridge {
         PromiseOrValue::Value(nonce)
     }
 
+    #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128) -> Promise {
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
@@ -316,6 +339,7 @@ impl SpectreBridge {
         .emit();
     }
 
+    #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
         assert_eq!(
@@ -415,7 +439,7 @@ impl SpectreBridge {
         .emit();
     }
 
-    fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> u128 {
+    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> u128 {
         let user_balance = self
             .user_balances
             .get(account_id)
@@ -426,7 +450,6 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
     }
 
-    #[private]
     fn update_balance(
         &mut self,
         account_id: AccountId,
@@ -463,7 +486,6 @@ impl SpectreBridge {
         PromiseOrValue::Value(U128::from(0))
     }
 
-    #[private]
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
         let mut user_token_balance = self.user_balances.get(user).unwrap();
         let balance = user_token_balance.get(token_id).unwrap() - amount;
@@ -471,7 +493,6 @@ impl SpectreBridge {
         self.user_balances.insert(user, &user_token_balance);
     }
 
-    #[private]
     fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
         let mut user_token_balance = self.user_balances.get(user).unwrap();
         let balance = user_token_balance.get(token_id).unwrap() + amount;
@@ -479,7 +500,6 @@ impl SpectreBridge {
         self.user_balances.insert(user, &user_token_balance);
     }
 
-    #[private]
     fn validate_transfer_message(&self, transfer_message: &TransferMessage) {
         require!(
             transfer_message.valid_till > block_timestamp(),
@@ -525,6 +545,7 @@ impl SpectreBridge {
     }
 
     #[payable]
+    #[pause]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
         let receiver_id = env::predecessor_account_id();
         let balance = self.get_user_balance(&receiver_id, &token_id);
