@@ -17,12 +17,7 @@ impl FungibleTokenReceiver for SpectreBridge {
         );
 
         let token_account_id = env::predecessor_account_id();
-        require!(
-            self.whitelisted_tokens.is_empty()
-                || self.whitelisted_tokens.contains(&token_account_id),
-            format!("Token: {} not supported.", token_account_id)
-        );
-
+        self.check_whitelist_token_and_account(&token_account_id, &sender_id);
         self.update_balance(sender_id, token_account_id, amount.0)
     }
 }
