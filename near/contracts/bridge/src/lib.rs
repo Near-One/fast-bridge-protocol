@@ -547,8 +547,8 @@ impl SpectreBridge {
     #[payable]
     #[pause]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
-        let sender_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&sender_id, &token_id);
+        let receiver_id = env::predecessor_account_id();
+        let balance = self.get_user_balance(&receiver_id, &token_id);
 
         require!(balance >= amount.into(), "Not enough token balance");
 
@@ -556,7 +556,7 @@ impl SpectreBridge {
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                sender_id.clone(),
+                receiver_id.clone(),
                 amount,
                 Some(format!(
                     "Withdraw from: {} amount: {}",
@@ -568,7 +568,7 @@ impl SpectreBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, sender_id),
+                    .withdraw_callback(token_id, amount, receiver_id),
             );
     }
 
@@ -1535,8 +1535,8 @@ mod tests {
 
         let token_account = accounts(1);
         let sender_account = accounts(2);
-        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
-        contract.set_token_whitelist_mode(token_account, WhitelistMode::Blocked);
+        contract.set_token_whitelist_mode(token_account.clone(), WhitelistMode::Blocked);
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
         contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
     }
 
@@ -1548,8 +1548,8 @@ mod tests {
 
         let token_account = accounts(1);
         let sender_account = accounts(2);
-        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
         contract.set_token_whitelist_mode(accounts(1), WhitelistMode::CheckAccountAndToken);
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
         contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
     }
 
@@ -1601,10 +1601,13 @@ mod tests {
             ethereum_address_from_id(0),
         );
 
+        set_env!(predecessor_account_id: accounts(0));
         contract.remove_token_from_account_whitelist(
             Some(token_account.clone()),
             sender_account.clone(),
         );
+
+        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
         contract.ft_on_transfer(
             sender_account.clone(),
             U128(1_000_000),
