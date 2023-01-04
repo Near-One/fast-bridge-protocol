@@ -124,6 +124,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
         token.safeTransferFrom(msg.sender, _recipient, _amount);
 
+        // slither-disable-next-line reentrancy-events
         emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
     }
 
