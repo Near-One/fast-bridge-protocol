@@ -10,7 +10,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::Promise;
 use near_sdk::{
     env, ext_contract, is_promise_success, near_bindgen, require, AccountId, BorshStorageKey,
-    Duration, PanicOnDefault, PromiseOrValue, PromiseResult,
+    Duration, PanicOnDefault, PromiseOrValue,
 };
 use parse_duration::parse;
 use spectre_bridge_common::*;
@@ -56,6 +56,9 @@ trait SpectreBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId);
     fn verify_log_entry_callback(
         &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
         #[serializer(borsh)] proof: EthTransferEvent,
     ) -> Promise;
     fn unlock_callback(
@@ -355,16 +358,14 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn verify_log_entry_callback(&mut self, #[serializer(borsh)] proof: EthTransferEvent) {
-        let verification_result = match env::promise_result(0) {
-            PromiseResult::NotReady => 0,
-            PromiseResult::Failed => 0,
-            PromiseResult::Successful(result) => result[0],
-        };
-
-        if verification_result == 0 {
-            panic!("Failed to verify the proof");
-        }
+    pub fn verify_log_entry_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
+        #[serializer(borsh)] proof: EthTransferEvent,
+    ) {
+        require!(verification_success, "Failed to verify the proof");
 
         let transaction_id = utils::get_transaction_id(proof.nonce);
 
