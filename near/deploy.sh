@@ -39,4 +39,4 @@ current_timestamp=$(($(date +%s)*$sec_to_ns))
 valid_till=$((current_timestamp + MIN_TIME_LOCK_NS + 15000000000))
 
 # valid_till is current timestamp + min time lock in nanoseconds + extra 15 sec
-near call $BRIDGE_ACCOUNT init_transfer "{\"transfer_message\":{\"valid_till\":"$valid_till",\"transfer\":{\"token_near\":"\"$TOKEN_ACCOUNT\"",\"token_eth\":[178,215,92,90,20,42,104,189,164,56,230,163,24,199,251,178,36,47,150,147],\"amount\":\"9000000000000000000000000\"},\"fee\":{\"token\":"\"$TOKEN_ACCOUNT\"",\"amount\":\"1000000000000000000000000\"},\"recipient\":[42,35,224,250,58,254,119,175,245,220,108,106,0,126,58,16,193,69,6,51]}}" --account-id $MASTER_ACCOUNT --gas 300000000000000
+near call $BRIDGE_ACCOUNT init_transfer "{\"transfer_message\":{\"valid_till\":"$valid_till",\"transfer\":{\"token_near\":"\"$TOKEN_ACCOUNT\"",\"token_eth\":\"b2d75c5a142a68bda438e6a318c7fbb2242f9693\",\"amount\":\"9000000000000000000000000\"},\"fee\":{\"token\":"\"$TOKEN_ACCOUNT\"",\"amount\":\"1000000000000000000000000\"},\"recipient\":\"2a23e0fa3afe77aff5dc6c6a007e3a10c1450633\"}}" --account-id $MASTER_ACCOUNT --gas 300000000000000
