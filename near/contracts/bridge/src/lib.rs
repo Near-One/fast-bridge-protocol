@@ -187,9 +187,7 @@ impl SpectreBridge {
         self.init_transfer_internal(transfer_message, env::predecessor_account_id())
     }
 
-    #[private]
-    #[pause]
-    pub fn init_transfer_internal(
+    fn init_transfer_internal(
         &mut self,
         transfer_message: TransferMessage,
         sender_id: AccountId,

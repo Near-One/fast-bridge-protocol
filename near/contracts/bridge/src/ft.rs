@@ -5,6 +5,7 @@ use near_sdk::{serde_json, AccountId};
 
 #[near_bindgen]
 impl FungibleTokenReceiver for SpectreBridge {
+    #[pause]
     fn ft_on_transfer(
         &mut self,
         sender_id: AccountId,
