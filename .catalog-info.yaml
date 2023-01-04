@@ -7,4 +7,4 @@ metadata:
 spec:
   targets:
     - ./eth/.catalog-info.yaml
-    - ./near/.catalog-info.yaml
+    - ./near/contracts/.catalog-info.yaml
