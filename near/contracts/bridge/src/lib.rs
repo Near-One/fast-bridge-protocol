@@ -1024,7 +1024,11 @@ mod tests {
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let transfer_token_amount = 150;
 
-        contract.ft_on_transfer(transfer_account.clone(), U128(transfer_token_amount), "".to_string());
+        contract.ft_on_transfer(
+            transfer_account.clone(),
+            U128(transfer_token_amount),
+            "".to_string(),
+        );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let user_balance_for_transfer_token = user_balance.get(&transfer_token).unwrap();
