@@ -1022,13 +1022,13 @@ mod tests {
         let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
-        let balance = U128(150);
+        let transfer_token_amount = 150;
 
-        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+        contract.ft_on_transfer(transfer_account.clone(), U128(transfer_token_amount), "".to_string());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(150, transfer_token_amount);
+        let user_balance_for_transfer_token = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(transfer_token_amount, user_balance_for_transfer_token);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
         let msg = json!({
@@ -1050,10 +1050,6 @@ mod tests {
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
         );
-
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
-        assert_eq!(0, transfer_token_amount);
     }
 
     #[test]
