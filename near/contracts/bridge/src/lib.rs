@@ -61,31 +61,13 @@ trait SpectreBridgeInterface {
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] unlock_recipient: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
         #[serializer(borsh)] transfer_message: TransferMessage,
         #[serializer(borsh)] sender_id: AccountId,
     ) -> PromiseOrValue<U128>;
-}
-
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TransferData {
-    token: AccountId,
-    amount: u128,
-}
-
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TransferMessage {
-    valid_till: u64,
-    transfer: TransferDataEthereum,
-    fee: TransferDataNear,
-    #[serde(with = "hex::serde")]
-    recipient: EthAddress,
-    valid_till_block_height: Option<u64>,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -258,22 +240,12 @@ impl SpectreBridge {
             &u128::from(transfer_message.fee.amount),
         );
 
-        let nonce = U128::from(self.store_transfers(sender_id, transfer_message.clone()));
+        let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
-            valid_till: transfer_message.valid_till,
-            transfer: TransferDataEthereum {
-                token_near: transfer_message.transfer.token_near,
-                token_eth: transfer_message.transfer.token_eth,
-                amount: transfer_message.transfer.amount,
-            },
-            fee: TransferDataNear {
-                token: transfer_message.fee.token,
-                amount: transfer_message.fee.amount,
-            },
-            recipient: transfer_message.recipient,
-            valid_till_block_height: transfer_message.valid_till_block_height.unwrap(),
+            sender_id,
+            transfer_message,
         }
         .emit();
 
@@ -299,7 +271,7 @@ impl SpectreBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] unlock_recipient: AccountId,
     ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let transfer = self
@@ -314,8 +286,8 @@ impl SpectreBridge {
         let transfer_data = transfer.1;
 
         require!(
-            transfer.0 == sender_id,
-            format!("Signer: {} transaction not found:", &sender_id)
+            transfer.0 == unlock_recipient,
+            format!("Signer: {} transaction not found:", &unlock_recipient)
         );
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -332,12 +304,12 @@ impl SpectreBridge {
         );
 
         self.increase_balance(
-            &sender_id,
+            &unlock_recipient,
             &transfer_data.transfer.token_near,
             &u128::from(transfer_data.transfer.amount),
         );
         self.increase_balance(
-            &sender_id,
+            &unlock_recipient,
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
@@ -345,7 +317,8 @@ impl SpectreBridge {
 
         Event::SpectreBridgeUnlockEvent {
             nonce,
-            account: sender_id,
+            unlock_recipient,
+            transfer_message: transfer_data,
         }
         .emit();
     }
@@ -443,9 +416,10 @@ impl SpectreBridge {
         );
         self.pending_transfers.remove(&transaction_id);
 
-        Event::SpectreBridgeUnlockEvent {
+        Event::SpectreBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
-            account: unlock_recipient,
+            unlock_recipient,
+            transfer_message: transfer_data,
         }
         .emit();
     }
