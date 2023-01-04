@@ -1519,7 +1519,7 @@ mod tests {
             Some(token_account.clone()),
             sender_account.clone(),
         );
-        
+
         set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
         contract.ft_on_transfer(sender_account.clone(), U128(1_000_000), "".to_string());
     }

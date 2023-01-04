@@ -1,0 +1,10 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: spectre-bridge-protocol
+  description: Spectre Bridge Protocol repository
+spec:
+  targets:
+    - ./eth/.catalog-info.yaml
+    - ./near/.catalog-info.yaml
