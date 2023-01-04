@@ -1,3 +1,0 @@
-eth-brownie>=1.17.2,<2.0.0
-python-dotenv==0.16.0
-solc-select>=0.2.1
