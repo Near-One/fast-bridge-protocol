@@ -1028,6 +1028,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1074,6 +1075,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1111,6 +1113,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1152,6 +1155,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1184,6 +1188,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1221,6 +1226,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1260,6 +1266,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1319,6 +1326,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
