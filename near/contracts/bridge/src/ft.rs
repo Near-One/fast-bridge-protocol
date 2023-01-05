@@ -33,7 +33,7 @@ impl FungibleTokenReceiver for SpectreBridge {
             self.init_transfer_internal(transfer_message, sender_id, Some(update_balance))
                 .into()
         } else {
-            self.update_balance(sender_id.clone(), token_account_id.clone(), amount.0);
+            self.update_balance(sender_id, token_account_id, amount.0);
             PromiseOrValue::Value(U128::from(0))
         }
     }
