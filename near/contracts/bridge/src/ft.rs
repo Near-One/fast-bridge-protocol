@@ -30,18 +30,11 @@ impl FungibleTokenReceiver for SpectreBridge {
                 amount,
             };
 
-            return self
-                .init_transfer_internal(transfer_message, sender_id, Some(update_balance))
-                .then(
-                    ext_self::ext(env::current_account_id())
-                        .with_static_gas(utils::tera_gas(5))
-                        .init_transfer_internal_callback(),
-                )
-                .into();
+            self.init_transfer_internal(transfer_message, sender_id, Some(update_balance))
+                .into()
         } else {
             self.update_balance(sender_id.clone(), token_account_id.clone(), amount.0);
+            PromiseOrValue::Value(U128::from(0))
         }
-
-        PromiseOrValue::Value(U128::from(0))
     }
 }

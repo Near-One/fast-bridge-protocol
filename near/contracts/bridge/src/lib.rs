@@ -69,7 +69,6 @@ trait SpectreBridgeInterface {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> PromiseOrValue<U128>;
-    fn init_transfer_internal_callback(&mut self) -> U128;
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -215,22 +214,6 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn init_transfer_internal_callback(&self) -> U128 {
-        assert_eq!(env::promise_results_count(), 1, "ERR_TOO_MANY_RESULTS");
-        match env::promise_result(0) {
-            PromiseResult::NotReady => unreachable!(),
-            PromiseResult::Successful(val) => {
-                if let Ok(_nonce) = near_sdk::serde_json::from_slice::<U128>(&val) {
-                    return U128::from(0);
-                } else {
-                    env::panic_str("ERR_WRONG_VAL_RECEIVED")
-                }
-            }
-            PromiseResult::Failed => env::panic_str("ERR_CALL_FAILED"),
-        }
-    }
-
-    #[private]
     pub fn init_transfer_callback(
         &mut self,
         #[callback]
@@ -321,7 +304,7 @@ impl SpectreBridge {
         }
         .emit();
 
-        nonce
+        U128::from(0)
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
