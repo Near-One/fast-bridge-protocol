@@ -95,6 +95,7 @@ enum StorageKey {
     UserBalancePrefix,
     WhitelistTokens,
     WhitelistAccounts,
+    PendingTransfersBalances,
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -134,6 +135,7 @@ pub struct SpectreBridge {
     whitelist_accounts: UnorderedSet<String>,
     /// The mode of the whitelist check
     is_whitelist_mode_enabled: bool,
+    pending_transfers_balances: UnorderedMap<AccountId, u128>,
 }
 
 #[near_bindgen]
@@ -159,6 +161,7 @@ impl SpectreBridge {
 
         let mut contract = Self {
             pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
+            pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
             prover_account,
@@ -349,7 +352,7 @@ impl SpectreBridge {
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.pending_transfers.remove(&transaction_id);
+        self.remove_transfer(&transaction_id, &transfer_data);
 
         Event::SpectreBridgeUnlockEvent {
             nonce,
@@ -449,7 +452,7 @@ impl SpectreBridge {
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.pending_transfers.remove(&transaction_id);
+        self.remove_transfer(&transaction_id, &transfer_data);
 
         Event::SpectreBridgeUnlockEvent {
             nonce: U128(proof.nonce),
@@ -538,12 +541,34 @@ impl SpectreBridge {
     }
 
     fn store_transfers(&mut self, sender_id: AccountId, transfer_message: TransferMessage) -> u128 {
+        let new_balance = self
+            .pending_transfers_balances
+            .get(&transfer_message.transfer.token_near)
+            .unwrap_or(0)
+            + transfer_message.transfer.amount.0;
+
+        self.pending_transfers_balances
+            .insert(&transfer_message.transfer.token_near, &new_balance);
+
         self.nonce += 1;
         let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (sender_id, transfer_message);
         self.pending_transfers
             .insert(&transaction_id, &account_pending);
         self.nonce
+    }
+
+    fn remove_transfer(&mut self, transfer_id: &String, transfer_message: &TransferMessage) {
+        let new_balance = self
+            .pending_transfers_balances
+            .get(&transfer_message.transfer.token_near)
+            .unwrap_or_else(|| env::panic_str("Pending balance is not exist"))
+            - transfer_message.transfer.amount.0;
+
+        self.pending_transfers_balances
+            .insert(&transfer_message.transfer.token_near, &new_balance);
+
+        self.pending_transfers.remove(&transfer_id);
     }
 
     #[payable]
@@ -597,6 +622,10 @@ impl SpectreBridge {
 
     pub fn get_lock_duration(self) -> LockDuration {
         self.lock_duration
+    }
+
+    pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
+        self.pending_transfers_balances.get(&token_id).unwrap_or(0)
     }
 
     #[private]
