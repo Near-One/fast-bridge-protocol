@@ -320,7 +320,7 @@ impl SpectreBridge {
 
         Event::SpectreBridgeUnlockEvent {
             nonce,
-            unlock_recipient,
+            sender_id: unlock_recipient,
             transfer_message: transfer_data,
         }
         .emit();
@@ -419,7 +419,7 @@ impl SpectreBridge {
 
         Event::SpectreBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
-            unlock_recipient,
+            receiver_id: unlock_recipient,
             transfer_message: transfer_data,
         }
         .emit();
@@ -438,33 +438,33 @@ impl SpectreBridge {
 
     fn update_balance(
         &mut self,
-        account_id: AccountId,
+        sender_id: AccountId,
         token_id: AccountId,
         amount: u128,
     ) -> PromiseOrValue<U128> {
-        if let Some(mut user_balances) = self.user_balances.get(&account_id) {
+        if let Some(mut user_balances) = self.user_balances.get(&sender_id) {
             if let Some(mut token_amount) = user_balances.get(&token_id) {
                 token_amount += amount;
                 user_balances.insert(&token_id, &token_amount);
             } else {
                 user_balances.insert(&token_id, &amount);
             }
-            self.user_balances.insert(&account_id, &user_balances);
+            self.user_balances.insert(&sender_id, &user_balances);
         } else {
             let storage_key = [
                 StorageKey::UserBalancePrefix
                     .try_to_vec()
                     .unwrap()
                     .as_slice(),
-                account_id.try_to_vec().unwrap().as_slice(),
+                sender_id.try_to_vec().unwrap().as_slice(),
             ]
             .concat();
             let mut token_balance = LookupMap::new(storage_key);
             token_balance.insert(&token_id, &amount);
-            self.user_balances.insert(&account_id, &token_balance);
+            self.user_balances.insert(&sender_id, &token_balance);
         }
         Event::SpectreBridgeDepositEvent {
-            account: account_id,
+            sender_id,
             token: token_id,
             amount: U128(amount),
         }
