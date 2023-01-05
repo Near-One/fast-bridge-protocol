@@ -568,7 +568,7 @@ impl SpectreBridge {
         self.pending_transfers_balances
             .insert(&transfer_message.transfer.token_near, &new_balance);
 
-        self.pending_transfers.remove(&transfer_id);
+        self.pending_transfers.remove(transfer_id);
     }
 
     #[payable]
