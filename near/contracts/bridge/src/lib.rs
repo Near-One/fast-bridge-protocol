@@ -562,7 +562,7 @@ impl SpectreBridge {
         let new_balance = self
             .pending_transfers_balances
             .get(&transfer_message.transfer.token_near)
-            .unwrap_or_else(|| env::panic_str("Pending balance is not exist"))
+            .unwrap_or_else(|| env::panic_str("Pending balance does not exist"))
             - transfer_message.transfer.amount.0;
 
         self.pending_transfers_balances
