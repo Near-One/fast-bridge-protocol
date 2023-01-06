@@ -1,6 +1,6 @@
 use crate::lp_relayer::EthTransferEvent;
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
-use near_plugins_derive::pause;
+use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -98,6 +98,10 @@ pub enum Role {
     UnrestrictedUnlock,
     /// May call `lp_unlock` even when it is paused.
     UnrestrictedLpUnlock,
+    /// May call `withdraw` even when it is paused.
+    UnrestrictedWithdraw,
+    WhitelistManager,
+    ConfigManager,
 }
 
 #[access_control(role_type(Role))]
@@ -522,7 +526,7 @@ impl SpectreBridge {
     }
 
     #[payable]
-    #[pause]
+    #[pause(except(roles(Role::UnrestrictedWithdraw)))]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
         let receiver_id = env::predecessor_account_id();
         let balance = self.get_user_balance(&receiver_id, &token_id);
@@ -556,12 +560,12 @@ impl SpectreBridge {
         self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
     }
 
-    #[private]
+    #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
     }
 
-    #[private]
+    #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_enear_address(&mut self, near_address: String) {
         require!(
             utils::is_valid_eth_address(near_address.clone()),
@@ -574,7 +578,7 @@ impl SpectreBridge {
         self.lock_duration
     }
 
-    #[private]
+    #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
         let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
@@ -758,6 +762,11 @@ mod tests {
             12_000_000_000,
         );
 
+        contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
+        contract.acl_grant_role(
+            "WhitelistManager".to_string(),
+            "token_near".parse().unwrap(),
+        );
         for token in config.whitelisted_tokens.unwrap_or(vec![]) {
             contract.set_token_whitelist_mode(token.parse().unwrap(), WhitelistMode::CheckToken);
         }
@@ -1351,6 +1360,7 @@ mod tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let invalid_address = "test_addr".to_string();
+        contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(invalid_address);
     }
 
@@ -1361,6 +1371,7 @@ mod tests {
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
+        contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(valid_address);
 
         assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
@@ -1374,6 +1385,7 @@ mod tests {
         let lock_time_min = "420h".to_string();
         let lock_time_max = "42h".to_string();
         let convert_nano = 36 * u64::pow(10, 11);
+        contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_lock_time(lock_time_min, lock_time_max);
 
         assert_eq!(
