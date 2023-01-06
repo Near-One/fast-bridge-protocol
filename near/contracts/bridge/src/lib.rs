@@ -150,8 +150,17 @@ impl SpectreBridge {
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
-        let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
-        let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_min: u64 = parse(lock_time_min.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+        let lock_time_max: u64 = parse(lock_time_max.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+
         require!(
             lock_time_max > lock_time_min,
             "Error initialize: lock_time_min must be less than lock_time_max"
@@ -599,8 +608,16 @@ impl SpectreBridge {
 
     #[private]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
-        let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
-        let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_min: u64 = parse(lock_time_min.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+        let lock_time_max: u64 = parse(lock_time_max.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
 
         self.lock_duration = LockDuration {
             lock_time_min,
