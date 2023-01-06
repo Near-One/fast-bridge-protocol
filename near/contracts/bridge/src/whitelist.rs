@@ -1,3 +1,4 @@
+use near_plugins::access_control_any;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{env, AccountId};
 
@@ -21,12 +22,12 @@ fn get_token_account_key(token: Option<&AccountId>, account: &AccountId) -> Stri
 
 #[near_bindgen]
 impl SpectreBridge {
-    #[private]
+    #[access_control_any(roles(Role::WhitelistManager))]
     pub fn set_token_whitelist_mode(&mut self, token: AccountId, mode: WhitelistMode) {
         self.whitelist_tokens.insert(&token, &mode);
     }
 
-    #[private]
+    #[access_control_any(roles(Role::WhitelistManager))]
     pub fn add_token_to_account_whitelist(&mut self, token: Option<AccountId>, account: AccountId) {
         if let Some(token) = &token {
             assert!(
@@ -39,7 +40,7 @@ impl SpectreBridge {
             .insert(&get_token_account_key(token.as_ref(), &account));
     }
 
-    #[private]
+    #[access_control_any(roles(Role::WhitelistManager))]
     pub fn remove_token_from_account_whitelist(
         &mut self,
         token: Option<AccountId>,
@@ -77,7 +78,7 @@ impl SpectreBridge {
         }
     }
 
-    #[private]
+    #[access_control_any(roles(Role::WhitelistManager))]
     pub fn set_whitelist_mode_enabled(&mut self, enabled: bool) {
         self.is_whitelist_mode_enabled = enabled;
     }
