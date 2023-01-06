@@ -27,6 +27,9 @@ near call $TOKEN_ACCOUNT mint '{"account_id": "'"$MASTER_ACCOUNT"'", "amount": "
 # fund $BRIDGE_ACCOUNT
 near call $TOKEN_ACCOUNT storage_deposit '{"account_id": "'"$BRIDGE_ACCOUNT"'"}' --accountId $MASTER_ACCOUNT --amount 0.25
 
+# add the token to whitelist
+near call $BRIDGE_ACCOUNT set_token_whitelist_mode '{"token": "'"$TOKEN_ACCOUNT"'", "mode": "CheckToken"}' --accountId $BRIDGE_ACCOUNT
+
 # add mock data
 # near call $BRIDGE_ACCOUNT ft_on_transfer '{"token_id": "'"$TOKEN_ACCOUNT"'", "amount": 10000000000000000000000000}' --account-id $MASTER_ACCOUNT
 near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "10000000000000000000000000", "msg": ""}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
@@ -39,4 +42,13 @@ current_timestamp=$(($(date +%s)*$sec_to_ns))
 valid_till=$((current_timestamp + MIN_TIME_LOCK_NS + 15000000000))
 
 # valid_till is current timestamp + min time lock in nanoseconds + extra 15 sec
-near call $BRIDGE_ACCOUNT init_transfer "{\"transfer_message\":{\"valid_till\":"$valid_till",\"transfer\":{\"token_near\":"\"$TOKEN_ACCOUNT\"",\"token_eth\":\"b2d75c5a142a68bda438e6a318c7fbb2242f9693\",\"amount\":\"9000000000000000000000000\"},\"fee\":{\"token\":"\"$TOKEN_ACCOUNT\"",\"amount\":\"1000000000000000000000000\"},\"recipient\":\"2a23e0fa3afe77aff5dc6c6a007e3a10c1450633\"}}" --account-id $MASTER_ACCOUNT --gas 300000000000000
+
+TRANSFER_MSG="{\"valid_till\":"$valid_till",\"transfer\":{\"token_near\":"\"$TOKEN_ACCOUNT\"",\"token_eth\":\"b2d75c5a142a68bda438e6a318c7fbb2242f9693\",\"amount\":\"90\"},\"fee\":{\"token\":"\"$TOKEN_ACCOUNT\"",\"amount\":\"10\"},\"recipient\":\"2a23e0fa3afe77aff5dc6c6a007e3a10c1450633\"}"
+TRANSFER_MSG_ESCAPED=$(sed 's/\"/\\\"/g' <<< $TRANSFER_MSG)
+
+# Transfer and init in one transaction
+near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "100", "msg": "'$TRANSFER_MSG_ESCAPED'"}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
+
+# Transfer and init in two transactions
+near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "100", "msg": ""}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
+near call $BRIDGE_ACCOUNT init_transfer "{\"transfer_message\": $TRANSFER_MSG}" --account-id $MASTER_ACCOUNT --gas 300000000000000

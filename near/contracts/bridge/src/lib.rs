@@ -169,13 +169,21 @@ impl SpectreBridge {
 
     #[pause]
     pub fn init_transfer(&mut self, transfer_message: TransferMessage) -> PromiseOrValue<U128> {
+        self.init_transfer_internal(transfer_message, env::predecessor_account_id())
+    }
+
+    fn init_transfer_internal(
+        &mut self,
+        transfer_message: TransferMessage,
+        sender_id: AccountId,
+    ) -> PromiseOrValue<U128> {
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(utils::tera_gas(200))
-                    .init_transfer_callback(transfer_message, env::predecessor_account_id()),
+                    .init_transfer_callback(transfer_message, sender_id),
             )
             .into()
     }
@@ -436,12 +444,7 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
     }
 
-    fn update_balance(
-        &mut self,
-        sender_id: AccountId,
-        token_id: AccountId,
-        amount: u128,
-    ) -> PromiseOrValue<U128> {
+    fn update_balance(&mut self, sender_id: AccountId, token_id: AccountId, amount: u128) {
         if let Some(mut user_balances) = self.user_balances.get(&sender_id) {
             if let Some(mut token_amount) = user_balances.get(&token_id) {
                 token_amount += amount;
@@ -469,7 +472,6 @@ impl SpectreBridge {
             amount: U128(amount),
         }
         .emit();
-        PromiseOrValue::Value(U128::from(0))
     }
 
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
@@ -1115,27 +1117,10 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
-
-        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let balance: u128 = 100;
 
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token, balance
-            ),
-        );
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token2, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
@@ -1164,32 +1149,15 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
-
-        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let balance: u128 = 100;
 
         let context = get_context_custom_signer(false, "token_near".to_string());
         testing_env!(context);
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
         let context = get_context_custom_signer(false, "token_near2".to_string());
         testing_env!(context);
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token2, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
         let msg = json!({
@@ -1219,27 +1187,12 @@ mod tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap(); // signer account
         let balance: u128 = 100;
 
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token2, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1284,28 +1237,13 @@ mod tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let transfer_token2: AccountId = AccountId::try_from("token_near2".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
 
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
         let context = get_context_dex(false);
         testing_env!(context);
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token2, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
         let user_balance = contract.user_balances.get(&signer_account_id()).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
 
@@ -1313,14 +1251,7 @@ mod tests {
 
         let context = get_context(false);
         testing_env!(context);
-        contract.ft_on_transfer(
-            signer_account_id(),
-            U128(balance),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token2, balance
-            ),
-        );
+        contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
 
@@ -1379,14 +1310,7 @@ mod tests {
         let amount = 42;
         let context = get_context_custom_signer(false, transfer_token.to_string());
         testing_env!(context);
-        contract.ft_on_transfer(
-            transfer_token.clone(),
-            U128(amount),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token, amount
-            ),
-        );
+        contract.ft_on_transfer(transfer_token.clone(), U128(amount), "".to_string());
         let context = get_context_custom_predecessor(false, String::from("token_near"));
         testing_env!(context);
         contract.withdraw(transfer_token, U128(amount));
@@ -1402,14 +1326,7 @@ mod tests {
         let amount = 42;
         let context = get_context_custom_signer(false, String::from("token_near"));
         testing_env!(context);
-        contract.ft_on_transfer(
-            transfer_token.clone(),
-            U128(amount),
-            format!(
-                "Was transferred token:{}, amount:{}",
-                transfer_token, amount
-            ),
-        );
+        contract.ft_on_transfer(transfer_token.clone(), U128(amount), "".to_string());
 
         let context = get_context(false);
         testing_env!(context);
@@ -1525,7 +1442,7 @@ mod tests {
         let sender_account = accounts(2);
         contract.set_token_whitelist_mode(accounts(1), WhitelistMode::CheckAccountAndToken);
         set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+        contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
     }
 
     #[test]
@@ -1537,7 +1454,7 @@ mod tests {
         let token_account = accounts(1);
         let sender_account = accounts(2);
         set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+        contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
     }
 
     #[test]
@@ -1553,7 +1470,7 @@ mod tests {
             .add_token_to_account_whitelist(Some(token_account.clone()), sender_account.clone());
 
         set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+        contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
     }
 
     #[test]
@@ -1570,11 +1487,7 @@ mod tests {
             .add_token_to_account_whitelist(Some(token_account.clone()), sender_account.clone());
 
         set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(
-            sender_account.clone(),
-            U128(1_000_000),
-            ethereum_address_from_id(0),
-        );
+        contract.ft_on_transfer(sender_account.clone(), U128(1_000_000), "".to_string());
 
         set_env!(predecessor_account_id: accounts(0));
         contract.remove_token_from_account_whitelist(
@@ -1583,11 +1496,7 @@ mod tests {
         );
 
         set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(
-            sender_account.clone(),
-            U128(1_000_000),
-            ethereum_address_from_id(0),
-        );
+        contract.ft_on_transfer(sender_account.clone(), U128(1_000_000), "".to_string());
     }
 
     #[test]
@@ -1605,7 +1514,7 @@ mod tests {
             let token_account: AccountId = token_id.parse().unwrap();
             let sender_account = accounts(2);
             set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
-            contract.ft_on_transfer(sender_account, U128(1_000_000), ethereum_address_from_id(0));
+            contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
         }
     }
 
@@ -1638,11 +1547,7 @@ mod tests {
                 let token_account: AccountId = token_id.parse().unwrap();
                 let sender_account: AccountId = account_id.parse().unwrap();
                 set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
-                contract.ft_on_transfer(
-                    sender_account,
-                    U128(1_000_000),
-                    ethereum_address_from_id(0),
-                );
+                contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
             }
         }
     }
