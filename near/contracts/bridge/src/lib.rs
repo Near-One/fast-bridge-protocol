@@ -70,7 +70,16 @@ trait SpectreBridgeInterface {
         &mut self,
         #[serializer(borsh)] transfer_message: TransferMessage,
         #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> PromiseOrValue<U128>;
+}
+
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub struct UpdateBalance {
+    sender_id: AccountId,
+    token: AccountId,
+    amount: U128,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -176,23 +185,24 @@ impl SpectreBridge {
 
     #[pause]
     pub fn init_transfer(&mut self, transfer_message: TransferMessage) -> PromiseOrValue<U128> {
-        self.init_transfer_internal(transfer_message, env::predecessor_account_id())
+        self.init_transfer_internal(transfer_message, env::predecessor_account_id(), None)
+            .into()
     }
 
     fn init_transfer_internal(
         &mut self,
         transfer_message: TransferMessage,
         sender_id: AccountId,
-    ) -> PromiseOrValue<U128> {
+        update_balance: Option<UpdateBalance>,
+    ) -> Promise {
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(utils::tera_gas(200))
-                    .init_transfer_callback(transfer_message, sender_id),
+                    .init_transfer_callback(transfer_message, sender_id, update_balance),
             )
-            .into()
     }
 
     #[private]
@@ -203,7 +213,16 @@ impl SpectreBridge {
         last_block_height: u64,
         #[serializer(borsh)] transfer_message: TransferMessage,
         #[serializer(borsh)] sender_id: AccountId,
-    ) -> PromiseOrValue<U128> {
+        #[serializer(borsh)] update_balance: Option<UpdateBalance>,
+    ) -> U128 {
+        if let Some(update_balance) = update_balance {
+            self.update_balance(
+                update_balance.sender_id,
+                update_balance.token,
+                update_balance.amount.0,
+            );
+        }
+
         let mut transfer_message = transfer_message;
         let lock_period = transfer_message.valid_till - block_timestamp();
         transfer_message.valid_till_block_height =
@@ -267,7 +286,7 @@ impl SpectreBridge {
         }
         .emit();
 
-        PromiseOrValue::Value(nonce)
+        U128::from(0)
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
@@ -1022,6 +1041,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1068,6 +1088,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1105,6 +1126,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1146,6 +1168,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1178,6 +1201,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1215,6 +1239,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
     }
 
@@ -1254,6 +1279,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1313,6 +1339,7 @@ mod tests {
             10,
             serde_json::from_value(msg).unwrap(),
             signer_account_id(),
+            None,
         );
 
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
