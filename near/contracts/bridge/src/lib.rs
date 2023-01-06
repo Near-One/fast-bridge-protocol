@@ -64,7 +64,7 @@ trait SpectreBridgeInterface {
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] unlock_recipient: AccountId,
+        #[serializer(borsh)] recipient_id: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
@@ -274,7 +274,7 @@ impl SpectreBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] unlock_recipient: AccountId,
+        #[serializer(borsh)] recipient_id: AccountId,
     ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let transfer = self
@@ -289,8 +289,8 @@ impl SpectreBridge {
         let transfer_data = transfer.1;
 
         require!(
-            transfer.0 == unlock_recipient,
-            format!("Signer: {} transaction not found:", &unlock_recipient)
+            transfer.0 == recipient_id,
+            format!("Signer: {} transaction not found:", &recipient_id)
         );
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -307,12 +307,12 @@ impl SpectreBridge {
         );
 
         self.increase_balance(
-            &unlock_recipient,
+            &recipient_id,
             &transfer_data.transfer.token_near,
             &u128::from(transfer_data.transfer.amount),
         );
         self.increase_balance(
-            &unlock_recipient,
+            &recipient_id,
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
@@ -320,7 +320,7 @@ impl SpectreBridge {
 
         Event::SpectreBridgeUnlockEvent {
             nonce,
-            sender_id: unlock_recipient,
+            recipient_id,
             transfer_message: transfer_data,
         }
         .emit();
@@ -404,14 +404,14 @@ impl SpectreBridge {
             )
         );
 
-        let unlock_recipient = proof.unlock_recipient.parse().unwrap();
+        let recipient_id = proof.unlock_recipient.parse().unwrap();
         self.increase_balance(
-            &unlock_recipient,
+            &recipient_id,
             &transfer_data.transfer.token_near,
             &u128::from(transfer_data.transfer.amount),
         );
         self.increase_balance(
-            &unlock_recipient,
+            &recipient_id,
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
@@ -419,7 +419,7 @@ impl SpectreBridge {
 
         Event::SpectreBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
-            receiver_id: unlock_recipient,
+            recipient_id,
             transfer_message: transfer_data,
         }
         .emit();
