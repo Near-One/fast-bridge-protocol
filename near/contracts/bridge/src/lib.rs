@@ -1,6 +1,6 @@
 use crate::lp_relayer::EthTransferEvent;
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
-use near_plugins_derive::pause;
+use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -10,7 +10,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::Promise;
 use near_sdk::{
     env, ext_contract, is_promise_success, near_bindgen, require, AccountId, BorshStorageKey,
-    Duration, PanicOnDefault, PromiseOrValue, PromiseResult,
+    Duration, PanicOnDefault, PromiseOrValue,
 };
 use parse_duration::parse;
 use spectre_bridge_common::*;
@@ -56,12 +56,15 @@ trait SpectreBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId);
     fn verify_log_entry_callback(
         &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
         #[serializer(borsh)] proof: EthTransferEvent,
     ) -> Promise;
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] recipient_id: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
@@ -79,24 +82,6 @@ pub struct UpdateBalance {
     amount: U128,
 }
 
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TransferData {
-    token: AccountId,
-    amount: u128,
-}
-
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct TransferMessage {
-    valid_till: u64,
-    transfer: TransferDataEthereum,
-    fee: TransferDataNear,
-    #[serde(with = "hex::serde")]
-    recipient: EthAddress,
-    valid_till_block_height: Option<u64>,
-}
-
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
     PendingTransfers,
@@ -104,6 +89,7 @@ enum StorageKey {
     UserBalancePrefix,
     WhitelistTokens,
     WhitelistAccounts,
+    PendingTransfersBalances,
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -122,6 +108,10 @@ pub enum Role {
     UnrestrictedUnlock,
     /// May call `lp_unlock` even when it is paused.
     UnrestrictedLpUnlock,
+    /// May call `withdraw` even when it is paused.
+    UnrestrictedWithdraw,
+    WhitelistManager,
+    ConfigManager,
 }
 
 #[access_control(role_type(Role))]
@@ -143,6 +133,7 @@ pub struct SpectreBridge {
     whitelist_accounts: UnorderedSet<String>,
     /// The mode of the whitelist check
     is_whitelist_mode_enabled: bool,
+    pending_transfers_balances: UnorderedMap<AccountId, u128>,
 }
 
 #[near_bindgen]
@@ -168,6 +159,7 @@ impl SpectreBridge {
 
         let mut contract = Self {
             pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
+            pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
             prover_account,
@@ -285,22 +277,12 @@ impl SpectreBridge {
             &u128::from(transfer_message.fee.amount),
         );
 
-        let nonce = U128::from(self.store_transfers(sender_id, transfer_message.clone()));
+        let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
-            valid_till: transfer_message.valid_till,
-            transfer: TransferDataEthereum {
-                token_near: transfer_message.transfer.token_near,
-                token_eth: transfer_message.transfer.token_eth,
-                amount: transfer_message.transfer.amount,
-            },
-            fee: TransferDataNear {
-                token: transfer_message.fee.token,
-                amount: transfer_message.fee.amount,
-            },
-            recipient: transfer_message.recipient,
-            valid_till_block_height: transfer_message.valid_till_block_height.unwrap(),
+            sender_id,
+            transfer_message,
         }
         .emit();
 
@@ -326,7 +308,7 @@ impl SpectreBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] recipient_id: AccountId,
     ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let transfer = self
@@ -341,8 +323,8 @@ impl SpectreBridge {
         let transfer_data = transfer.1;
 
         require!(
-            transfer.0 == sender_id,
-            format!("Signer: {} transaction not found:", &sender_id)
+            transfer.0 == recipient_id,
+            format!("Signer: {} transaction not found:", &recipient_id)
         );
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -359,20 +341,21 @@ impl SpectreBridge {
         );
 
         self.increase_balance(
-            &sender_id,
+            &recipient_id,
             &transfer_data.transfer.token_near,
             &u128::from(transfer_data.transfer.amount),
         );
         self.increase_balance(
-            &sender_id,
+            &recipient_id,
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.pending_transfers.remove(&transaction_id);
+        self.remove_transfer(&transaction_id, &transfer_data);
 
         Event::SpectreBridgeUnlockEvent {
             nonce,
-            account: sender_id,
+            recipient_id,
+            transfer_message: transfer_data,
         }
         .emit();
     }
@@ -409,16 +392,14 @@ impl SpectreBridge {
     }
 
     #[private]
-    pub fn verify_log_entry_callback(&mut self, #[serializer(borsh)] proof: EthTransferEvent) {
-        let verification_result = match env::promise_result(0) {
-            PromiseResult::NotReady => 0,
-            PromiseResult::Failed => 0,
-            PromiseResult::Successful(result) => result[0],
-        };
-
-        if verification_result == 0 {
-            panic!("Failed to verify the proof");
-        }
+    pub fn verify_log_entry_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
+        #[serializer(borsh)] proof: EthTransferEvent,
+    ) {
+        require!(verification_success, "Failed to verify the proof");
 
         let transaction_id = utils::get_transaction_id(proof.nonce);
 
@@ -457,22 +438,23 @@ impl SpectreBridge {
             )
         );
 
-        let unlock_recipient = proof.unlock_recipient.parse().unwrap();
+        let recipient_id = proof.unlock_recipient.parse().unwrap();
         self.increase_balance(
-            &unlock_recipient,
+            &recipient_id,
             &transfer_data.transfer.token_near,
             &u128::from(transfer_data.transfer.amount),
         );
         self.increase_balance(
-            &unlock_recipient,
+            &recipient_id,
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.pending_transfers.remove(&transaction_id);
+        self.remove_transfer(&transaction_id, &transfer_data);
 
-        Event::SpectreBridgeUnlockEvent {
+        Event::SpectreBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
-            account: unlock_recipient,
+            recipient_id,
+            transfer_message: transfer_data,
         }
         .emit();
     }
@@ -488,30 +470,30 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
     }
 
-    fn update_balance(&mut self, account_id: AccountId, token_id: AccountId, amount: u128) {
-        if let Some(mut user_balances) = self.user_balances.get(&account_id) {
+    fn update_balance(&mut self, sender_id: AccountId, token_id: AccountId, amount: u128) {
+        if let Some(mut user_balances) = self.user_balances.get(&sender_id) {
             if let Some(mut token_amount) = user_balances.get(&token_id) {
                 token_amount += amount;
                 user_balances.insert(&token_id, &token_amount);
             } else {
                 user_balances.insert(&token_id, &amount);
             }
-            self.user_balances.insert(&account_id, &user_balances);
+            self.user_balances.insert(&sender_id, &user_balances);
         } else {
             let storage_key = [
                 StorageKey::UserBalancePrefix
                     .try_to_vec()
                     .unwrap()
                     .as_slice(),
-                account_id.try_to_vec().unwrap().as_slice(),
+                sender_id.try_to_vec().unwrap().as_slice(),
             ]
             .concat();
             let mut token_balance = LookupMap::new(storage_key);
             token_balance.insert(&token_id, &amount);
-            self.user_balances.insert(&account_id, &token_balance);
+            self.user_balances.insert(&sender_id, &token_balance);
         }
         Event::SpectreBridgeDepositEvent {
-            account: account_id,
+            sender_id,
             token: token_id,
             amount: U128(amount),
         }
@@ -557,6 +539,15 @@ impl SpectreBridge {
     }
 
     fn store_transfers(&mut self, sender_id: AccountId, transfer_message: TransferMessage) -> u128 {
+        let new_balance = self
+            .pending_transfers_balances
+            .get(&transfer_message.transfer.token_near)
+            .unwrap_or(0)
+            + transfer_message.transfer.amount.0;
+
+        self.pending_transfers_balances
+            .insert(&transfer_message.transfer.token_near, &new_balance);
+
         self.nonce += 1;
         let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (sender_id, transfer_message);
@@ -565,8 +556,21 @@ impl SpectreBridge {
         self.nonce
     }
 
+    fn remove_transfer(&mut self, transfer_id: &String, transfer_message: &TransferMessage) {
+        let new_balance = self
+            .pending_transfers_balances
+            .get(&transfer_message.transfer.token_near)
+            .unwrap_or_else(|| env::panic_str("Pending balance does not exist"))
+            - transfer_message.transfer.amount.0;
+
+        self.pending_transfers_balances
+            .insert(&transfer_message.transfer.token_near, &new_balance);
+
+        self.pending_transfers.remove(transfer_id);
+    }
+
     #[payable]
-    #[pause]
+    #[pause(except(roles(Role::UnrestrictedWithdraw)))]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
         let receiver_id = env::predecessor_account_id();
         let balance = self.get_user_balance(&receiver_id, &token_id);
@@ -600,12 +604,12 @@ impl SpectreBridge {
         self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
     }
 
-    #[private]
+    #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
     }
 
-    #[private]
+    #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_enear_address(&mut self, near_address: String) {
         require!(
             utils::is_valid_eth_address(near_address.clone()),
@@ -618,7 +622,11 @@ impl SpectreBridge {
         self.lock_duration
     }
 
-    #[private]
+    pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
+        self.pending_transfers_balances.get(&token_id).unwrap_or(0)
+    }
+
+    #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
         let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
@@ -802,6 +810,11 @@ mod tests {
             12_000_000_000,
         );
 
+        contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
+        contract.acl_grant_role(
+            "WhitelistManager".to_string(),
+            "token_near".parse().unwrap(),
+        );
         for token in config.whitelisted_tokens.unwrap_or(vec![]) {
             contract.set_token_whitelist_mode(token.parse().unwrap(), WhitelistMode::CheckToken);
         }
@@ -1403,6 +1416,7 @@ mod tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let invalid_address = "test_addr".to_string();
+        contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(invalid_address);
     }
 
@@ -1413,6 +1427,7 @@ mod tests {
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
+        contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(valid_address);
 
         assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
@@ -1426,6 +1441,7 @@ mod tests {
         let lock_time_min = "420h".to_string();
         let lock_time_max = "42h".to_string();
         let convert_nano = 36 * u64::pow(10, 11);
+        contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_lock_time(lock_time_min, lock_time_max);
 
         assert_eq!(
