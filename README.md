@@ -25,3 +25,17 @@ Described in the corresponding [README](eth/README.md)
 
 ### Near
 Described in the corresponding [README](near/README.md)
+
+
+### EthErc20Bridge scripts
+#### Deployment script
+run command `npx hardhat run scripts/EthErc20FastBridge/deploy_bridge_proxy.js --network hardhat`
+
+#### Upgrade script
+run command `npx hardhat run scripts/EthErc20FastBridge/upgrade_bridge.js --network hardhat`
+
+#### Whitelisting
+To interact with EthErc20FastBridge whitelisting methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/whitelistTokens.js
+
+#### Pause/unPause transfers
+To interact with EthErc20FastBridge pause and unpause methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/pause_unPause.js
