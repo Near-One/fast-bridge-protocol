@@ -15,7 +15,8 @@
         "dev:size-contracts": "npm run compile-all && npx hardhat size-contracts",
         "deploy:all": "npx hardhat run scripts/deployment/",
         "deploy:test-tokens": "npm run compile-all && npx hardhat run scripts/deployment/deploy-test-tokens.js --network goerli",
-        "deploy:bridge": "npm run compile-all && npx hardhat run scripts/deployment/deploy-bridge.js --network goerli",
+        "deploy:bridge": "npm run compile-all && npx hardhat run scripts/EthErc20FastBridge/deploy_bridge_proxy.js  --network goerli",
+        "upgrade:bridge": "npm run compile-all && npx hardhat run scripts/EthErc20FastBridge/upgrade_bridge.js --network goerli",
         "dev:abi": "npx hardhat clear-abi && npx hardhat export-abi",
         "dev:coverage": "npx hardhat coverage",
         "docgen": "npx shx rm -rf docs && npx solidity-docgen --solc-module solc -t docgen -H docgen/helpers.js -o docs/",
@@ -47,7 +48,8 @@
         "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
         "@nomiclabs/hardhat-ethers": "^2.2.1",
         "@openzeppelin/contracts": "4.8.0",
-        "@openzeppelin/contracts-upgradeable": "^4.8.0"
+        "@openzeppelin/contracts-upgradeable": "^4.8.0",
+        "@openzeppelin/upgrades-core": "^1.20.6"
     },
     "devDependencies": {
         "@commitlint/cli": "^17.3.0",
