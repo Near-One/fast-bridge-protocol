@@ -1,8 +1,13 @@
 const { getBridge } = require("./whitelistTokens");
 
 async function withdrawStuckTokens(signer) {
-    const bridge = await getBridge();
-    await bridge.connect(signer).withdrawStuckTokens();
+    let bridge;
+    try {
+        bridge = await getBridge();
+        await bridge.connect(signer).withdrawStuckTokens();
+    } catch (error) {
+        console.log("Failed to withdraw", error);
+    }
 }
 
 module.exports = {

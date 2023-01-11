@@ -7,7 +7,7 @@ async function pauseTransfer(signer) {
         await bridge.connect(signer).pause();
         console.log("Transfers paused successfully!");
     } catch (error) {
-        console.log("Transfers pause failed with error", error);
+        console.error("Transfers pause failed with error", error);
     }
 }
 
@@ -18,7 +18,7 @@ async function unpauseTransfer(signer) {
         await bridge.connect(signer).unPause();
         console.log("Transfers unpaused successfully!");
     } catch (error) {
-        console.log("Transfers unpause failed with error", error);
+        console.error("Transfers unpause failed with error", error);
     }
 }
 
