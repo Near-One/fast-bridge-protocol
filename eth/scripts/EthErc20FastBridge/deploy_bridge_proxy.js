@@ -1,5 +1,5 @@
 const { ethers, upgrades } = require("hardhat");
-const { getAddressSaver } = require("../deployment/utilities/helpers");
+const { getAddressSaver, verify } = require("../deployment/utilities/helpers");
 const { getImplementationAddress } = require("@openzeppelin/upgrades-core");
 const path = require("path");
 
@@ -23,6 +23,11 @@ const main = async () => {
     const currentImplAddress = await getImplementationAddress(ethers.provider, Bridge.address);
 
     saveAddress("bridge_Implementation", currentImplAddress); // save implementation address
+
+    // verify
+    console.log("Verifing Contract");
+    await verify(Bridge.address, [tokensAddresses, whitelistedTokens]);
+    console.log("Verified.");
 };
 
 main().catch((error) => {

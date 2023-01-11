@@ -28,12 +28,21 @@ Described in the corresponding [README](near/README.md)
 
 
 ## EthErc20Bridge scripts
+Below given command will help user to deploy and interact with contracts only on the network provided in spectre-bridge-protocol/eth/package.json, to switch network just change network name from that script.
+
+example : to deploy EthErc20FastBridge on hardhat network i.e. mainnet fork change 
+`npm run compile-all && npx hardhat run scripts/deployment/deploy-bridge.js --network goerli`
+to
+`npm run compile-all && npx hardhat run scripts/deployment/deploy-bridge.js --network hardhat`
+and run below command.
 ### Deployment script
 run command `yarn run deploy:bridge`
 
+### Deploy and verify
+run command `yarn run deploy:verify:bridge`
 
 ### Upgrade script
-Before upgrading, got to file `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7.
+Before upgrading, go to file `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7.
 
 run command `yarn run upgrade:bridge`
 
