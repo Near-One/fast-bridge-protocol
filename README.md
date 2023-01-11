@@ -27,15 +27,30 @@ Described in the corresponding [README](eth/README.md)
 Described in the corresponding [README](near/README.md)
 
 
-### EthErc20Bridge scripts
-#### Deployment script
-run command `npx hardhat run scripts/EthErc20FastBridge/deploy_bridge_proxy.js --network hardhat`
+## EthErc20Bridge scripts
+### Deployment script
+run command `yarn run deploy:bridge`
 
-#### Upgrade script
-run command `npx hardhat run scripts/EthErc20FastBridge/upgrade_bridge.js --network hardhat`
 
-#### Whitelisting
+### Upgrade script
+Before upgrading, got to file `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7.
+
+run command `yarn run upgrade:bridge`
+
+### Whitelisting
 To interact with EthErc20FastBridge whitelisting methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/whitelistTokens.js
 
-#### Pause/unPause transfers
+* To bulk update whitelist status of tokens import and use method `bulkWhitelistStatusUpdate` from above mentioned file with an array of token addresses, an array of their corresponding status and a signer with `WHITELISTING_TOKENS_ADMIN_ROLE` as parameters.
+
+* To whitelist one token import and use method `addTokenToWhitelist` from above mentioned file with a token address and a signer with `WHITELISTING_TOKENS_ADMIN_ROLE` as parameters.
+
+* To remove one token from whitelist use method `removeTokenFromWhitelist` from above mentioned file with tokens address and signer with `WHITELISTING_TOKENS_ADMIN_ROLE` as parameters.
+
+* To check whether a token is whitelisted or not import and use method `isTokenInWhitelist` from above mentioned file with tokens address and signer with `WHITELISTING_TOKENS_ADMIN_ROLE` as parameters.  
+
+### Pause/Unpause transfers
 To interact with EthErc20FastBridge pause and unpause methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/pause_unPause.js
+
+* To pause transfers import and use `pauseTransfer` method from above mentioned file with a signer with `PAUSABLE_ADMIN_ROLE` as parameter. 
+
+* To unpause transfers import and use `unpauseTransfer` method from above mentioned file with a signer with `UNPAUSABLE_ADMIN_ROLE` as parameter. 

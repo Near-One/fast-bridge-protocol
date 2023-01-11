@@ -1,16 +1,28 @@
-const { getBridge } = require("./whitelistTokens");
+const { getBridgeContract } = require("./whitelistTokens");
 
 async function pauseTransfer(signer) {
-    const bridge = await getBridge();
-    await bridge.connect(signer).pause();
+    let bridge;
+    try {
+        bridge = await getBridgeContract();
+        await bridge.connect(signer).pause();
+        console.log("Transfers paused successfully!");
+    } catch (error) {
+        console.log("Transfers pause failed with error", error);
+    }
 }
 
-async function unPauseTransfer(signer) {
-    const bridge = await getBridge();
-    await bridge.connect(signer).unpause();
+async function unpauseTransfer(signer) {
+    let bridge;
+    try {
+        bridge = await getBridgeContract();
+        await bridge.connect(signer).unPause();
+        console.log("Transfers unpaused successfully!");
+    } catch (error) {
+        console.log("Transfers unpause failed with error", error);
+    }
 }
 
 module.exports = {
     pauseTransfer,
-    unPauseTransfer
+    unpauseTransfer
 };
