@@ -224,11 +224,11 @@ impl SpectreBridge {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> U128 {
-        if let Some(update_balance) = update_balance {
-            self.update_balance(
-                update_balance.sender_id,
-                update_balance.token,
-                update_balance.amount.0,
+        if let Some(update_balance) = update_balance.as_ref() {
+            self.increase_balance(
+                &update_balance.sender_id,
+                &update_balance.token,
+                &update_balance.amount.0,
             );
         }
 
@@ -287,6 +287,15 @@ impl SpectreBridge {
         );
 
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
+
+        if let Some(update_balance) = update_balance {
+            Event::SpectreBridgeDepositEvent {
+                sender_id: update_balance.sender_id,
+                token: update_balance.token,
+                amount: update_balance.amount,
+            }
+            .emit();
+        }
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
@@ -479,36 +488,6 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
     }
 
-    fn update_balance(&mut self, sender_id: AccountId, token_id: AccountId, amount: u128) {
-        if let Some(mut user_balances) = self.user_balances.get(&sender_id) {
-            if let Some(mut token_amount) = user_balances.get(&token_id) {
-                token_amount += amount;
-                user_balances.insert(&token_id, &token_amount);
-            } else {
-                user_balances.insert(&token_id, &amount);
-            }
-            self.user_balances.insert(&sender_id, &user_balances);
-        } else {
-            let storage_key = [
-                StorageKey::UserBalancePrefix
-                    .try_to_vec()
-                    .unwrap()
-                    .as_slice(),
-                sender_id.try_to_vec().unwrap().as_slice(),
-            ]
-            .concat();
-            let mut token_balance = LookupMap::new(storage_key);
-            token_balance.insert(&token_id, &amount);
-            self.user_balances.insert(&sender_id, &token_balance);
-        }
-        Event::SpectreBridgeDepositEvent {
-            sender_id,
-            token: token_id,
-            amount: U128(amount),
-        }
-        .emit();
-    }
-
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
         let mut user_token_balance = self.user_balances.get(user).unwrap();
         let balance = user_token_balance.get(token_id).unwrap() - amount;
@@ -517,10 +496,24 @@ impl SpectreBridge {
     }
 
     fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        let mut user_token_balance = self.user_balances.get(user).unwrap();
-        let balance = user_token_balance.get(token_id).unwrap() + amount;
-        user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(user, &user_token_balance);
+        if let Some(mut user_balances) = self.user_balances.get(user) {
+            user_balances.insert(
+                token_id,
+                &(user_balances.get(token_id).unwrap_or(0) + amount),
+            );
+        } else {
+            let storage_key = [
+                StorageKey::UserBalancePrefix
+                    .try_to_vec()
+                    .unwrap()
+                    .as_slice(),
+                user.try_to_vec().unwrap().as_slice(),
+            ]
+            .concat();
+            let mut token_balance = LookupMap::new(storage_key);
+            token_balance.insert(token_id, amount);
+            self.user_balances.insert(user, &token_balance);
+        }
     }
 
     fn validate_transfer_message(&self, transfer_message: &TransferMessage, sender_id: &AccountId) {
@@ -1506,7 +1499,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    contract.update_balance(user.clone(), token.clone(), 10);
+                    contract.increase_balance(&user, &token, &10);
                 }
             }
         }
