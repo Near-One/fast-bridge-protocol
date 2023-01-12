@@ -361,7 +361,7 @@ impl SpectreBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
-    pub fn lp_unlock(&mut self, proof: Proof) {
+    pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
         assert_eq!(
             parsed_proof.eth_bridge_contract,
@@ -388,7 +388,7 @@ impl SpectreBridge {
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
-            );
+            )
     }
 
     #[private]
