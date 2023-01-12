@@ -119,7 +119,7 @@ pub enum Role {
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
 #[pausable(manager_roles(Role::PauseManager))]
 pub struct SpectreBridge {
-    pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
+    pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     prover_account: AccountId,
@@ -158,7 +158,7 @@ impl SpectreBridge {
         );
 
         let mut contract = Self {
-            pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
+            pending_transfers: UnorderedMap::new(StorageKey::PendingTransfers),
             pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
@@ -624,6 +624,22 @@ impl SpectreBridge {
 
     pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
         self.pending_transfers_balances.get(&token_id).unwrap_or(0)
+    }
+
+    pub fn get_pending_transfers(
+        &self,
+        from_index: usize,
+        limit: usize,
+    ) -> Vec<(String, (AccountId, TransferMessage))> {
+        self.pending_transfers
+            .iter()
+            .skip(from_index)
+            .take(limit)
+            .collect::<Vec<_>>()
+    }
+
+    pub fn get_pending_transfer(&self, id: String) -> Option<(AccountId, TransferMessage)> {
+        self.pending_transfers.get(&id)
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
