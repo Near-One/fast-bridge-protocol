@@ -224,11 +224,11 @@ impl SpectreBridge {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> U128 {
-        if let Some(update_balance) = update_balance {
-            self.update_balance(
-                update_balance.sender_id,
-                update_balance.token,
-                update_balance.amount.0,
+        if let Some(update_balance) = update_balance.as_ref() {
+            self.increase_balance(
+                &update_balance.sender_id,
+                &update_balance.token,
+                &update_balance.amount.0,
             );
         }
 
@@ -287,6 +287,15 @@ impl SpectreBridge {
         );
 
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
+
+        if let Some(update_balance) = update_balance {
+            Event::SpectreBridgeDepositEvent {
+                sender_id: update_balance.sender_id,
+                token: update_balance.token,
+                amount: update_balance.amount,
+            }
+            .emit();
+        }
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
@@ -477,17 +486,6 @@ impl SpectreBridge {
         user_balance
             .get(token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
-    }
-
-    fn update_balance(&mut self, sender_id: AccountId, token_id: AccountId, amount: u128) {
-        self.increase_balance(&sender_id, &token_id, &amount);
-
-        Event::SpectreBridgeDepositEvent {
-            sender_id,
-            token: token_id,
-            amount: U128(amount),
-        }
-        .emit();
     }
 
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
@@ -1501,7 +1499,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    contract.update_balance(user.clone(), token.clone(), 10);
+                    contract.increase_balance(&user, &token, &10);
                 }
             }
         }
