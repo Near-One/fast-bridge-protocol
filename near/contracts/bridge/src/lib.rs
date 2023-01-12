@@ -480,27 +480,8 @@ impl SpectreBridge {
     }
 
     fn update_balance(&mut self, sender_id: AccountId, token_id: AccountId, amount: u128) {
-        if let Some(mut user_balances) = self.user_balances.get(&sender_id) {
-            if let Some(mut token_amount) = user_balances.get(&token_id) {
-                token_amount += amount;
-                user_balances.insert(&token_id, &token_amount);
-            } else {
-                user_balances.insert(&token_id, &amount);
-            }
-            self.user_balances.insert(&sender_id, &user_balances);
-        } else {
-            let storage_key = [
-                StorageKey::UserBalancePrefix
-                    .try_to_vec()
-                    .unwrap()
-                    .as_slice(),
-                sender_id.try_to_vec().unwrap().as_slice(),
-            ]
-            .concat();
-            let mut token_balance = LookupMap::new(storage_key);
-            token_balance.insert(&token_id, &amount);
-            self.user_balances.insert(&sender_id, &token_balance);
-        }
+        self.increase_balance(&sender_id, &token_id, &amount);
+
         Event::SpectreBridgeDepositEvent {
             sender_id,
             token: token_id,
@@ -517,10 +498,24 @@ impl SpectreBridge {
     }
 
     fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        let mut user_token_balance = self.user_balances.get(user).unwrap();
-        let balance = user_token_balance.get(token_id).unwrap() + amount;
-        user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(user, &user_token_balance);
+        if let Some(mut user_balances) = self.user_balances.get(&user) {
+            user_balances.insert(
+                &token_id,
+                &(user_balances.get(&token_id).unwrap_or(0) + amount),
+            );
+        } else {
+            let storage_key = [
+                StorageKey::UserBalancePrefix
+                    .try_to_vec()
+                    .unwrap()
+                    .as_slice(),
+                user.try_to_vec().unwrap().as_slice(),
+            ]
+            .concat();
+            let mut token_balance = LookupMap::new(storage_key);
+            token_balance.insert(token_id, amount);
+            self.user_balances.insert(user, &token_balance);
+        }
     }
 
     fn validate_transfer_message(&self, transfer_message: &TransferMessage, sender_id: &AccountId) {
