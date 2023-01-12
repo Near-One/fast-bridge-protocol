@@ -498,10 +498,10 @@ impl SpectreBridge {
     }
 
     fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        if let Some(mut user_balances) = self.user_balances.get(&user) {
+        if let Some(mut user_balances) = self.user_balances.get(user) {
             user_balances.insert(
-                &token_id,
-                &(user_balances.get(&token_id).unwrap_or(0) + amount),
+                token_id,
+                &(user_balances.get(token_id).unwrap_or(0) + amount),
             );
         } else {
             let storage_key = [
