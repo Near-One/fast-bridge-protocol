@@ -22,3 +22,8 @@ eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", rev = "
 spectre-bridge-common = { git = "ssh://git@github.com/aurora-is-near/spectre-bridge-common.git", rev = "90780021479ade416749a4b58441403f4a41043a" }
 near-plugins = { git = "https://github.com/aurora-is-near/near-plugins", rev = "c043add4c2a0810872c4326a55c5162bccd3f4ee" }
 near-plugins-derive = { git = "https://github.com/aurora-is-near/near-plugins", rev = "c043add4c2a0810872c4326a55c5162bccd3f4ee" }
+
+
+[features]
+default = []
+disable_different_fee_token = []

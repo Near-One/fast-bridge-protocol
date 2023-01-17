@@ -224,6 +224,7 @@ impl SpectreBridge {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> U128 {
+        #[cfg(feature = "disable_different_fee_token")]
         require!(
             transfer_message.fee.token == transfer_message.transfer.token_near,
             "The fee token does not match the transfer token"
