@@ -1,6 +1,7 @@
 const fs = require("fs");
 
-// const path = require("path");
+// This script will be required if we first put flat contract in ./contract folder
+// .i.e. for hardhat compile, currently we compile using solc
 
 async function main() {
     await move_fastbridge_flat_to_res();

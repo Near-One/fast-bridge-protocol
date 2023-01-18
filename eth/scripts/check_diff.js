@@ -1,21 +1,37 @@
-const { ethers } = require("hardhat");
-const hre = require("hardhat");
-
-// const path = require("path");
+const fs = require("fs");
+const solc = require("solc");
 
 async function main() {
-    // get local bytecode
-    const localBytecode = (await hre.artifacts.readArtifact("contracts/EthErc20FastBridge_flat.sol:EthErc20FastBridge"))
-        .bytecode;
+    var input = {
+        language: "Solidity",
+        sources: {
+            ["EthErc20FastBridge.sol"]: {
+                content: fs.readFileSync("contracts/EthErc20FastBridge.sol", "utf8")
+            }
+        },
+        settings: {
+            outputSelection: {
+                "*": {
+                    "*": ["*"]
+                }
+            }
+        }
+    };
+    const compiledData = await JSON.parse(solc.compile(JSON.stringify(input))); // WIP: add check imports
+    console.log(compiledData);
 
-    // get deployed bytecode
-    const contractAddress = ""; // replace with the address of the deployed contract
-    const deployedBytecode = await ethers.provider.getCode(contractAddress);
-    console.log(deployedBytecode);
+    // get new bytecode
+    const resBytecode = fs.readFileSync("/res/EthErc20FastBridge_bytecode.json", "utf8").deployedBytecode;
 
-    // check  bytecodes are same
-    if (localBytecode != deployedBytecode) {
+    // check if bytecodes are same
+    if (
+        compiledData.contracts["EthErc20FastBridge.sol"].EthErc20FastBridge.evm.deployedBytecode.object.toString() !=
+        resBytecode
+    ) {
         // fail CI
+        console.log("failed");
+    } else {
+        console.log("passed");
     }
 }
 
