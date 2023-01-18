@@ -345,10 +345,12 @@ impl SpectreBridge {
                 )
             });
 
+        let is_unlock_allowed = recipient_id == sender_id
+            || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
+
         require!(
-            recipient_id == sender_id
-                || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone()),
-            format!("Permission denied for account: {}", &sender_id)
+            is_unlock_allowed,
+            format!("Permission denied for account: {}", sender_id)
         );
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -1327,7 +1329,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Signer: dex_near transaction not found:"#)]
+    #[should_panic(expected = "Permission denied for account:")]
     fn test_unlock_invalid_account() {
         let context = get_context(false);
         testing_env!(context);
