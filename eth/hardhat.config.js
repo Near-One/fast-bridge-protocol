@@ -88,4 +88,5 @@ module.exports = {
 if (process.env.FORKING_BLOCK_NUMBER)
     module.exports.networks.hardhat.forking.blockNumber = +process.env.FORKING_BLOCK_NUMBER;
 
-if (process.env.HARDFORK) module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
+if (process.env.HARDFORK)
+    module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
