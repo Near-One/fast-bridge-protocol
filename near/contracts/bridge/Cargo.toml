@@ -1,7 +1,7 @@
 [package]
-name = "bridge"
-version = "0.0.1"
-authors = ["mark.ts@blaize.tech", "tymofii.s@blaize.tech"]
+name = "fastbridge"
+version = "0.1.0"
+authors = ["Aurora Labs <hello@aurora.dev>", "Blaize Tech <info@blaize.tech>"]
 edition = "2021"
 publish = false
 
