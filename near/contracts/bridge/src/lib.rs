@@ -332,10 +332,10 @@ impl SpectreBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] sender_id: AccountId,
     ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let transfer = self
+        let (recipient_id, transfer_data) = self
             .pending_transfers
             .get(&transaction_id)
             .unwrap_or_else(|| {
@@ -344,11 +344,11 @@ impl SpectreBridge {
                     &transaction_id.to_string()
                 )
             });
-        let transfer_data = transfer.1;
 
         require!(
-            transfer.0 == recipient_id,
-            format!("Signer: {} transaction not found:", &recipient_id)
+            recipient_id == sender_id
+                || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone()),
+            format!("Permission denied for account: {}", &sender_id)
         );
         require!(
             block_timestamp() > transfer_data.valid_till,
