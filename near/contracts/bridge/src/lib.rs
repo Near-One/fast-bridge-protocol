@@ -1334,6 +1334,23 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
+        test_unlock(&mut contract);
+    }
+
+    #[test]
+    fn test_unrestricted_unlock() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
+        contract.acl_grant_role(
+            "UnrestrictedUnlock".to_string(),
+            "dex_near".parse().unwrap(),
+        );
+
+        test_unlock(&mut contract);
+    }
+
+    fn test_unlock(contract: &mut SpectreBridge) {
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
@@ -1382,7 +1399,7 @@ mod tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(10, U128(1), signer_account_id());
+        contract.unlock_callback(1000, U128(1), signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
