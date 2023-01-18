@@ -332,10 +332,10 @@ impl SpectreBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] sender_id: AccountId,
     ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let transfer = self
+        let (recipient_id, transfer_data) = self
             .pending_transfers
             .get(&transaction_id)
             .unwrap_or_else(|| {
@@ -344,11 +344,13 @@ impl SpectreBridge {
                     &transaction_id.to_string()
                 )
             });
-        let transfer_data = transfer.1;
+
+        let is_unlock_allowed = recipient_id == sender_id
+            || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
 
         require!(
-            transfer.0 == recipient_id,
-            format!("Signer: {} transaction not found:", &recipient_id)
+            is_unlock_allowed,
+            format!("Permission denied for account: {}", sender_id)
         );
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -1327,11 +1329,28 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Signer: dex_near transaction not found:"#)]
+    #[should_panic(expected = "Permission denied for account:")]
     fn test_unlock_invalid_account() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
+        test_unlock(&mut contract);
+    }
+
+    #[test]
+    fn test_unrestricted_unlock() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
+        contract.acl_grant_role(
+            "UnrestrictedUnlock".to_string(),
+            "dex_near".parse().unwrap(),
+        );
+
+        test_unlock(&mut contract);
+    }
+
+    fn test_unlock(contract: &mut SpectreBridge) {
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
@@ -1380,7 +1399,7 @@ mod tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(10, U128(1), signer_account_id());
+        contract.unlock_callback(1000, U128(1), signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
