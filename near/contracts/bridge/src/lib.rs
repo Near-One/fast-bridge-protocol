@@ -119,7 +119,7 @@ pub enum Role {
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
 #[pausable(manager_roles(Role::PauseManager))]
 pub struct SpectreBridge {
-    pending_transfers: LookupMap<String, (AccountId, TransferMessage)>,
+    pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     prover_account: AccountId,
@@ -150,15 +150,24 @@ impl SpectreBridge {
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
-        let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
-        let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_min: u64 = parse(lock_time_min.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+        let lock_time_max: u64 = parse(lock_time_max.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+
         require!(
             lock_time_max > lock_time_min,
             "Error initialize: lock_time_min must be less than lock_time_max"
         );
 
         let mut contract = Self {
-            pending_transfers: LookupMap::new(StorageKey::PendingTransfers),
+            pending_transfers: UnorderedMap::new(StorageKey::PendingTransfers),
             pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
             user_balances: LookupMap::new(StorageKey::UserBalances),
             nonce: 0,
@@ -215,11 +224,17 @@ impl SpectreBridge {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> U128 {
-        if let Some(update_balance) = update_balance {
-            self.update_balance(
-                update_balance.sender_id,
-                update_balance.token,
-                update_balance.amount.0,
+        #[cfg(feature = "disable_different_fee_token")]
+        require!(
+            transfer_message.fee.token == transfer_message.transfer.token_near,
+            "The fee token does not match the transfer token"
+        );
+
+        if let Some(update_balance) = update_balance.as_ref() {
+            self.increase_balance(
+                &update_balance.sender_id,
+                &update_balance.token,
+                &update_balance.amount.0,
             );
         }
 
@@ -278,6 +293,15 @@ impl SpectreBridge {
         );
 
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
+
+        if let Some(update_balance) = update_balance {
+            Event::SpectreBridgeDepositEvent {
+                sender_id: update_balance.sender_id,
+                token: update_balance.token,
+                amount: update_balance.amount,
+            }
+            .emit();
+        }
 
         Event::SpectreBridgeInitTransferEvent {
             nonce,
@@ -361,7 +385,7 @@ impl SpectreBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
-    pub fn lp_unlock(&mut self, proof: Proof) {
+    pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
         assert_eq!(
             parsed_proof.eth_bridge_contract,
@@ -388,7 +412,7 @@ impl SpectreBridge {
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
-            );
+            )
     }
 
     #[private]
@@ -470,36 +494,6 @@ impl SpectreBridge {
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
     }
 
-    fn update_balance(&mut self, sender_id: AccountId, token_id: AccountId, amount: u128) {
-        if let Some(mut user_balances) = self.user_balances.get(&sender_id) {
-            if let Some(mut token_amount) = user_balances.get(&token_id) {
-                token_amount += amount;
-                user_balances.insert(&token_id, &token_amount);
-            } else {
-                user_balances.insert(&token_id, &amount);
-            }
-            self.user_balances.insert(&sender_id, &user_balances);
-        } else {
-            let storage_key = [
-                StorageKey::UserBalancePrefix
-                    .try_to_vec()
-                    .unwrap()
-                    .as_slice(),
-                sender_id.try_to_vec().unwrap().as_slice(),
-            ]
-            .concat();
-            let mut token_balance = LookupMap::new(storage_key);
-            token_balance.insert(&token_id, &amount);
-            self.user_balances.insert(&sender_id, &token_balance);
-        }
-        Event::SpectreBridgeDepositEvent {
-            sender_id,
-            token: token_id,
-            amount: U128(amount),
-        }
-        .emit();
-    }
-
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
         let mut user_token_balance = self.user_balances.get(user).unwrap();
         let balance = user_token_balance.get(token_id).unwrap() - amount;
@@ -508,10 +502,24 @@ impl SpectreBridge {
     }
 
     fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        let mut user_token_balance = self.user_balances.get(user).unwrap();
-        let balance = user_token_balance.get(token_id).unwrap() + amount;
-        user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(user, &user_token_balance);
+        if let Some(mut user_balances) = self.user_balances.get(user) {
+            user_balances.insert(
+                token_id,
+                &(user_balances.get(token_id).unwrap_or(0) + amount),
+            );
+        } else {
+            let storage_key = [
+                StorageKey::UserBalancePrefix
+                    .try_to_vec()
+                    .unwrap()
+                    .as_slice(),
+                user.try_to_vec().unwrap().as_slice(),
+            ]
+            .concat();
+            let mut token_balance = LookupMap::new(storage_key);
+            token_balance.insert(token_id, amount);
+            self.user_balances.insert(user, &token_balance);
+        }
     }
 
     fn validate_transfer_message(&self, transfer_message: &TransferMessage, sender_id: &AccountId) {
@@ -626,10 +634,34 @@ impl SpectreBridge {
         self.pending_transfers_balances.get(&token_id).unwrap_or(0)
     }
 
+    pub fn get_pending_transfers(
+        &self,
+        from_index: usize,
+        limit: usize,
+    ) -> Vec<(String, (AccountId, TransferMessage))> {
+        self.pending_transfers
+            .iter()
+            .skip(from_index)
+            .take(limit)
+            .collect::<Vec<_>>()
+    }
+
+    pub fn get_pending_transfer(&self, id: String) -> Option<(AccountId, TransferMessage)> {
+        self.pending_transfers.get(&id)
+    }
+
     #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
-        let lock_time_min = parse(lock_time_min.as_str()).unwrap().as_nanos() as u64;
-        let lock_time_max = parse(lock_time_max.as_str()).unwrap().as_nanos() as u64;
+        let lock_time_min: u64 = parse(lock_time_min.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+        let lock_time_max: u64 = parse(lock_time_max.as_str())
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
 
         self.lock_duration = LockDuration {
             lock_time_min,
@@ -1473,7 +1505,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    contract.update_balance(user.clone(), token.clone(), 10);
+                    contract.increase_balance(&user, &token, &10);
                 }
             }
         }
