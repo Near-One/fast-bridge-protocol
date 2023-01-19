@@ -1,8 +1,8 @@
 use eth_types::{LogEntry, H256};
 use ethabi::{Event, EventParam, Hash, ParamType, RawLog};
+use fast_bridge_common::*;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::near_bindgen;
-use fast_bridge_common::*;
 
 type EthEventParams = Vec<(String, ParamType, bool)>;
 

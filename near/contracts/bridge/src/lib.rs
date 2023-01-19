@@ -1,4 +1,5 @@
 use crate::lp_relayer::EthTransferEvent;
+use fast_bridge_common::*;
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -13,7 +14,6 @@ use near_sdk::{
     Duration, PanicOnDefault, PromiseOrValue,
 };
 use parse_duration::parse;
-use fast_bridge_common::*;
 use whitelist::WhitelistMode;
 
 pub use crate::ft::*;
