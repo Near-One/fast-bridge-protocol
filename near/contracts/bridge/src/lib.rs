@@ -616,8 +616,9 @@ impl FastBridge {
         Event::FastBridgeWithdrawEvent {
             receiver_id: sender_id,
             token: token_id,
-            amount
-        }.emit();
+            amount,
+        }
+        .emit();
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
