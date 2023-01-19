@@ -2391,7 +2391,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
     mapping (address => bool) public whitelistedTokens;
     mapping (bytes32 => bool) public processedHashes;
-    
+
     event SetTokens(
         address[] _tokens,
         bool[] _states
@@ -2423,10 +2423,10 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     function initialize(
         address[] memory _tokens,
         bool[] memory _states
-    ) 
+    )
         public
         initializer
-    {   
+    { 
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -2452,9 +2452,9 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     function setWhitelistedTokens(
         address[] memory _tokens,
         bool[] memory _states
-    ) 
-        public 
-        onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) 
+    )
+        public
+        onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE)
     {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
@@ -2463,7 +2463,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         }
 
         emit SetTokens(_tokens, _states);
-    }  
+    }
 
     function addTokenToWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(!whitelistedTokens[_token], "Token already whitelisted!");
@@ -2478,13 +2478,13 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
     }
 
     function transferTokens(
-        address _token, 
-        address _recipient, 
-        uint256 _nonce,  
+        address _token,
+        address _recipient,
+        uint256 _nonce,
         uint256 _amount,
         string memory _unlock_recipient
-    ) 
-        external 
+    )
+        external
         whenNotPaused
         isWhitelisted(_token)
     {
@@ -2506,8 +2506,8 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
     function withdrawStuckTokens(
         address _token
-    ) 
-        external 
+    )
+        external
         onlyRole(DEFAULT_ADMIN_ROLE) 
     {
         IERC20 token = IERC20(_token);
@@ -2519,8 +2519,8 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
     function _authorizeUpgrade(
         address newImplementation
-    ) 
-        internal 
+    )
+        internal
         override
         onlyRole(DEFAULT_ADMIN_ROLE) 
     {
