@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           cargo install cargo-expand
+          rustup target add wasm32-unknown-unknown --toolchain nightly
           cd near
           cargo expand --manifest-path ./contracts/bridge/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
           git diff
