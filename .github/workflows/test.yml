@@ -6,31 +6,24 @@ on:
     branches: ["!main"]
   workflow_dispatch:
 
+env:
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+
 jobs:
   test-cargo:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, light]
     steps:
       - uses: actions/checkout@v3
       - uses: webfactory/ssh-agent@v0.7.0
         with:
-            ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args:  --manifest-path ./near/contracts/Cargo.toml --all -- --check
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args:  --manifest-path ./near/contracts/Cargo.toml -- -A clippy::too-many-arguments -D warnings
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - run: cargo fmt --manifest-path ./near/contracts/Cargo.toml --all -- --check
+      - run: cargo clippy --manifest-path ./near/contracts/Cargo.toml -- -A clippy::too-many-arguments -D warnings
       - run: cd near; mkdir res; ./build.sh
       - run: cd near; ./test.sh
-      
+
   test-npm:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, light]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
