@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_rust_contracts:
-    runs-on: [self-hosted, light]
+    runs-on: [self-hosted]
     steps:
       - uses: actions/checkout@v3
       - run: cd near; mkdir -p res; ./build.sh
