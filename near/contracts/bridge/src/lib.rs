@@ -614,7 +614,7 @@ impl FastBridge {
         self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
 
         Event::FastBridgeWithdrawEvent {
-            receiver_id: sender_id,
+            recipient_id: sender_id,
             token: token_id,
             amount,
         }
