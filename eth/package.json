@@ -26,7 +26,7 @@
         "dev:solhint-fix": "npx solhint \"contracts/**/*.sol\" --fix",
         "dev:prettier": "npx prettier --check \"**/*.{json,sol,md,js,yaml,yml}\"",
         "dev:prettier-fix": "npx prettier --write \"**/*.{json,sol,md,js,yaml,yml}\"",
-        "flatten": "npx hardhat flatten contracts/EthErc20FastBridge.sol > out/EthErc20FastBridge_flat.sol && npx hardhat flatten contracts/TestToken.sol > out/TestToken_flat.sol",
+        "flatten": "npx hardhat flatten contracts/EthErc20FastBridge.sol > res/EthErc20FastBridge_flat.sol && npx hardhat flatten contracts/TestToken.sol > res/TestToken_flat.sol",
         "dev:slither": "npm run compile && slither .",
         "postinstall": "npm run compile && npm run dev:abi",
         "clean": "npx shx rm -rf artifacts cache coverage coverage.json .openzeppelin && npx shx echo Cleaned",
