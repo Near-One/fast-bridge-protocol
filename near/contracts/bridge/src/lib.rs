@@ -612,6 +612,13 @@ impl FastBridge {
         require!(is_promise_success(), "Error transfer");
 
         self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
+
+        Event::FastBridgeWithdrawEvent {
+            recipient_id: sender_id,
+            token: token_id,
+            amount,
+        }
+        .emit();
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
