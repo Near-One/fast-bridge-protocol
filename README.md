@@ -28,23 +28,30 @@ Described in the corresponding [README](near/README.md)
 
 
 ## EthErc20Bridge scripts
-Below given command will help user to deploy and interact with contracts only on the network provided in spectre-bridge-protocol/eth/package.json, to switch network just change network name from that script.
+Below given command will help user to deploy and interact with contracts on the network provided as arg to below command, if no arg is provided it will use default network fro hardhat-config, to switch network just change network name from that script.
 
-example : to deploy EthErc20FastBridge on hardhat network i.e. mainnet fork change 
-`npm run compile-all && npx hardhat run scripts/deployment/deploy-bridge.js --network goerli`
-to
-`npm run compile-all && npx hardhat run scripts/deployment/deploy-bridge.js --network hardhat`
-and run below command.
+First set up your `.env` file in `spectere-bridge-protocol/.env`, for help `.env.example` is provided in `spectere-bridge-protocol` directory.  
+Then, to run below scripts go to `spectere-bridge-protocol/eth` directory, i.e. **run command `cd eth`**
+
+example : to deploy EthErc20FastBridge on <network-name> network (network-name must be defined in hardhat-config.json's networks)
+`npm run deploy:bridge -- hardhat`
+
 ### Deployment script
-run command `yarn run deploy:bridge`
+Running ths script will deploy bridge proxy and store proxy and implementation address in `spectre-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`
+To execute this script => run command `yarn run deploy:bridge -- <network-name>`
+example : to deploy bridge on goerli run command `yarn run deploy:bridge -- goerli`
 
 ### Deploy and verify
-run command `yarn run deploy:verify:bridge`
+Running this script will first deploy and then verify bridge.
+To execute this script => run command `yarn run deploy:verify:bridge -- <network-name>`
+example : to deploy and verify bridge on goerli run command `yarn run deploy:verify:bridge -- goerli`
 
-### Upgrade script
-Before upgrading, go to file `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7.
+### Upgrade script 
+To upgrade bridge contract(using hardhat's upgrades plugin), use `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` script.
+<!-- Before upgrading, go to file `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7. -->
 
-run command `yarn run upgrade:bridge`
+To execute this script => run command `yarn run upgrade:bridge -- <network-name>`
+example : to upgrade on goerli run command `yarn run deploy:verify:bridge -- goerli`
 
 ### Whitelisting
 To interact with EthErc20FastBridge whitelisting methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/whitelistTokens.js
@@ -57,9 +64,30 @@ To interact with EthErc20FastBridge whitelisting methods use methods defined in 
 
 * To check whether a token is whitelisted or not import and use method `isTokenInWhitelist` from above mentioned file with tokens address and signer with `WHITELISTING_TOKENS_ADMIN_ROLE` as parameters.  
 
+example : If you want whitelist whitelist one token, script would like,
+```
+const { ethers } = require("hardhat");
+const { addTokenToWhitelist } = require("./whitelistTokens");
+
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+
+async function main() {
+    const [signer] = await ethers.getSigners(); // signer must have WHITELISTING_TOKENS_ADMIN_ROLE
+    await addTokenToWhitelist(WETH, signer);
+}
+
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});
+```
+And to run above script run `npx hardhat run <path_to_script/script.js> --` from eth folder.
+
 ### Pause/Unpause transfers
 To interact with EthErc20FastBridge pause and unpause methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/pause_unPause.js
 
 * To pause transfers import and use `pauseTransfer` method from above mentioned file with a signer with `PAUSABLE_ADMIN_ROLE` as parameter. 
 
 * To unpause transfers import and use `unpauseTransfer` method from above mentioned file with a signer with `UNPAUSABLE_ADMIN_ROLE` as parameter. 
+
+These methods can be used in similar to above example
