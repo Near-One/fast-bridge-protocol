@@ -26,9 +26,9 @@ jobs:
     runs-on: [self-hosted, light]
     steps:
       - uses: actions/checkout@v3
-      - run: cd near
-      - run: cargo expand --manifest-path ./contracts/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
       - run: |
+          cd near
+          cargo expand --manifest-path ./contracts/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
           git diff
           git status
           changed_files=$(git status --porcelain --untracked-files=no | wc -l)
