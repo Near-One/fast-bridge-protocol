@@ -4,7 +4,7 @@ use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
 use near_sdk::{serde_json, AccountId};
 
 #[near_bindgen]
-impl FungibleTokenReceiver for SpectreBridge {
+impl FungibleTokenReceiver for FastBridge {
     #[pause]
     fn ft_on_transfer(
         &mut self,
@@ -35,7 +35,7 @@ impl FungibleTokenReceiver for SpectreBridge {
         } else {
             self.increase_balance(&sender_id, &token_account_id, &amount.0);
 
-            Event::SpectreBridgeDepositEvent {
+            Event::FastBridgeDepositEvent {
                 sender_id,
                 token: token_account_id,
                 amount,

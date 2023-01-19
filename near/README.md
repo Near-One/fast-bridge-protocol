@@ -1,4 +1,4 @@
-# spectrebridge-near
+# fast-bridge-near
 
 ## Build
 ### Requirements
@@ -29,9 +29,9 @@ Deployment is configured only for `testnet` testnet and could be done with the f
 ./deploy.sh
 ```
 
-deployment is done via `spectrebridge.testnet` master account to the following subaccounts:
-* Bridge: transfer.spectrebridge.testnet
-* Mock NEP141 token: token.spectrebridge.testnet
+deployment is done via `fastbridge.testnet` master account to the following subaccounts:
+* Bridge: transfer.fastbridge.testnet
+* Mock NEP141 token: token.fastbridge.testnet
 
 ### Testing UI
 Repository provides simple [UI](testing_ui) for testing contracts.

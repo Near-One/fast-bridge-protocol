@@ -21,7 +21,7 @@ fn get_token_account_key(token: Option<&AccountId>, account: &AccountId) -> Stri
 }
 
 #[near_bindgen]
-impl SpectreBridge {
+impl FastBridge {
     #[access_control_any(roles(Role::WhitelistManager))]
     pub fn set_token_whitelist_mode(&mut self, token: AccountId, mode: WhitelistMode) {
         self.whitelist_tokens.insert(&token, &mode);

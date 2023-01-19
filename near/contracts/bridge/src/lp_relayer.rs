@@ -2,7 +2,7 @@ use eth_types::{LogEntry, H256};
 use ethabi::{Event, EventParam, Hash, ParamType, RawLog};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::near_bindgen;
-use spectre_bridge_common::*;
+use fast_bridge_common::*;
 
 type EthEventParams = Vec<(String, ParamType, bool)>;
 

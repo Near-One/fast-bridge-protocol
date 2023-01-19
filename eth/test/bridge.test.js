@@ -17,7 +17,7 @@ const buyTokenForEth = async (buyer, router, ethAmount, path) => {
     await router.connect(buyer).swapExactETHForTokens(0, path, buyer.address, ethers.constants.MaxUint256, { value: ethAmount });
 };
 
-describe("Spectre Bridge", () => {
+describe("Fast Bridge", () => {
     let router, tokenInstance, weth;
     let owner, someone, relayer, anotherRelayer, someoneWithTokens, pausableAdmin, unpausableAdmin, whitelistingAdmin;
     let bridge, proxy;
