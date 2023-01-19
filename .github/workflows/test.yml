@@ -27,8 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
+          cargo install cargo-expand
           cd near
-          cargo expand --manifest-path ./contracts/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
+          cargo expand --manifest-path ./contracts/bridge/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
           git diff
           git status
           changed_files=$(git status --porcelain --untracked-files=no | wc -l)
