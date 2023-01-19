@@ -6,7 +6,6 @@ near/**/target/**
 # js
 ## ethereum
 eth/node_modules/**
-eth/package-lock.json
 eth/build
 *.pyc
 
