@@ -16,6 +16,7 @@ jobs:
           git status
           changed_files=$(git status --porcelain --untracked-files=no | wc -l);
           if [ $changed_files -gt 0 ]; then
-          echo 'contract changed, please rebuild contract'
-          exit 1
+          ls -la near/res
+            echo 'contract changed, please rebuild contract'
+            exit 1
           fi
