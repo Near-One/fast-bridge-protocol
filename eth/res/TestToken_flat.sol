@@ -1,19 +1,30 @@
+// Sources flattened with hardhat v2.12.6 https://hardhat.org
+
+// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.8.0
+
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
 
-// OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
-
-
-
-
-// OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/IERC20.sol)
-
-
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
 interface IERC20 {
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
     /**
      * @dev Returns the amount of tokens in existence.
      */
@@ -72,28 +83,15 @@ interface IERC20 {
         address to,
         uint256 amount
     ) external returns (bool);
-
-    /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 
+// File @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol@v4.8.0
+
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/IERC20Metadata.sol)
 
-
-
-
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -118,9 +116,12 @@ interface IERC20Metadata is IERC20 {
 }
 
 
+// File @openzeppelin/contracts/utils/Context.sol@v4.8.0
+
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
 
-
+pragma solidity ^0.8.0;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -143,6 +144,15 @@ abstract contract Context {
 }
 
 
+// File @openzeppelin/contracts/token/ERC20/ERC20.sol@v4.8.0
+
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/ERC20.sol)
+
+pragma solidity ^0.8.0;
+
+
+
 /**
  * @dev Implementation of the {IERC20} interface.
  *
@@ -151,7 +161,7 @@ abstract contract Context {
  * For a generic mechanism see {ERC20PresetMinterPauser}.
  *
  * TIP: For a detailed writeup see our guide
- * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
+ * https://forum.openzeppelin.com/t/how-to-implement-erc20-supply-mechanisms/226[How
  * to implement supply mechanisms].
  *
  * We have followed general OpenZeppelin Contracts guidelines: functions revert
@@ -316,7 +326,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      */
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
         address owner = _msgSender();
-        _approve(owner, spender, _allowances[owner][spender] + addedValue);
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
         return true;
     }
 
@@ -336,7 +346,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         address owner = _msgSender();
-        uint256 currentAllowance = _allowances[owner][spender];
+        uint256 currentAllowance = allowance(owner, spender);
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
@@ -346,7 +356,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Moves `amount` of tokens from `sender` to `recipient`.
+     * @dev Moves `amount` of tokens from `from` to `to`.
      *
      * This internal function is equivalent to {transfer}, and can be used to
      * e.g. implement automatic token fees, slashing mechanisms, etc.
@@ -373,8 +383,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
         unchecked {
             _balances[from] = fromBalance - amount;
+            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // decrementing then incrementing.
+            _balances[to] += amount;
         }
-        _balances[to] += amount;
 
         emit Transfer(from, to, amount);
 
@@ -396,7 +408,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         _beforeTokenTransfer(address(0), account, amount);
 
         _totalSupply += amount;
-        _balances[account] += amount;
+        unchecked {
+            // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
+            _balances[account] += amount;
+        }
         emit Transfer(address(0), account, amount);
 
         _afterTokenTransfer(address(0), account, amount);
@@ -422,8 +437,9 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
         unchecked {
             _balances[account] = accountBalance - amount;
+            // Overflow not possible: amount <= accountBalance <= totalSupply.
+            _totalSupply -= amount;
         }
-        _totalSupply -= amount;
 
         emit Transfer(account, address(0), amount);
 
@@ -456,7 +472,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 
     /**
-     * @dev Spend `amount` form the allowance of `owner` toward `spender`.
+     * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
      *
      * Does not update the allowance amount in case of infinite allowance.
      * Revert if not enough allowance is available.
@@ -519,6 +535,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 }
 
 
+// File contracts/TestToken.sol
+
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.11;
 
 contract TestToken is ERC20 {
     uint8 tokenDecimals;
@@ -541,5 +561,3 @@ contract TestToken is ERC20 {
         _mint(msg.sender, _amount);
     }
 }
-
-

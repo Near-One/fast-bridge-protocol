@@ -1,0 +1,20 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: eth-erc20-fast-bridge
+  title: EthErc20FastBridge
+  description: |-
+    ERC20 liquidity pool for Fast Bridge on Ethereum.
+    Transfers tokens to User which produces swap execution proof
+  tags:
+    - contract
+    - ethereum
+  links: []
+  annotations:
+    aurora.dev/security-tier: "2"
+spec:
+  owner: bridge-team
+  type: contract
+  lifecycle: production
+  system: spectre-bridge

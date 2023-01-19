@@ -1,6 +1,6 @@
 {
-  "name": "SpectreBridgeProtocol",
-  "description": "Spectre bridge protocol client",
+  "name": "FastBridgeProtocol",
+  "description": "Fast bridge protocol client",
   "version": "1.0.0",
   "license": "(MIT AND Apache-2.0)",
   "scripts": {
