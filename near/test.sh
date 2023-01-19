@@ -2,4 +2,4 @@
 set -e
 
 cd contracts
-cargo test -- --nocapture
+cargo test --no-default-features -- --nocapture

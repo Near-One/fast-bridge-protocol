@@ -19,7 +19,7 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - run: cargo fmt --manifest-path ./near/contracts/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path ./near/contracts/Cargo.toml -- -A clippy::too-many-arguments -D warnings
-      - run: cd near; mkdir res; ./build.sh
+      - run: cd near; mkdir -p res; ./build.sh
       - run: cd near; ./test.sh
 
   test-npm:
