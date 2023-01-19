@@ -13,6 +13,8 @@ else
 fi
 
 arch=`uname -m`
+echo "Using $arch architecture"
+
 if [ "$arch" == "arm64" ]
 then
     tag=":latest-arm64"
