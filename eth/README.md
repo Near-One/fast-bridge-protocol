@@ -1,4 +1,4 @@
-# spectrebridge-solidity
+# fast-bridge-solidity
 
 ### Build & Test
 To build and test contracts run following snippet

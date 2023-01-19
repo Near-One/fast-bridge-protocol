@@ -1,4 +1,5 @@
 use crate::lp_relayer::EthTransferEvent;
+use fast_bridge_common::*;
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -13,7 +14,6 @@ use near_sdk::{
     Duration, PanicOnDefault, PromiseOrValue,
 };
 use parse_duration::parse;
-use spectre_bridge_common::*;
 use whitelist::WhitelistMode;
 
 pub use crate::ft::*;
@@ -52,7 +52,7 @@ trait NEP141Token {
 }
 
 #[ext_contract(ext_self)]
-trait SpectreBridgeInterface {
+trait FastBridgeInterface {
     fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId);
     fn verify_log_entry_callback(
         &mut self,
@@ -118,7 +118,7 @@ pub enum Role {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
 #[pausable(manager_roles(Role::PauseManager))]
-pub struct SpectreBridge {
+pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
@@ -137,7 +137,7 @@ pub struct SpectreBridge {
 }
 
 #[near_bindgen]
-impl SpectreBridge {
+impl FastBridge {
     #[init]
     #[private]
     pub fn new(
@@ -295,7 +295,7 @@ impl SpectreBridge {
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
 
         if let Some(update_balance) = update_balance {
-            Event::SpectreBridgeDepositEvent {
+            Event::FastBridgeDepositEvent {
                 sender_id: update_balance.sender_id,
                 token: update_balance.token,
                 amount: update_balance.amount,
@@ -303,7 +303,7 @@ impl SpectreBridge {
             .emit();
         }
 
-        Event::SpectreBridgeInitTransferEvent {
+        Event::FastBridgeInitTransferEvent {
             nonce,
             sender_id,
             transfer_message,
@@ -378,7 +378,7 @@ impl SpectreBridge {
         );
         self.remove_transfer(&transaction_id, &transfer_data);
 
-        Event::SpectreBridgeUnlockEvent {
+        Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
             transfer_message: transfer_data,
@@ -477,7 +477,7 @@ impl SpectreBridge {
         );
         self.remove_transfer(&transaction_id, &transfer_data);
 
-        Event::SpectreBridgeLpUnlockEvent {
+        Event::FastBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
             recipient_id,
             transfer_message: transfer_data,
@@ -625,7 +625,7 @@ impl SpectreBridge {
             utils::is_valid_eth_address(near_address.clone()),
             format!("Ethereum address:{} not valid.", near_address)
         );
-        self.eth_bridge_contract = spectre_bridge_common::get_eth_address(near_address);
+        self.eth_bridge_contract = fast_bridge_common::get_eth_address(near_address);
     }
 
     pub fn get_lock_duration(self) -> LockDuration {
@@ -825,7 +825,7 @@ mod tests {
         ]
     }
 
-    fn get_bridge_contract(config: Option<BridgeInitArgs>) -> SpectreBridge {
+    fn get_bridge_contract(config: Option<BridgeInitArgs>) -> FastBridge {
         let config = config.unwrap_or(BridgeInitArgs {
             eth_bridge_contract: None,
             prover_account: None,
@@ -835,7 +835,7 @@ mod tests {
             whitelisted_tokens: Some(tokens()),
         });
 
-        let mut contract = SpectreBridge::new(
+        let mut contract = FastBridge::new(
             config.eth_bridge_contract.unwrap_or(eth_bridge_address()),
             config.prover_account.unwrap_or(prover()),
             config.eth_client_account.unwrap_or(eth_client()),
@@ -937,7 +937,7 @@ mod tests {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
                 amount: U128(100),
             },
-            recipient: spectre_bridge_common::get_eth_address(
+            recipient: fast_bridge_common::get_eth_address(
                 "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
             ),
             valid_till_block_height: None,
@@ -1350,7 +1350,7 @@ mod tests {
         test_unlock(&mut contract);
     }
 
-    fn test_unlock(contract: &mut SpectreBridge) {
+    fn test_unlock(contract: &mut FastBridge) {
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
         let balance: u128 = 100;
