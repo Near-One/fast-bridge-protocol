@@ -30,7 +30,12 @@ Described in the corresponding [README](near/README.md)
 ## EthErc20Bridge scripts
 Below given command will help user to deploy and interact with contracts on the network provided as arg to below command, if no arg is provided it will use default network fro hardhat-config, to switch network just change network name from that script.
 
-First set up your `.env` file in `spectere-bridge-protocol/.env`, for help `.env.example` is provided in `spectere-bridge-protocol` directory.  
+First set up your `.env` file in `spectere-bridge-protocol/.env`, for help `.env.example` is provided in `spectere-bridge-protocol` directory.
+1. First copy content of `.env.example` file
+2. Create a new file in `spectere-bridge-protocol` directory and name it `.env`
+3. Paste copied content in `.env` file 
+4. Fill up details as required as per used in `hardhat.config.json` file.
+
 Then, to run below scripts go to `spectere-bridge-protocol/eth` directory, i.e. **run command `cd eth`**
 
 example : to deploy EthErc20FastBridge on <network-name> network (network-name must be defined in hardhat-config.json's networks)
@@ -91,3 +96,11 @@ To interact with EthErc20FastBridge pause and unpause methods use methods define
 * To unpause transfers import and use `unpauseTransfer` method from above mentioned file with a signer with `UNPAUSABLE_ADMIN_ROLE` as parameter. 
 
 These methods can be used in similar to above example
+
+### To interact with above methods use script `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/interact_with_bridge.js`
+Follow below steps to execute script and start interacting
+1. First, create your `.env` file(mentioned in `EthErc20Bridge scripts` section's starting)
+2. Go to `spectre-bridge-protocol/eth` directory in terminal
+3. Run command `npm run interact:bridge -- <network_name_as_defined_in_hardhat_config>` 
+4. Follow guide in terminal
+Note: bridge address will be picked from `deploymentAddress[network].new.bridge` (from `spectre-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`)
