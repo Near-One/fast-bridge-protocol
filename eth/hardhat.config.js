@@ -1,17 +1,18 @@
 require("dotenv").config();
-
 require("@nomicfoundation/hardhat-toolbox");
-
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomiclabs/hardhat-ethers");
 require("@nomicfoundation/hardhat-network-helpers");
-
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
+const { ethers } = require("ethers");
+const { task } = require("hardhat/config");
+const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
+const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
-const PRIVATE_KEY = process.env.PRIVATE_KEY || '11'.repeat(32);
+const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
 
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 const INFURA_API_KEY = process.env.INFURA_API_KEY;
@@ -19,6 +20,35 @@ const INFURA_API_KEY = process.env.INFURA_API_KEY;
 const FORKING = true;
 const ENABLED_OPTIMIZER = true;
 const OPTIMIZER_RUNS = 200;
+
+task("method", "Execute Fastbridge methods")
+    .addParam("jsonstring", "JSON string with function signature and arguments")
+    .setAction(async (taskArgs) => {
+        const network = (await ethers.getDefaultProvider().getNetwork()).name;
+        const bridgeAddress = deploymentAddress[network].new.bridge;
+        const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_TASK);
+        const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+        const jsonString = taskArgs.jsonstring;
+        const json = JSON.parse(jsonString);
+        const arg = json.arguments;
+        const functionSignature = json.signature;
+        console.log(arg);
+        const functionArguments = Object.values(arg);
+        console.log(functionSignature, functionArguments);
+        const iface = new ethers.utils.Interface(bridgeArtifacts.abi);
+        // Send the transaction
+        const txdata = iface.encodeFunctionData(functionSignature, functionArguments);
+        const tx = await signer.sendTransaction({
+            to: bridgeAddress,
+            data: txdata,
+            gasLimit: 999999
+        });
+        console.log(tx);
+        await tx.wait();
+
+        console.log("Transaction mined!");
+    });
 
 module.exports = {
     solidity: {

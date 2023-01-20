@@ -104,3 +104,32 @@ Follow below steps to execute script and start interacting
 3. Run command `npm run interact:bridge -- <network_name_as_defined_in_hardhat_config>` 
 4. Follow guide in terminal
 Note: bridge address will be picked from `deploymentAddress[network].new.bridge` (from `spectre-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`)
+
+### To interact with FastBridge using hardhat task
+To call any method of EthErc20FastBridge use hardhat task `method` 
+Run command `npx hardhat method --jsonstring <json_string_input>`
+```
+to create `json_string_input`
+1. create json with `signature` and `arguments` properties in below example format
+
+ {
+    "signature": "setWhitelistedTokens(address[],bool[])",
+    "argcount": "2",
+    "arguments": {
+        "arg1": [
+            "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+            "0xB8c77482e45F1F44dE1745F52C74426C631bDD52",
+            "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+        ],
+        "arg2": [
+            true,
+            true,
+            true
+        ]
+    }
+}
+
+2. pass below json to JSON.stringify() and use output as `json_string_input`
+
+```
+example: to call `setWhitelistedTokens` method run command `npx hardhat method --jsonstring '{"signature":"setWhitelistedTokens","arguments":{"arg1":["0xdAC17F958D2ee523a2206206994597C13D831ec7"],"arg2":[true]}}'`
