@@ -39,7 +39,7 @@ First set up your `.env` file in `spectere-bridge-protocol/.env`, for help `.env
 Then, to run below scripts go to `spectere-bridge-protocol/eth` directory, i.e. **run command `cd eth`**
 
 example : to deploy EthErc20FastBridge on <network-name> network (network-name must be defined in hardhat-config.json's networks)
-`npm run deploy:bridge -- hardhat`
+`npm run deploy:bridge -- <network-name>`
 
 ### Deployment script
 Running ths script will deploy bridge proxy and store proxy and implementation address in `spectre-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`
