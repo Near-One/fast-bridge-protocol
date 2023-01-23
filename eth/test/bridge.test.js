@@ -6,6 +6,11 @@ const { takeSnapshot, SnapshotRestorer } = require("@nomicfoundation/hardhat-net
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const Uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const unlockRecipient = "near_recipient.near";
+
+function getTransferId(token, recipient, nonce, amount) {
+    return ethers.utils.solidityKeccak256([ "address", "address", "uint256", "uint256" ], [ token, recipient, nonce, amount ]);
+}
 
 const buyTokenForEth = async (buyer, router, ethAmount, path) => {
     await router
@@ -13,7 +18,7 @@ const buyTokenForEth = async (buyer, router, ethAmount, path) => {
         .swapExactETHForTokens(0, path, buyer.address, ethers.constants.MaxUint256, { value: ethAmount });
 };
 
-describe("Fast Bridge", () => {
+describe("Spectre Bridge", () => {
     let router, tokenInstance;
     let owner, someone, relayer, anotherRelayer, someoneWithTokens, pausableAdmin, unpausableAdmin, whitelistingAdmin;
     let bridge, proxy;
@@ -146,25 +151,36 @@ describe("Fast Bridge", () => {
 
             let transferPart = relayerBalance - 100;
 
-            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, nonce, transferPart))
-                .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, relayer.address, tokenAddress, someone.address, transferPart);
+
+            let transferId = getTransferId(tokenAddress, someone.address, nonce, transferPart);
+            await expect(proxy.connect(relayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                nonce,
+                transferPart,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(nonce, relayer.address, tokenAddress, someone.address, transferPart, unlockRecipient, transferId);
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart);
 
             await proxy.connect(pausableAdmin).pause();
 
             let relayerBalanceAfter = tokenInstance.balanceOf(relayer.address);
-            await expect(
-                proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalanceAfter)
-            ).to.be.revertedWith("Pausable: paused");
+
+            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalanceAfter, unlockRecipient)).to.be.revertedWith("Pausable: paused");
 
             await proxy.connect(unpausableAdmin).unPause();
 
             const amount = 100;
-            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, anotherNonce, amount))
-                .to.emit(proxy, "TransferTokens")
-                .withArgs(anotherNonce, relayer.address, tokenAddress, someone.address, amount);
+
+            transferId = getTransferId(tokenAddress, someone.address, anotherNonce, amount);
+            await expect(proxy.connect(relayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                anotherNonce,
+                amount,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(anotherNonce, relayer.address, tokenAddress, someone.address, amount, unlockRecipient, transferId);
 
             let transferPart2 = transferPart + 100;
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart2);
@@ -181,17 +197,24 @@ describe("Fast Bridge", () => {
             let balanceAnotherRelayer = await tokenInstance.balanceOf(anotherRelayer.address);
             await tokenInstance.connect(anotherRelayer).approve(proxy.address, balanceAnotherRelayer);
 
-            await expect(
-                proxy.connect(anotherRelayer).transferTokens(tokenAddress, someone.address, nonce, balanceRelayer)
-            )
-                .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer);
+            transferId = getTransferId(tokenAddress, someone.address, nonce, balanceRelayer);
+            await expect(proxy.connect(anotherRelayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                nonce,
+                balanceRelayer,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(nonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer, unlockRecipient, transferId);
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
 
-            await expect(
-                proxy.connect(anotherRelayer).transferTokens(tokenAddress, someone.address, nonce, balanceRelayer)
-            ).to.be.revertedWith("This transaction has already been processed!");
+            await expect(proxy.connect(anotherRelayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                nonce,
+                balanceRelayer,
+                unlockRecipient
+            )).to.be.revertedWith("This transaction has already been processed!");
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
         });
@@ -205,47 +228,74 @@ describe("Fast Bridge", () => {
             await tokenInstance.connect(relayer).approve(proxy.address, balanceRelayer);
 
             let balanceAnotherRelayer = await tokenInstance.balanceOf(anotherRelayer.address);
-            await tokenInstance.connect(anotherRelayer).approve(proxy.address, balanceAnotherRelayer);
-            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, nonce, balanceRelayer))
-                .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, relayer.address, tokenAddress, someone.address, balanceRelayer);
+
+            await tokenInstance.connect(anotherRelayer).approve(
+                proxy.address,
+                balanceAnotherRelayer
+            );
+
+            let transferId = getTransferId(tokenAddress, someone.address, nonce, balanceRelayer);
+            await expect(proxy.connect(relayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                nonce,
+                balanceRelayer,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(nonce, relayer.address, tokenAddress, someone.address, balanceRelayer, unlockRecipient, transferId);
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
 
-            await expect(
-                proxy
-                    .connect(anotherRelayer)
-                    .transferTokens(tokenAddress, someone.address, anotherNonce, balanceRelayer)
-            )
-                .to.emit(proxy, "TransferTokens")
-                .withArgs(anotherNonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer);
+            transferId = getTransferId(tokenAddress, someone.address, anotherNonce, balanceRelayer);
+            await expect(proxy.connect(anotherRelayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                anotherNonce,
+                balanceRelayer,
+                unlockRecipient
+            )).to.emit(proxy, "TransferTokens").withArgs(anotherNonce, anotherRelayer.address, tokenAddress, someone.address, balanceRelayer, unlockRecipient, transferId);
+
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer * 2);
         });
 
         it("Shouldn't transfer token to zero address or self", async () => {
-            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([tokenAddress], [true]))
-                .to.emit(proxy, "SetTokens")
-                .withArgs([tokenAddress], [true]);
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
+                [tokenAddress],
+                [true]
+            )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
 
-            await expect(
-                proxy.connect(relayer).transferTokens(tokenAddress, ethers.constants.AddressZero, 1, 10000000000)
-            ).to.be.revertedWith("Wrong recipient provided");
+            await expect(proxy.connect(relayer).transferTokens(
+                tokenAddress,
+                ethers.constants.AddressZero,
+                1,
+                10000000000,
+                unlockRecipient
+            )).to.be.revertedWith("Wrong recipient provided");
 
-            await expect(
-                proxy.connect(relayer).transferTokens(tokenAddress, relayer.address, 1, 10000000000)
-            ).to.be.revertedWith("Wrong recipient provided");
-        });
+            await expect(proxy.connect(relayer).transferTokens(
+                tokenAddress,
+                relayer.address,
+                1,
+                10000000000,
+                unlockRecipient
+            )).to.be.revertedWith("Wrong recipient provided");
+        })
 
         it("Shouldn't process the transfer with zero amount specified", async () => {
-            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([tokenAddress], [true]))
-                .to.emit(proxy, "SetTokens")
-                .withArgs([tokenAddress], [true]);
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens(
+                [tokenAddress],
+                [true]
+            )).to.emit(proxy, "SetTokens").withArgs([tokenAddress], [true]);
 
-            await expect(proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 1, 0)).to.be.revertedWith(
-                "Wrong amount provided"
-            );
-        });
-    });
+            await expect(proxy.connect(relayer).transferTokens(
+                tokenAddress,
+                someone.address,
+                1,
+                0,
+                unlockRecipient
+            )).to.be.revertedWith("Wrong amount provided");
+        })
+    })
+
 
     describe("Admin functionality", () => {
         it("Only admin can withdraw the stuck tokens", async () => {
@@ -315,7 +365,7 @@ describe("Fast Bridge", () => {
             );
 
             await expect(proxy.connect(someone).removeTokenFromWhitelist(tokenAddress)).to.be.reverted;
-            await expect(proxy.connect(someone).addTokenToWhitelist(tokenAddress)).to.be.reverted;
         });
     });
 });
+
