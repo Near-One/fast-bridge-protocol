@@ -18,7 +18,7 @@ const buyTokenForEth = async (buyer, router, ethAmount, path) => {
         .swapExactETHForTokens(0, path, buyer.address, ethers.constants.MaxUint256, { value: ethAmount });
 };
 
-describe("Spectre Bridge", () => {
+describe("Fast Bridge", () => {
     let router, tokenInstance;
     let owner, someone, relayer, anotherRelayer, someoneWithTokens, pausableAdmin, unpausableAdmin, whitelistingAdmin;
     let bridge, proxy;
@@ -140,7 +140,7 @@ describe("Spectre Bridge", () => {
         it("Should transfer token", async () => {
             let relayerBalance = await tokenInstance.balanceOf(relayer.address);
             await expect(
-                proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalance)
+                proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 11231232, relayerBalance, unlockRecipient)
             ).to.be.revertedWith("Token not whitelisted!");
 
             await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([tokenAddress], [true]))
@@ -365,6 +365,7 @@ describe("Spectre Bridge", () => {
             );
 
             await expect(proxy.connect(someone).removeTokenFromWhitelist(tokenAddress)).to.be.reverted;
+            await expect(proxy.connect(someone).addTokenToWhitelist(tokenAddress)).to.be.reverted;
         });
     });
 });
