@@ -13,7 +13,7 @@ const buyTokenForEth = async (buyer, router, ethAmount, path) => {
         .swapExactETHForTokens(0, path, buyer.address, ethers.constants.MaxUint256, { value: ethAmount });
 };
 
-describe("Spectre Bridge", () => {
+describe("Fast Bridge", () => {
     let router, tokenInstance;
     let owner, someone, relayer, anotherRelayer, someoneWithTokens, pausableAdmin, unpausableAdmin, whitelistingAdmin;
     let bridge, proxy;
@@ -105,7 +105,8 @@ describe("Spectre Bridge", () => {
         });
         await proxyV1.deployed();
 
-        await expect(proxyV1.initialize(["0x3195D5df0521d2Fcd5b02413E23e4b1219790767"], [false])).to.be.reverted;
+        const tokenAdd = "0x3195D5df0521d2Fcd5b02413E23e4b1219790767";
+        await expect(proxyV1.initialize([tokenAdd], [false])).to.be.reverted;
 
         expect(await proxyV1.isTokenInWhitelist(tokensAddresses[1])).to.be.true;
         expect(await proxyV1.isTokenInWhitelist(tokensAddresses[2])).to.be.false;
@@ -120,12 +121,12 @@ describe("Spectre Bridge", () => {
     it("Should upgrade Bridge ", async () => {
         const bridgeV1 = await ethers.getContractFactory("EthErc20FastBridge");
         await expect(
-            upgrades.upgradeProxy("0xc3023a2c9f7B92d1dd19F488AF6Ee107a78Df9DB", bridgeV1.connect(someone), {
+            upgrades.upgradeProxy(proxy.address, bridgeV1.connect(someone), {
                 unsafeAllow: ["delegatecall"]
             })
         ).to.be.reverted;
 
-        await upgrades.upgradeProxy("0xc3023a2c9f7B92d1dd19F488AF6Ee107a78Df9DB", bridgeV1, {
+        await upgrades.upgradeProxy(proxy.address, bridgeV1, {
             unsafeAllow: ["delegatecall"]
         });
     });
