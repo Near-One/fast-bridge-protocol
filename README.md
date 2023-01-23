@@ -28,7 +28,7 @@ Described in the corresponding [README](near/README.md)
 
 
 ## EthErc20Bridge scripts
-Below given command will help user to deploy and interact with contracts on the network provided as arg to below command, if no arg is provided it will use default network fro hardhat-config, to switch network just change network name from that script.
+Below given command will help user to deploy and interact with contracts on the network provided as arg to below command, if no arg is provided it will use default network from hardhat-config.
 
 First set up your `.env` file in `spectere-bridge-protocol/.env`, for help `.env.example` is provided in `spectere-bridge-protocol` directory.
 1. First copy content of `.env.example` file
