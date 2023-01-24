@@ -677,6 +677,21 @@ impl FastBridge {
             lock_time_max,
         };
     }
+
+    pub fn transfer_super_admin(&mut self, account_id: AccountId) {
+        let current_super_admin = env::predecessor_account_id();
+
+        near_sdk::require!(
+            self.__acl
+                .revoke_super_admin_unchecked(&current_super_admin),
+            "Failed to revoke super-admin."
+        );
+
+        near_sdk::require!(
+            self.__acl.init_super_admin(&account_id),
+            "Failed to init super-admin."
+        );
+    }
 }
 
 #[cfg(test)]
