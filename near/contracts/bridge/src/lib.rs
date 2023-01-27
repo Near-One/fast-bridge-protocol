@@ -209,6 +209,7 @@ impl FastBridge {
         sender_id: AccountId,
         update_balance: Option<UpdateBalance>,
     ) -> Promise {
+        near_sdk::env::log_str(&near_sdk::serde_json::to_string(&transfer_message).unwrap());
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
             .last_block_number()
