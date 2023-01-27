@@ -193,7 +193,12 @@ impl FastBridge {
     }
 
     #[pause]
-    pub fn init_transfer(&mut self, transfer_message: TransferMessage) -> PromiseOrValue<U128> {
+    pub fn init_transfer(
+        &mut self,
+        msg: near_sdk::json_types::Base64VecU8,
+    ) -> PromiseOrValue<U128> {
+        let transfer_message = TransferMessage::try_from_slice(&msg.0)
+            .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `TransferMessage`"));
         self.init_transfer_internal(transfer_message, env::predecessor_account_id(), None)
             .into()
     }
