@@ -1,7 +1,7 @@
 use crate::*;
 
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-use near_sdk::{serde_json, AccountId};
+use near_sdk::{base64, AccountId};
 
 #[near_bindgen]
 impl FungibleTokenReceiver for FastBridge {
@@ -21,8 +21,12 @@ impl FungibleTokenReceiver for FastBridge {
         self.check_whitelist_token_and_account(&token_account_id, &sender_id);
 
         if !msg.is_empty() {
-            let transfer_message: TransferMessage = serde_json::from_str(&msg)
-                .unwrap_or_else(|_| env::panic_str("Invalid json format of the `TransferMessage`"));
+            let decoded_base64 =
+                base64::decode(&msg).unwrap_or_else(|_| env::panic_str("Invalid base64 message"));
+            let transfer_message =
+                TransferMessage::try_from_slice(&decoded_base64).unwrap_or_else(|_| {
+                    env::panic_str("Invalid borsh format of the `TransferMessage`")
+                });
 
             let update_balance = UpdateBalance {
                 sender_id: sender_id.clone(),
