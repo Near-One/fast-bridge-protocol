@@ -31,7 +31,7 @@ fn main() {
             let encoded_transfer_message =
                 near_sdk::base64::encode(transfer_message.try_to_vec().unwrap());
             println!(
-                "\n{}",
+                "Encoded message:\n{}",
                 serde_json::to_string(&encoded_transfer_message).unwrap()
             );
         }
@@ -40,7 +40,10 @@ fn main() {
             let transfer_message = TransferMessage::try_from_slice(&decoded_base64)
                 .expect("Invalid json format of the `TransferMessage`");
 
-            println!("\n{}", serde_json::to_string(&transfer_message).unwrap());
+            println!(
+                "Decoded message:\n{}",
+                serde_json::to_string(&transfer_message).unwrap()
+            );
         }
     }
 }
