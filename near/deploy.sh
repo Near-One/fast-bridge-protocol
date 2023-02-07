@@ -48,7 +48,7 @@ valid_till=$((current_timestamp + MIN_TIME_LOCK_NS + 15000000000))
 # valid_till is current timestamp + min time lock in nanoseconds + extra 15 sec
 
 TRANSFER_MSG="{\"valid_till\":"$valid_till",\"transfer\":{\"token_near\":"\"$TOKEN_ACCOUNT\"",\"token_eth\":\"b2d75c5a142a68bda438e6a318c7fbb2242f9693\",\"amount\":\"90\"},\"fee\":{\"token\":"\"$TOKEN_ACCOUNT\"",\"amount\":\"10\"},\"recipient\":\"2a23e0fa3afe77aff5dc6c6a007e3a10c1450633\"}"
-ENCODED_MSG=$(cargo run --manifest-path utiles/Cargo.toml -- encode-transfer-msg -m $TRANSFER_MSG | tail -n 1)
+ENCODED_MSG=$(cargo run --manifest-path utils/Cargo.toml -- encode-transfer-msg -m $TRANSFER_MSG | tail -n 1)
 
 # Transfer and init in one transaction
 near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "100", "msg": '"$ENCODED_MSG"'}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
