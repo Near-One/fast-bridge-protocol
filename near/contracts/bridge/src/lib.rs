@@ -869,6 +869,75 @@ mod tests {
         contract
     }
 
+    fn encode_message(transfer_message_json_str: &str) -> String {
+        let output = std::process::Command::new("cargo")
+            .args([
+                "run",
+                "--manifest-path",
+                "../../utils/Cargo.toml",
+                "--",
+                "encode-transfer-msg",
+                "-m",
+                transfer_message_json_str,
+            ])
+            .output()
+            .expect("failed to execute process");
+
+        String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .lines()
+            .last()
+            .unwrap()
+            .trim_matches('"')
+            .to_string()
+    }
+
+    #[test]
+    fn test_ft_on_transfer_with_message() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance = U128(100);
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
+        let msg = json!({
+            "valid_till": current_timestamp,
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "amount": "75"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "75"
+            },
+             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+        });
+
+        contract.ft_on_transfer(
+            transfer_account,
+            balance,
+            encode_message(serde_json::to_string(&msg).unwrap().as_str()),
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid base64 message")]
+    fn test_panic_on_invalid_transfer_message() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance = U128(100);
+        contract.ft_on_transfer(
+            transfer_account,
+            balance,
+            "0000MEYDAAAKAAAAdG9rZW5fbmVhcnHHZW7Hq4iwmN77dRt0AbX22JdvSwAAAAAAAAAAAAAAAAAAAAoAAAB0b2tlbl9uZWFySwAAAAAAAAAAAAAAAAAAAHHHZW7Hq4iwmN77dRt0AbX22JdvAA====".to_owned(),
+        );
+    }
+
     #[test]
     fn ft_on_transfer_with_empty_whitelist() {
         let context = get_context(false);
