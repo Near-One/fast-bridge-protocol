@@ -24,7 +24,7 @@ pub use crate::ft::*;
 mod ft {
     use crate::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-    use near_sdk::{serde_json, AccountId};
+    use near_sdk::{base64, AccountId};
     impl FastBridgeExt {
         pub fn ft_on_transfer(
             self,
@@ -160,10 +160,12 @@ mod ft {
             let token_account_id = env::predecessor_account_id();
             self.check_whitelist_token_and_account(&token_account_id, &sender_id);
             if !msg.is_empty() {
-                let transfer_message: TransferMessage = serde_json::from_str(&msg)
-                    .unwrap_or_else(|_| env::panic_str(
-                        "Invalid json format of the `TransferMessage`",
-                    ));
+                let decoded_base64 = base64::decode(&msg)
+                    .unwrap_or_else(|_| env::panic_str("Invalid base64 message"));
+                let transfer_message = TransferMessage::try_from_slice(&decoded_base64)
+                    .unwrap_or_else(|_| {
+                        env::panic_str("Invalid borsh format of the `TransferMessage`")
+                    });
                 let update_balance = UpdateBalance {
                     sender_id: sender_id.clone(),
                     token: token_account_id,
@@ -12271,11 +12273,14 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn init_transfer(self, transfer_message: TransferMessage) -> near_sdk::Promise {
+    pub fn init_transfer(
+        self,
+        msg: near_sdk::json_types::Base64VecU8,
+    ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
-                transfer_message: &'nearinput TransferMessage,
+                msg: &'nearinput near_sdk::json_types::Base64VecU8,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12302,8 +12307,8 @@ impl FastBridgeExt {
                         };
                         match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
-                            "transfer_message",
-                            &self.transfer_message,
+                            "msg",
+                            &self.msg,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -12314,9 +12319,7 @@ impl FastBridgeExt {
                     }
                 }
             };
-            let __args = Input {
-                transfer_message: &transfer_message,
-            };
+            let __args = Input { msg: &msg };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
         };
@@ -13248,7 +13251,7 @@ impl FastBridge {
     }
     pub fn init_transfer(
         &mut self,
-        transfer_message: TransferMessage,
+        msg: near_sdk::json_types::Base64VecU8,
     ) -> PromiseOrValue<U128> {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = ::alloc::vec::Vec::new();
@@ -13271,6 +13274,10 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
+        let transfer_message = TransferMessage::try_from_slice(&msg.0)
+            .unwrap_or_else(|_| env::panic_str(
+                "Invalid borsh format of the `TransferMessage`",
+            ));
         self.init_transfer_internal(
                 transfer_message,
                 env::predecessor_account_id(),
@@ -13284,6 +13291,9 @@ impl FastBridge {
         sender_id: AccountId,
         update_balance: Option<UpdateBalance>,
     ) -> Promise {
+        near_sdk::env::log_str(
+            &near_sdk::serde_json::to_string(&transfer_message).unwrap(),
+        );
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
             .last_block_number()
@@ -14043,6 +14053,12 @@ impl FastBridge {
             ::near_sdk::env::panic_str(&"Error transfer")
         }
         self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
+        Event::FastBridgeWithdrawEvent {
+            recipient_id: sender_id,
+            token: token_id,
+            amount,
+        }
+            .emit();
     }
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
@@ -14752,7 +14768,7 @@ pub extern "C" fn init_transfer() {
     }
     #[serde(crate = "near_sdk::serde")]
     struct Input {
-        transfer_message: TransferMessage,
+        msg: near_sdk::json_types::Base64VecU8,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -14803,9 +14819,7 @@ pub extern "C" fn init_transfer() {
                         __E: _serde::de::Error,
                     {
                         match __value {
-                            "transfer_message" => {
-                                _serde::__private::Ok(__Field::__field0)
-                            }
+                            "msg" => _serde::__private::Ok(__Field::__field0),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -14817,9 +14831,7 @@ pub extern "C" fn init_transfer() {
                         __E: _serde::de::Error,
                     {
                         match __value {
-                            b"transfer_message" => {
-                                _serde::__private::Ok(__Field::__field0)
-                            }
+                            b"msg" => _serde::__private::Ok(__Field::__field0),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -14862,7 +14874,7 @@ pub extern "C" fn init_transfer() {
                         __A: _serde::de::SeqAccess<'de>,
                     {
                         let __field0 = match match _serde::de::SeqAccess::next_element::<
-                            TransferMessage,
+                            near_sdk::json_types::Base64VecU8,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -14879,9 +14891,7 @@ pub extern "C" fn init_transfer() {
                                 );
                             }
                         };
-                        _serde::__private::Ok(Input {
-                            transfer_message: __field0,
-                        })
+                        _serde::__private::Ok(Input { msg: __field0 })
                     }
                     #[inline]
                     fn visit_map<__A>(
@@ -14891,7 +14901,9 @@ pub extern "C" fn init_transfer() {
                     where
                         __A: _serde::de::MapAccess<'de>,
                     {
-                        let mut __field0: _serde::__private::Option<TransferMessage> = _serde::__private::None;
+                        let mut __field0: _serde::__private::Option<
+                            near_sdk::json_types::Base64VecU8,
+                        > = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -14905,14 +14917,12 @@ pub extern "C" fn init_transfer() {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
                                         return _serde::__private::Err(
-                                            <__A::Error as _serde::de::Error>::duplicate_field(
-                                                "transfer_message",
-                                            ),
+                                            <__A::Error as _serde::de::Error>::duplicate_field("msg"),
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            TransferMessage,
+                                            near_sdk::json_types::Base64VecU8,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -14936,9 +14946,7 @@ pub extern "C" fn init_transfer() {
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                match _serde::__private::de::missing_field(
-                                    "transfer_message",
-                                ) {
+                                match _serde::__private::de::missing_field("msg") {
                                     _serde::__private::Ok(__val) => __val,
                                     _serde::__private::Err(__err) => {
                                         return _serde::__private::Err(__err);
@@ -14946,12 +14954,10 @@ pub extern "C" fn init_transfer() {
                                 }
                             }
                         };
-                        _serde::__private::Ok(Input {
-                            transfer_message: __field0,
-                        })
+                        _serde::__private::Ok(Input { msg: __field0 })
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["transfer_message"];
+                const FIELDS: &'static [&'static str] = &["msg"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -14964,12 +14970,12 @@ pub extern "C" fn init_transfer() {
             }
         }
     };
-    let Input { transfer_message }: Input = near_sdk::serde_json::from_slice(
+    let Input { msg }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.init_transfer(transfer_message);
+    let result = contract.init_transfer(msg);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);

@@ -19,7 +19,7 @@ near create-account $BRIDGE_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBal
 near create-account $TOKEN_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBalance 10
 
 # redeploy contracts
-near deploy $BRIDGE_ACCOUNT --wasmFile ./res/bridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": "23244a6c91e66526e4a0959B2457a702aE661Acf", "prover_account": "prover.goerli.testnet", "eth_client_account": "client-eth2.goerli.testnet", "lock_time_min": "1h", "lock_time_max": "24h", "eth_block_time": 12000000000}'
+near deploy $BRIDGE_ACCOUNT --wasmFile ./res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": "23244a6c91e66526e4a0959B2457a702aE661Acf", "prover_account": "prover.goerli.testnet", "eth_client_account": "client-eth2.goerli.testnet", "lock_time_min": "1h", "lock_time_max": "24h", "eth_block_time": 12000000000}'
 near deploy $TOKEN_ACCOUNT --wasmFile ./res/mock_token.wasm --initFunction 'new_default_meta' --initArgs '{"owner_id": "'"$MASTER_ACCOUNT"'", "name": "Wrapped Near", "symbol": "WNEAR", "total_supply": "1"}'
 
 # grant roles
@@ -48,11 +48,11 @@ valid_till=$((current_timestamp + MIN_TIME_LOCK_NS + 15000000000))
 # valid_till is current timestamp + min time lock in nanoseconds + extra 15 sec
 
 TRANSFER_MSG="{\"valid_till\":"$valid_till",\"transfer\":{\"token_near\":"\"$TOKEN_ACCOUNT\"",\"token_eth\":\"b2d75c5a142a68bda438e6a318c7fbb2242f9693\",\"amount\":\"90\"},\"fee\":{\"token\":"\"$TOKEN_ACCOUNT\"",\"amount\":\"10\"},\"recipient\":\"2a23e0fa3afe77aff5dc6c6a007e3a10c1450633\"}"
-TRANSFER_MSG_ESCAPED=$(sed 's/\"/\\\"/g' <<< $TRANSFER_MSG)
+ENCODED_MSG=$(cargo run --manifest-path utils/Cargo.toml -- encode-transfer-msg -m $TRANSFER_MSG | tail -n 1)
 
 # Transfer and init in one transaction
-near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "100", "msg": "'$TRANSFER_MSG_ESCAPED'"}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
+near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "100", "msg": '"$ENCODED_MSG"'}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
 
 # Transfer and init in two transactions
 near call $TOKEN_ACCOUNT ft_transfer_call '{"receiver_id": "'"$BRIDGE_ACCOUNT"'", "amount": "100", "msg": ""}' --account-id $MASTER_ACCOUNT --depositYocto 1 --gas 300000000000000
-near call $BRIDGE_ACCOUNT init_transfer "{\"transfer_message\": $TRANSFER_MSG}" --account-id $MASTER_ACCOUNT --gas 300000000000000
+near call $BRIDGE_ACCOUNT init_transfer "{\"msg\": $ENCODED_MSG}" --account-id $MASTER_ACCOUNT --gas 300000000000000
