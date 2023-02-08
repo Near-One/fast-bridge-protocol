@@ -26,7 +26,7 @@ docker run \
      --rm \
      --mount type=bind,source=$DIR/..,target=/host \
      --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $userflag \
-     -w /host/near/contracts/bridge \
+     -w /host/near/contracts \
      -e RUSTFLAGS='-C link-arg=-s' \
      nearprotocol/contract-builder$tag \
      /bin/bash -c "rustup target add wasm32-unknown-unknown; cargo build --target wasm32-unknown-unknown --release"
