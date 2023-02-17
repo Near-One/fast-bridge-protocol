@@ -1,5 +1,8 @@
 use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
+use eth_types::*;
+use eth_types::H256;
+use ethabi:: Token;
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -25,6 +28,8 @@ mod whitelist;
 
 pub const NO_DEPOSIT: u128 = 0;
 
+
+
 #[ext_contract(ext_prover)]
 pub trait Prover {
     #[result_serializer(borsh)]
@@ -37,6 +42,15 @@ pub trait Prover {
         #[serializer(borsh)] header_data: Vec<u8>,
         #[serializer(borsh)] proof: Vec<Vec<u8>>,
         #[serializer(borsh)] skip_bridge_call: bool,
+    ) -> bool;
+
+    #[result_serializer(borsh)]
+    fn verify_unlock_proof(
+        &self,
+        #[serializer(borsh)] header_data: Vec<u8>,
+        #[serializer(borsh)] proof: Vec<Vec<u8>>, // merkle proof
+        #[serializer(borsh)] key: Vec<u8>,  // rlp encoded key
+        #[serializer(borsh)] processed_hash_value: Vec<u8>,  // rlp encoded bool value
     ) -> bool;
 }
 
@@ -61,10 +75,21 @@ trait FastBridgeInterface {
         verification_success: bool,
         #[serializer(borsh)] proof: EthTransferEvent,
     ) -> Promise;
+    fn verify_unlock_proof_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
+        #[serializer(borsh)] transaction_id: String,
+        #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] transfer_data: TransferMessage,
+        #[serializer(borsh)] nonce: U128,
+    ) -> Promise;
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] proof: UnlockProof,
     );
     fn init_transfer_callback(
         &mut self,
@@ -72,6 +97,14 @@ trait FastBridgeInterface {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> PromiseOrValue<U128>;
+}
+
+#[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize, PartialEq,)]
+pub struct UnlockProof {
+    header_data: Vec<u8>,
+    proof: Vec<Vec<u8>>,
+    key: Vec<u8>,  
+    processed_hash_value: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -135,6 +168,7 @@ pub struct FastBridge {
     is_whitelist_mode_enabled: bool,
     pending_transfers_balances: UnorderedMap<AccountId, u128>,
 }
+
 
 #[near_bindgen]
 impl FastBridge {
@@ -320,14 +354,14 @@ impl FastBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(&self, nonce: U128) -> Promise {
+    pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(utils::tera_gas(50))
-                    .unlock_callback(nonce, env::predecessor_account_id()),
+                    .unlock_callback(nonce, env::predecessor_account_id(), proof),
             )
     }
 
@@ -339,6 +373,7 @@ impl FastBridge {
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] proof: UnlockProof,
     ) {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let (recipient_id, transfer_data) = self
@@ -372,25 +407,69 @@ impl FastBridge {
             )
         );
 
-        self.increase_balance(
-            &recipient_id,
-            &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
-        );
-        self.increase_balance(
-            &recipient_id,
-            &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
-        );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        let args = vec![
+            Token::Address(transfer_data.transfer.token_eth.into()),
+            Token::Address(transfer_data.recipient.into()),
+            Token::Uint(primitive_types::U256::from(u128::try_from(nonce).unwrap()).into()),
+            Token::Uint(primitive_types::U256::from(u128::try_from(transfer_data.transfer.amount).unwrap()).into())
+        ];
+    
+        let decoded_key: H256 = rlp::decode(&proof.key).expect("could not decode user-inputted key");
+        let actual_processed_hash = H256::from(near_keccak256(&(ethabi::encode(&args))));
+        let padded_slot = format!("{:0>32}", format!("{:x}", 302));
+        let padded_processed_hash = format!("{:0>32}", actual_processed_hash);
+        let actual_key = H256::from(near_keccak256(&(hex::decode(&format!("{}{}", padded_processed_hash, padded_slot))).unwrap()));
+        require!((decoded_key).eq(&actual_key), "User input key doesn't match");
 
-        Event::FastBridgeUnlockEvent {
-            nonce,
-            recipient_id,
-            transfer_message: transfer_data,
-        }
-        .emit();
+        ext_prover::ext(self.prover_account.clone())
+            .with_static_gas(utils::tera_gas(50))
+            .with_attached_deposit(utils::NO_DEPOSIT)
+            .verify_unlock_proof(
+                proof.header_data,
+                proof.proof,
+                proof.key,
+                proof.processed_hash_value,
+            )
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(50))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .verify_unlock_proof_callback(transaction_id, recipient_id, transfer_data, nonce),
+            );
+
     }
+
+    #[private]
+    pub fn verify_unlock_proof_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_success: bool,
+        #[serializer(borsh)] transaction_id: String,
+        #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] transfer_data: TransferMessage,
+        #[serializer(borsh)] nonce: U128,
+    )   {
+            require!(!verification_success, "Failed to verify the proof");
+            self.increase_balance(
+                &recipient_id,
+                &transfer_data.transfer.token_near,
+                &u128::from(transfer_data.transfer.amount),
+            );
+            self.increase_balance(
+                &recipient_id,
+                &transfer_data.fee.token,
+                &u128::from(transfer_data.fee.amount),
+            );
+            self.remove_transfer(&transaction_id, &transfer_data);
+    
+            Event::FastBridgeUnlockEvent {
+                nonce,
+                recipient_id,
+                transfer_message: transfer_data,
+            }
+            .emit();      
+        }
 
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
