@@ -410,14 +410,13 @@ impl FastBridge {
         );
 
         let args = vec![
-        // vec![ParamType::Address,ParamType::Address, ParamType::Uint(256),ParamType::Uint(256)
             Token::Address(transfer_data.transfer.token_eth.into()),
             Token::Address(transfer_data.recipient.into()),
             Token::Uint(u128::try_from(nonce).unwrap().into()),
             Token::Uint(u128::try_from(transfer_data.transfer.amount).unwrap().into())
         ];
     
-        let decoded_key: H256 = rlp::decode(&proof.key).expect("could not decode user-inputted key");
+        let decoded_key: H256 = rlp::decode(&proof.processed_hash).expect("could not decode user-inputted key");
         let actual_processed_hash = H256::from(near_keccak256(&(ethabi::encode(&args))));
         let padded_slot = format!("{:0>32}", format!("{:x}", 302));
         let padded_processed_hash = format!("{:0>32}", actual_processed_hash);
