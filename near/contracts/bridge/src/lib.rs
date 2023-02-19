@@ -2,7 +2,7 @@ use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
 use eth_types::*;
 use eth_types::H256;
-use ethabi:: Token;
+use ethabi::{ Token, ParamType};
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -45,13 +45,14 @@ pub trait Prover {
     ) -> bool;
 
     #[result_serializer(borsh)]
-    fn verify_unlock_proof(
+    fn verify_account_proof(
         &self,
         #[serializer(borsh)] header_data: Vec<u8>,
-        #[serializer(borsh)] proof: Vec<Vec<u8>>, // merkle proof
-        #[serializer(borsh)] key: Vec<u8>,  // rlp encoded key
-        #[serializer(borsh)] processed_hash_value: Vec<u8>,  // rlp encoded bool value
-    ) -> bool;
+        #[serializer(borsh)] proof: Vec<Vec<u8>>, // account proof
+        #[serializer(borsh)] key: Vec<u8>,  // keccak256 of eth address
+        #[serializer(borsh)] account_data: Vec<u8>,  // rlp encoded account state
+        #[serializer(borsh)] skip_bridge_call: bool
+    ) -> PromiseOrValue<bool>;
 }
 
 #[ext_contract(ext_eth_client)]
@@ -75,7 +76,7 @@ trait FastBridgeInterface {
         verification_success: bool,
         #[serializer(borsh)] proof: EthTransferEvent,
     ) -> Promise;
-    fn verify_unlock_proof_callback(
+    fn verify_account_proof_callback(
         &mut self,
         #[callback]
         #[serializer(borsh)]
@@ -104,7 +105,8 @@ pub struct UnlockProof {
     header_data: Vec<u8>,
     proof: Vec<Vec<u8>>,
     key: Vec<u8>,  
-    processed_hash_value: Vec<u8>,
+    account_data: Vec<u8>,
+    processed_hash: Vec<u8>
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -408,10 +410,11 @@ impl FastBridge {
         );
 
         let args = vec![
+        // vec![ParamType::Address,ParamType::Address, ParamType::Uint(256),ParamType::Uint(256)
             Token::Address(transfer_data.transfer.token_eth.into()),
             Token::Address(transfer_data.recipient.into()),
-            Token::Uint(primitive_types::U256::from(u128::try_from(nonce).unwrap()).into()),
-            Token::Uint(primitive_types::U256::from(u128::try_from(transfer_data.transfer.amount).unwrap()).into())
+            Token::Uint(u128::try_from(nonce).unwrap().into()),
+            Token::Uint(u128::try_from(transfer_data.transfer.amount).unwrap().into())
         ];
     
         let decoded_key: H256 = rlp::decode(&proof.key).expect("could not decode user-inputted key");
@@ -424,23 +427,24 @@ impl FastBridge {
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
-            .verify_unlock_proof(
+            .verify_account_proof(
                 proof.header_data,
                 proof.proof,
                 proof.key,
-                proof.processed_hash_value,
+                proof.account_data,
+                false
             )
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .verify_unlock_proof_callback(transaction_id, recipient_id, transfer_data, nonce),
+                    .verify_account_proof_callback(transaction_id, recipient_id, transfer_data, nonce),
             );
 
     }
 
     #[private]
-    pub fn verify_unlock_proof_callback(
+    pub fn verify_account_proof_callback(
         &mut self,
         #[callback]
         #[serializer(borsh)]
@@ -1331,7 +1335,7 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock_callback(312, nonce, signer_account_id());
+        contract.unlock_callback(312, nonce, signer_account_id(), );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
