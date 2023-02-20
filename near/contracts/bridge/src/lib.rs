@@ -1,9 +1,7 @@
 use crate::lp_relayer::EthTransferEvent;
 use eth_encode_packed::SolidityDataType;
+use eth_types::near_keccak256;
 use fast_bridge_common::*;
-use eth_types::*;
-use eth_types::H256;
-use eth_encode_packed::ethabi::{ Token };
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -425,7 +423,8 @@ impl FastBridge {
         ];
 
         let (encoded_data, _) = eth_encode_packed::abi::encode_packed(&args);
-        require!((encoded_data).eq(&proof.processed_hash), "User Inputed ProcessedHash incorrect");
+        let actual_processed_hash = near_keccak256(&encoded_data);
+        require!((actual_processed_hash.to_vec()).eq(&proof.processed_hash), "User Input processedHash incorrect");
 
         self.increase_balance(
             &recipient_id,
