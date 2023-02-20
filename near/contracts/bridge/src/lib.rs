@@ -357,13 +357,22 @@ impl FastBridge {
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
-        ext_eth_client::ext(self.eth_client_account.clone())
-            .with_static_gas(utils::tera_gas(5))
-            .last_block_number()
+        let cloned_proof = proof.clone();
+        ext_prover::ext(self.prover_account.clone())
+            .with_static_gas(utils::tera_gas(50))
+            .with_attached_deposit(utils::NO_DEPOSIT)
+            .verify_account_proof(
+                proof.header_data,
+                proof.proof,
+                proof.key,
+                proof.account_data,
+                false
+            )
             .then(
-                ext_self::ext(env::current_account_id())
+                ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
-                    .unlock_callback(nonce, env::predecessor_account_id(), proof),
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_callback(nonce, env::predecessor_account_id(), cloned_proof),
             )
     }
 
@@ -372,7 +381,7 @@ impl FastBridge {
         &mut self,
         #[callback]
         #[serializer(borsh)]
-        last_block_height: u64,
+        verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] proof: UnlockProof,
@@ -401,11 +410,9 @@ impl FastBridge {
         );
 
         require!(
-            last_block_height > transfer_data.valid_till_block_height.unwrap(),
+            verification_result,
             format!(
-                "Minimum allowed block height is {}, but current client's block height is {}",
-                transfer_data.valid_till_block_height.unwrap(),
-                last_block_height
+                "Verification failed for unlock proof"
             )
         );
 
@@ -423,56 +430,28 @@ impl FastBridge {
         let actual_key = H256::from(near_keccak256(&(hex::decode(&format!("{}{}", padded_processed_hash, padded_slot))).unwrap()));
         require!((decoded_key).eq(&actual_key), "User input key doesn't match");
 
-        ext_prover::ext(self.prover_account.clone())
-            .with_static_gas(utils::tera_gas(50))
-            .with_attached_deposit(utils::NO_DEPOSIT)
-            .verify_account_proof(
-                proof.header_data,
-                proof.proof,
-                proof.key,
-                proof.account_data,
-                false
-            )
-            .then(
-                ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(50))
-                    .with_attached_deposit(utils::NO_DEPOSIT)
-                    .verify_account_proof_callback(transaction_id, recipient_id, transfer_data, nonce),
-            );
+
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.transfer.token_near,
+            &u128::from(transfer_data.transfer.amount),
+        );
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.fee.token,
+            &u128::from(transfer_data.fee.amount),
+        );
+        self.remove_transfer(&transaction_id, &transfer_data);
+
+        Event::FastBridgeUnlockEvent {
+            nonce,
+            recipient_id,
+            transfer_message: transfer_data,
+        }
+        .emit();  
 
     }
 
-    #[private]
-    pub fn verify_account_proof_callback(
-        &mut self,
-        #[callback]
-        #[serializer(borsh)]
-        verification_success: bool,
-        #[serializer(borsh)] transaction_id: String,
-        #[serializer(borsh)] recipient_id: AccountId,
-        #[serializer(borsh)] transfer_data: TransferMessage,
-        #[serializer(borsh)] nonce: U128,
-    )   {
-            require!(!verification_success, "Failed to verify the proof");
-            self.increase_balance(
-                &recipient_id,
-                &transfer_data.transfer.token_near,
-                &u128::from(transfer_data.transfer.amount),
-            );
-            self.increase_balance(
-                &recipient_id,
-                &transfer_data.fee.token,
-                &u128::from(transfer_data.fee.amount),
-            );
-            self.remove_transfer(&transaction_id, &transfer_data);
-    
-            Event::FastBridgeUnlockEvent {
-                nonce,
-                recipient_id,
-                transfer_message: transfer_data,
-            }
-            .emit();      
-        }
 
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
