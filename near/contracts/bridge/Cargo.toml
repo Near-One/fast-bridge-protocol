@@ -13,7 +13,7 @@ near-sdk = "4.1.1"
 near-contract-standards = "4.1.1"
 serde = { version = "1.0" }
 uint = { version = "0.8.3", default-features = false }
-eth-encode-packed = "0.1.0"
+eth-encode-packed = { git = "https://github.com/aurora-is-near/eth-encode-packed-rs", rev = "21962ce04aa62f396ac517fcbea91263dfc373a5" }
 rlp = "0.4.2"
 tiny-keccak = "1.4.0"
 parse_duration = "2.1.1"
