@@ -953,6 +953,18 @@ mod tests {
             .to_string()
     }
 
+    fn generate_unlock_proof(header_data: &str, account_data: &str, key: &str, proof: Vec<&str>, processed_hash: &str) -> UnlockProof{
+
+        let header = hex::decode(header_data).unwrap().into();
+        let account = hex::decode(account_data).unwrap().into();
+        let key = hex::decode(key).unwrap().into(); 
+        let account_proof = proof.into_iter().map(|x| hex::decode(x).unwrap()).collect();
+        let ph = hex::decode(processed_hash).unwrap().into();
+        let unlock_proof = UnlockProof{header_data: header, proof: account_proof, key: key, account_data: account, processed_hash: ph};
+        unlock_proof
+
+    }
+
     #[test]
     fn test_ft_on_transfer_with_message() {
         let context = get_context(false);
