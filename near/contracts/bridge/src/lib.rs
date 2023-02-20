@@ -2,7 +2,7 @@ use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
 use eth_types::*;
 use eth_types::H256;
-use ethabi::{ Token, ParamType};
+use ethabi::{ Token};
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -417,8 +417,8 @@ impl FastBridge {
         );
 
         let args = vec![
-            Token::Address(transfer_data.transfer.token_eth.into()),
-            Token::Address(transfer_data.recipient.into()),
+            Token::FixedBytes(transfer_data.transfer.token_eth.into()),
+            Token::FixedBytes(transfer_data.recipient.into()),
             Token::Uint(u128::try_from(nonce).unwrap().into()),
             Token::Uint(u128::try_from(transfer_data.transfer.amount).unwrap().into())
         ];
