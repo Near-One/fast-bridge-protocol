@@ -12,9 +12,9 @@ pub fn get_transaction_id(id: u128) -> String {
 }
 
 pub fn is_valid_eth_address(address: String) -> bool {
-    if hex::decode(address.clone()).is_err() {
+    if eth_encode_packed::hex::decode(address.clone()).is_err() {
         return false;
     }
 
-    hex::decode(address).unwrap().len() == 20
+    eth_encode_packed::hex::decode(address).unwrap().len() == 20
 }

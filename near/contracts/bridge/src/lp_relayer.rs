@@ -1,5 +1,5 @@
 use eth_types::{LogEntry, H256};
-use ethabi::{Event, EventParam, Hash, ParamType, RawLog};
+use eth_encode_packed::ethabi::{Event, EventParam, Hash, ParamType, RawLog};
 use fast_bridge_common::*;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::near_bindgen;
@@ -62,17 +62,17 @@ impl EthTransferEvent {
             data: log_entry.data,
         };
         let log = event.parse_log(raw_log).expect("Failed to parse event log");
-        let nonce = log.params[0].value.clone().to_uint().unwrap().as_u128();
+        let nonce = log.params[0].value.clone().into_uint().unwrap().as_u128();
 
-        let relayer = log.params[1].value.clone().to_address().unwrap().0;
-        let token = log.params[2].value.clone().to_address().unwrap().0;
-        let recipient = log.params[3].value.clone().to_address().unwrap().0;
-        let amount = log.params[4].value.clone().to_uint().unwrap().as_u128();
-        let unlock_recipient = log.params[5].value.clone().to_string().unwrap();
+        let relayer = log.params[1].value.clone().into_address().unwrap().0;
+        let token = log.params[2].value.clone().into_address().unwrap().0;
+        let recipient = log.params[3].value.clone().into_address().unwrap().0;
+        let amount = log.params[4].value.clone().into_uint().unwrap().as_u128();
+        let unlock_recipient = log.params[5].value.clone().into_string().unwrap();
         let transfer_id: H256 = log.params[6]
             .value
             .clone()
-            .to_fixed_bytes()
+            .into_fixed_bytes()
             .unwrap()
             .try_into()
             .unwrap();
@@ -93,7 +93,7 @@ impl EthTransferEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ethabi::{Log, Token};
+    use eth_encode_packed::ethabi::{Log, Token};
     use near_sdk::env::keccak256;
     use std::convert::From;
 
@@ -108,7 +108,7 @@ mod tests {
             params: EthEventParams,
             locker_address: EthAddress,
             indexes: Vec<Vec<u8>>,
-            values: Vec<ethabi::Token>,
+            values: Vec<eth_encode_packed::ethabi::Token>,
         ) -> Vec<u8> {
             let event = Event {
                 name: name.to_string(),
@@ -127,7 +127,7 @@ mod tests {
             let log_entry = LogEntry {
                 address: locker_address.into(),
                 topics: vec![vec![long_signature(&event.name, &params).0.into()], topics].concat(),
-                data: ethabi::encode(&values),
+                data: eth_encode_packed::ethabi::encode(&values),
             };
             rlp::encode(&log_entry)
         }
@@ -142,7 +142,7 @@ mod tests {
     fn fill_signature(name: &str, params: &[ParamType], result: &mut [u8]) {
         let types = params
             .iter()
-            .map(ethabi::param_type::Writer::write)
+            .map(eth_encode_packed::ethabi::param_type::Writer::write)
             .collect::<Vec<String>>()
             .join(",");
 

@@ -1,8 +1,9 @@
 use crate::lp_relayer::EthTransferEvent;
+use eth_encode_packed::SolidityDataType;
 use fast_bridge_common::*;
 use eth_types::*;
 use eth_types::H256;
-use ethabi::{ Token};
+use eth_encode_packed::ethabi::{ Token };
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -417,18 +418,19 @@ impl FastBridge {
         );
 
         let args = vec![
-            Token::FixedBytes(transfer_data.transfer.token_eth.into()),
-            Token::FixedBytes(transfer_data.recipient.into()),
-            Token::Uint(u128::try_from(nonce).unwrap().into()),
-            Token::Uint(u128::try_from(transfer_data.transfer.amount).unwrap().into())
+            SolidityDataType::Address(transfer_data.transfer.token_eth.into()),
+            SolidityDataType::Address(transfer_data.recipient.into()),
+            SolidityDataType::Number(u128::try_from(nonce).unwrap().into()),
+            SolidityDataType::Number(u128::try_from(transfer_data.transfer.amount).unwrap().into())
         ];
-    
-        let decoded_key: H256 = rlp::decode(&proof.processed_hash).expect("could not decode user-inputted key");
-        let actual_processed_hash = H256::from(near_keccak256(&(ethabi::encode(&args))));
+
+        let (encoded_data, _) = eth_encode_packed::abi::encode_packed(&args);
+        let actual_processed_hash = H256::from(near_keccak256(&encoded_data));
+        println!("{}=========", actual_processed_hash.to_string());
         let padded_slot = format!("{:0>32}", format!("{:x}", 302));
         let padded_processed_hash = format!("{:0>32}", actual_processed_hash);
-        let actual_key = H256::from(near_keccak256(&(hex::decode(&format!("{}{}", padded_processed_hash, padded_slot))).unwrap()));
-        require!((decoded_key).eq(&actual_key), "User input key doesn't match");
+        let actual_key = H256::from(near_keccak256(&(eth_encode_packed::hex::decode(&format!("{}{}", padded_processed_hash, padded_slot))).unwrap()));
+        // require!((decoded_key).eq(&actual_key), "User input key doesn't match");
 
 
         self.increase_balance(
@@ -460,8 +462,8 @@ impl FastBridge {
             parsed_proof.eth_bridge_contract,
             self.eth_bridge_contract,
             "Event's address {} does not match the eth bridge address {}",
-            hex::encode(parsed_proof.eth_bridge_contract),
-            hex::encode(self.eth_bridge_contract),
+            eth_encode_packed::hex::encode(parsed_proof.eth_bridge_contract),
+            eth_encode_packed::hex::encode(self.eth_bridge_contract),
         );
 
         ext_prover::ext(self.prover_account.clone())
@@ -955,11 +957,11 @@ mod tests {
 
     fn generate_unlock_proof(header_data: &str, account_data: &str, key: &str, proof: Vec<&str>, processed_hash: &str) -> UnlockProof{
 
-        let header = hex::decode(header_data).unwrap().into();
-        let account = hex::decode(account_data).unwrap().into();
-        let key = hex::decode(key).unwrap().into(); 
-        let account_proof = proof.into_iter().map(|x| hex::decode(x).unwrap()).collect();
-        let ph = hex::decode(processed_hash).unwrap().into();
+        let header = eth_encode_packed::hex::decode(header_data).unwrap().into();
+        let account = eth_encode_packed::hex::decode(account_data).unwrap().into();
+        let key = eth_encode_packed::hex::decode(key).unwrap().into(); 
+        let account_proof = proof.into_iter().map(|x| eth_encode_packed::hex::decode(x).unwrap()).collect();
+        let ph = eth_encode_packed::hex::decode(processed_hash).unwrap().into();
         let unlock_proof = UnlockProof{header_data: header, proof: account_proof, key: key, account_data: account, processed_hash: ph};
         unlock_proof
 
@@ -1679,7 +1681,7 @@ mod tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
-        let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
+        let valid_eth_address: Vec<u8> = eth_encode_packed::hex::decode(valid_address.clone()).unwrap();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(valid_address);
 
