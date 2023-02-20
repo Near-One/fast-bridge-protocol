@@ -1,6 +1,4 @@
 use crate::lp_relayer::EthTransferEvent;
-use eth_encode_packed::SolidityDataType;
-use eth_types::near_keccak256;
 use fast_bridge_common::*;
 use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
 use near_plugins_derive::{access_control_any, pause};
@@ -105,7 +103,8 @@ pub struct UnlockProof {
     proof: Vec<Vec<u8>>,
     key: Vec<u8>,  
     account_data: Vec<u8>,
-    processed_hash: Vec<u8>
+    processed_hash: Vec<u8>,
+    value: bool
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -385,6 +384,7 @@ impl FastBridge {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] proof: UnlockProof,
     ) {
+        require!(proof.value, "transfer has been processed");
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let (recipient_id, transfer_data) = self
             .pending_transfers
@@ -414,17 +414,8 @@ impl FastBridge {
                 "Verification failed for unlock proof"
             )
         );
-
-        let args = vec![
-            SolidityDataType::Address(transfer_data.transfer.token_eth.into()),
-            SolidityDataType::Address(transfer_data.recipient.into()),
-            SolidityDataType::Number(u128::try_from(nonce).unwrap().into()),
-            SolidityDataType::Number(u128::try_from(transfer_data.transfer.amount).unwrap().into())
-        ];
-
-        let (encoded_data, _) = eth_encode_packed::abi::encode_packed(&args);
-        let actual_processed_hash = near_keccak256(&encoded_data);
-        require!((actual_processed_hash.to_vec()).eq(&proof.processed_hash), "User Input processedHash incorrect");
+        
+        require!((utils::get_processed_hash(transfer_data.clone(), nonce).to_vec()).eq(&proof.processed_hash), "User input processedHash incorrect");
 
         self.increase_balance(
             &recipient_id,
@@ -948,14 +939,13 @@ mod tests {
             .to_string()
     }
 
-    fn generate_unlock_proof(header_data: &str, account_data: &str, key: &str, proof: Vec<&str>, processed_hash: &str) -> UnlockProof{
-
+    fn generate_unlock_proof(header_data: &str, account_data: &str, key: &str, proof: Vec<&str>, processed_hash: &str, value: bool) -> UnlockProof{
         let header = eth_encode_packed::hex::decode(header_data).unwrap().into();
         let account = eth_encode_packed::hex::decode(account_data).unwrap().into();
         let key = eth_encode_packed::hex::decode(key).unwrap().into(); 
         let account_proof = proof.into_iter().map(|x| eth_encode_packed::hex::decode(x).unwrap()).collect();
         let ph = eth_encode_packed::hex::decode(processed_hash).unwrap().into();
-        let unlock_proof = UnlockProof{header_data: header, proof: account_proof, key: key, account_data: account, processed_hash: ph};
+        let unlock_proof = UnlockProof{header_data: header, proof: account_proof, key: key, account_data: account, processed_hash: ph, value: value};
         unlock_proof
 
     }
@@ -1334,7 +1324,7 @@ mod tests {
                                 ];
         let processed_hash = "c687f93bfafb23a762293b4b190060938e6ac95cf15ddb66422865a925022b2f";
         let nonce = U128(1);
-        let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash);
+        let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash, true);
         contract.unlock_callback(true, nonce, signer_account_id(), proof);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
@@ -1501,7 +1491,7 @@ mod tests {
                                     "f8669d3e3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681bb846f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75"
                                 ];
         let processed_hash = "9235d5bc6f69bc4e74d943ee6c335656308295d83097e391de62fffe955baabb";
-        let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash);
+        let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash, true);
 
         contract.unlock_callback(true, U128(9), signer_account_id(), proof);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
@@ -1594,7 +1584,7 @@ mod tests {
                                     "f8669d3e3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681bb846f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75"
                                 ];
         let processed_hash = "c687f93bfafb23a762293b4b190060938e6ac95cf15ddb66422865a925022b2f";
-        let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash);
+        let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash, true);
 
         contract.unlock_callback(true, U128(1), signer_account_id(), proof);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
