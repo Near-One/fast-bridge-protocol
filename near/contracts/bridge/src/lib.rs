@@ -425,13 +425,7 @@ impl FastBridge {
         ];
 
         let (encoded_data, _) = eth_encode_packed::abi::encode_packed(&args);
-        let actual_processed_hash = H256::from(near_keccak256(&encoded_data));
-        println!("{}=========", actual_processed_hash.to_string());
-        let padded_slot = format!("{:0>32}", format!("{:x}", 302));
-        let padded_processed_hash = format!("{:0>32}", actual_processed_hash);
-        let actual_key = H256::from(near_keccak256(&(eth_encode_packed::hex::decode(&format!("{}{}", padded_processed_hash, padded_slot))).unwrap()));
-        // require!((decoded_key).eq(&actual_key), "User input key doesn't match");
-
+        require!((encoded_data).eq(&proof.processed_hash), "User Inputed ProcessedHash incorrect");
 
         self.increase_balance(
             &recipient_id,
@@ -1339,7 +1333,7 @@ mod tests {
                                     "f871808080808080a03f1587ebf71f19f47449b08f0960630ddbd60d045ea68ee7d89fb1c5682d215a8080808080a001210de038b44d1a57a695f46e2604e6646593958c64441b4fb679f4d16179d88080a05344081f911ad616b960a8f2841eb55f4936a97ec5dae614e726c8c0d51e0eff80",
                                     "f8669d3e3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681bb846f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75"
                                 ];
-        let processed_hash = "bfcc851e4fcbae90fd0da14cc7f07eeef9209f680e223cea6c9586353eb91f28";
+        let processed_hash = "c687f93bfafb23a762293b4b190060938e6ac95cf15ddb66422865a925022b2f";
         let nonce = U128(1);
         let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash);
         contract.unlock_callback(true, nonce, signer_account_id(), proof);
@@ -1507,7 +1501,7 @@ mod tests {
                                     "f871808080808080a03f1587ebf71f19f47449b08f0960630ddbd60d045ea68ee7d89fb1c5682d215a8080808080a001210de038b44d1a57a695f46e2604e6646593958c64441b4fb679f4d16179d88080a05344081f911ad616b960a8f2841eb55f4936a97ec5dae614e726c8c0d51e0eff80",
                                     "f8669d3e3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681bb846f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75"
                                 ];
-        let processed_hash = "bfcc851e4fcbae90fd0da14cc7f07eeef9209f680e223cea6c9586353eb91f28";
+        let processed_hash = "9235d5bc6f69bc4e74d943ee6c335656308295d83097e391de62fffe955baabb";
         let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash);
 
         contract.unlock_callback(true, U128(9), signer_account_id(), proof);
@@ -1600,7 +1594,7 @@ mod tests {
                                     "f871808080808080a03f1587ebf71f19f47449b08f0960630ddbd60d045ea68ee7d89fb1c5682d215a8080808080a001210de038b44d1a57a695f46e2604e6646593958c64441b4fb679f4d16179d88080a05344081f911ad616b960a8f2841eb55f4936a97ec5dae614e726c8c0d51e0eff80",
                                     "f8669d3e3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681bb846f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75"
                                 ];
-        let processed_hash = "bfcc851e4fcbae90fd0da14cc7f07eeef9209f680e223cea6c9586353eb91f28";
+        let processed_hash = "c687f93bfafb23a762293b4b190060938e6ac95cf15ddb66422865a925022b2f";
         let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash);
 
         contract.unlock_callback(true, U128(1), signer_account_id(), proof);
