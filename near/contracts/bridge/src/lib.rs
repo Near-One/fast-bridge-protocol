@@ -42,12 +42,16 @@ pub trait Prover {
     ) -> bool;
 
     #[result_serializer(borsh)]
-    fn verify_account_proof(
+    fn verify_storage_proof(
         &self,
         #[serializer(borsh)] header_data: Vec<u8>,
-        #[serializer(borsh)] proof: Vec<Vec<u8>>, // account proof
-        #[serializer(borsh)] key: Vec<u8>,  // keccak256 of eth address
-        #[serializer(borsh)] account_data: Vec<u8>,  // rlp encoded account state
+        #[serializer(borsh)] account_proof: Vec<Vec<u8>>, // account proof
+        #[serializer(borsh)] contract_address: Vec<u8>,  // eth address
+        #[serializer(borsh)] account_state: Vec<u8>,  // rlp encoded account state
+        #[serializer(borsh)] storage_hash: Vec<u8>,  // storage hash
+        #[serializer(borsh)] storage_key: Vec<u8>,  // storage key
+        #[serializer(borsh)] storage_proof: Vec<Vec<u8>>,  // storage proof
+        #[serializer(borsh)] value: Vec<u8>,  // storage value
         #[serializer(borsh)] skip_bridge_call: bool
     ) -> PromiseOrValue<bool>;
 }
@@ -73,21 +77,17 @@ trait FastBridgeInterface {
         verification_success: bool,
         #[serializer(borsh)] proof: EthTransferEvent,
     ) -> Promise;
-    fn verify_account_proof_callback(
+    fn unlock_callback(
         &mut self,
         #[callback]
         #[serializer(borsh)]
-        verification_success: bool,
-        #[serializer(borsh)] transaction_id: String,
-        #[serializer(borsh)] recipient_id: AccountId,
-        #[serializer(borsh)] transfer_data: TransferMessage,
+        verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-    ) -> Promise;
-    fn unlock_callback(
-        &self,
-        #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] proof: UnlockProof,
+        #[serializer(borsh)] transaction_id: String,
+        #[serializer(borsh)] transfer_data: TransferMessage,
+        #[serializer(borsh)] recipient_id: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
@@ -100,10 +100,10 @@ trait FastBridgeInterface {
 #[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize, PartialEq,)]
 pub struct UnlockProof {
     header_data: Vec<u8>,
-    proof: Vec<Vec<u8>>,
-    key: Vec<u8>,  
+    account_proof: Vec<Vec<u8>>,
     account_data: Vec<u8>,
-    processed_hash: Vec<u8>,
+    storage_hash: Vec<u8>,
+    storage_proof: Vec<Vec<u8>>,
     value: bool
 }
 
@@ -356,21 +356,39 @@ impl FastBridge {
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
         let cloned_proof = proof.clone();
+        
+        require!(!proof.value, "transfer has been processed");
+        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
+        let (recipient_id, transfer_data) = self
+            .pending_transfers
+            .get(&transaction_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Transaction with id: {} not found",
+                    &transaction_id.to_string()
+                )
+            });
+
+        let storage_key = utils::get_storage_key(transfer_data.clone(), nonce).to_vec();
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
-            .verify_account_proof(
+            .verify_storage_proof(
                 proof.header_data,
-                proof.proof,
-                proof.key,
+                proof.account_proof,
+                Vec::try_from(self.eth_bridge_contract).unwrap(),
                 proof.account_data,
+                proof.storage_hash,
+                storage_key,
+                proof.storage_proof,
+                proof.value.try_to_vec().unwrap(),
                 false
             )
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id(), cloned_proof),
+                    .unlock_callback(nonce, env::predecessor_account_id(), cloned_proof, transaction_id, transfer_data, recipient_id),
             )
     }
 
@@ -383,19 +401,10 @@ impl FastBridge {
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] proof: UnlockProof,
+        #[serializer(borsh)] transaction_id: String,
+        #[serializer(borsh)] transfer_data: TransferMessage,
+        #[serializer(borsh)] recipient_id: AccountId,
     ) {
-        require!(proof.value, "transfer has been processed");
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = self
-            .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Transaction with id: {} not found",
-                    &transaction_id.to_string()
-                )
-            });
-
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
 
@@ -415,8 +424,6 @@ impl FastBridge {
             )
         );
         
-        require!((utils::get_processed_hash(transfer_data.clone(), nonce).to_vec()).eq(&proof.processed_hash), "User input processedHash incorrect");
-
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
@@ -939,13 +946,13 @@ mod tests {
             .to_string()
     }
 
-    fn generate_unlock_proof(header_data: &str, account_data: &str, key: &str, proof: Vec<&str>, processed_hash: &str, value: bool) -> UnlockProof{
+    fn generate_unlock_proof(header_data: &str, account_data: &str, account_proof: Vec<&str>, storage_hash: &str, storage_proof: Vec<&str>, value: bool) -> UnlockProof{
         let header = eth_encode_packed::hex::decode(header_data).unwrap().into();
         let account = eth_encode_packed::hex::decode(account_data).unwrap().into();
-        let key = eth_encode_packed::hex::decode(key).unwrap().into(); 
-        let account_proof = proof.into_iter().map(|x| eth_encode_packed::hex::decode(x).unwrap()).collect();
-        let ph = eth_encode_packed::hex::decode(processed_hash).unwrap().into();
-        let unlock_proof = UnlockProof{header_data: header, proof: account_proof, key: key, account_data: account, processed_hash: ph, value: value};
+        let storage_hash = eth_encode_packed::hex::decode(storage_hash).unwrap().into();
+        let account_proof = account_proof.into_iter().map(|x| eth_encode_packed::hex::decode(x).unwrap()).collect();
+        let storage_proof = storage_proof.into_iter().map(|x| eth_encode_packed::hex::decode(x).unwrap()).collect();
+        let unlock_proof = UnlockProof{header_data: header, account_proof: account_proof, account_data: account, storage_hash: storage_hash, storage_proof: storage_proof, value: value};
         unlock_proof
 
     }
@@ -1312,8 +1319,8 @@ mod tests {
 
         let header  = "f9021ba0695d799c7fbeda2651dd907991909e4ae68612851ce5398f2efc9506e69247cda01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d4934794b64a30399f7f6b0c154c2e7af0a3ec7b0a5b131aa0eea9136af6ad8b65ad4c2184bbe6ab400f1ae214ed069d56d89639d7329d083ea063bbd1ab5c4e3922601b38d701e091e1ad3bc30a8e6e6a166728a6b5c9a61d31a0108126d36fb961af5e2d8359a6fced486e368965bbcba286205983dd06011aceb901000120011010a05000008a4800841200c0042918c020a44820008210109a02018c028d000000004001009a014c1085c000430019108410580008041204143226407a2001200470804449a0620802440121001124020cc07a040318018480a146110002528216204104220200806080086020c018a02000120020204818800000504604c1200000202100004003a188820624281c212102000901010d6051ec081002001a0000c8041010806460121600222104002188072024090001c60020088d2060c8ca500a1224161090040c82620c014060040608011048a1401010803004ba159d5800002802000300c241100296888004086a0030c015003b0212003004308380ffb58401c9c38083f281638463e31ac89f496c6c756d696e61746520446d6f63726174697a6520447374726962757465a086a600953aa2865ceb8c7a6348f388aaad93ca30c4a7dc718479ab45d98d8ea488000000000000000011";
         let account_data = "f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75";
-        let key = "487bcece3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681b";
-        let proof = vec!["f90211a0a08073a06d519f053d34fbc01d7b52b5deff8bca1ecce1c6f5b64549215a1faca04354caea0b1a81283d78f0d2f876f8ef9232d3eff9c9266edf485d39a0ca9deaa01109339731fb837d1593f6fd40e9bcf9bf8b3869fc1f98c5e9fb91c19f6be941a0a699fab3b6374669ae93411b7f6f066b1a041a2f7456cac84ff29a93c6632da7a081c0eae435200744e1c85ff9918c7240790fd0d3f399cff2f90cde9d94e65fa4a04a04579f3a8b75d085a0f5a93858bf22ca3128232b69a3303e6342fea230f87fa0243bcb398a13ca1167b73593e895dd34ee0cebe89e9e553968155ab756b9b4caa022b916d96ea298160f55466ad1016b2ea60c9c60173cd193f82f0113e451280fa06f632d62fcffd685eee2357bd714772cea7cdc77f12454ad82a95f8de9059a16a0a16e576d1ab0bfbde3206d7efe42ac02b9d571421a69c91c698acf2afdc7e9e0a0392f3c5d59d3ed96044e32f152c76ce3eef74677d08df74fecbb163ca62da46ca0d84050065aa6746b033d129952fb8a3e1d92a24ceec830f44d0345e6bcb4e11fa098bfe8fd1931b9945e33ed558eab4764185294e5e8862df1709b6172ce52107aa036b54d7eb3e330033fc001bd65a07858eb98b3422bd30668da866256e3cc5381a04471a857d2967a0a1f37702d7fb19e983e46523affd393a87e6ee0b28e1dfe46a0c735f88df737eaeebb1156765174ab718dbea4e72f905767dd8cd38c19583eea80",
+        let 
+        let account_proof = vec!["f90211a0a08073a06d519f053d34fbc01d7b52b5deff8bca1ecce1c6f5b64549215a1faca04354caea0b1a81283d78f0d2f876f8ef9232d3eff9c9266edf485d39a0ca9deaa01109339731fb837d1593f6fd40e9bcf9bf8b3869fc1f98c5e9fb91c19f6be941a0a699fab3b6374669ae93411b7f6f066b1a041a2f7456cac84ff29a93c6632da7a081c0eae435200744e1c85ff9918c7240790fd0d3f399cff2f90cde9d94e65fa4a04a04579f3a8b75d085a0f5a93858bf22ca3128232b69a3303e6342fea230f87fa0243bcb398a13ca1167b73593e895dd34ee0cebe89e9e553968155ab756b9b4caa022b916d96ea298160f55466ad1016b2ea60c9c60173cd193f82f0113e451280fa06f632d62fcffd685eee2357bd714772cea7cdc77f12454ad82a95f8de9059a16a0a16e576d1ab0bfbde3206d7efe42ac02b9d571421a69c91c698acf2afdc7e9e0a0392f3c5d59d3ed96044e32f152c76ce3eef74677d08df74fecbb163ca62da46ca0d84050065aa6746b033d129952fb8a3e1d92a24ceec830f44d0345e6bcb4e11fa098bfe8fd1931b9945e33ed558eab4764185294e5e8862df1709b6172ce52107aa036b54d7eb3e330033fc001bd65a07858eb98b3422bd30668da866256e3cc5381a04471a857d2967a0a1f37702d7fb19e983e46523affd393a87e6ee0b28e1dfe46a0c735f88df737eaeebb1156765174ab718dbea4e72f905767dd8cd38c19583eea80",
                                     "f90211a0c08abe73e8834debc4a228b4e0a5b8784a4163295ac6e991c057743a03911bf7a043770020cdf744075d88d216bc196b1ca01c2e67a98ed89535117f844e3f23efa04751dd21338bc05d356942b97ed568b2c3914af8cdb9e07ca608a94baa7695e7a0099b11c93b8021809fe5cc59fa5604623a0a8fe2abdbd48a559acb1b22a50e50a000fa6e28df7c9c8526b90f2494b645348bc52ccdb63765332623769e4015e967a08636c0d061574bf8d72bd229c0a6c4739f6e32d80557810096d28f9f877cfa49a0e7ca1390f44c7c0dc903b6ba88a4a4fde4d136531cb44766e3c6ded1273475dea00595c31ec3e7afe28019a5c6f4952efd16b67d94edaee043a4056a2782c31c5aa0f4bb8fd565bb24cc39b0157120afb40be99cde20c20d99363caebf955c5a13c6a0d8672a85e53d075497ff4da81422bfb10faec5c8c2d0044fccbc94954601c754a094cc70327bd4edbbff663f537d8b31ba8a903d6b22a4f47e020e01e07b1375b7a0fb3a0b5bda02815f4241d7a91ad1a428640c68a7753a5d692d5ade6d2fc9fb22a00dbe28cfae02f8b7ddc3ea544371b82df122997505672f4ca68e82b5431254cda0e434486a2f3f737717284c03014507ac7e9aeb5b33909e60aaead9cc729876daa0f490e0a91ae868d122649d0414fbf526df55191b428434d243e85bfeef6e2141a0ed079a0ef4612b5be78c7881f650bbfff67c291a418730f540636cd67803b2ba80",
                                     "f90211a099f584601ddfa456be8fb1bc11a9d04f89fca85d5a7b742751d1e632a112b0c5a03119421d72e57140841a5f019273c85a439a843da331185cdce9d2ca3541233aa06c63778935b724f11a966aa70e7fab290b5c742d4cdd67b6051d418304c9dd91a02069229873253405803d8e1d0d5d01911cc7671a8e22f8fa7e83d496ed6445bda08f4ea7df159e23d87f0e6a370c0b49dffb13b4de3557d36eae308ee70797f8dda044f9840dff4d78e22cf0c8cc6c77b51e8f8c0be913629e021066bc15c1da0e23a0666695b8555c0085aec60bd50f941b1ed1a06a64567886d12cc79810ada94e77a069593ccc40ed0a9a3eeaaf5ea77ec454ebd72ec1671046c50c6da8271043c79ca0455ed090dfc3ed5d4097591f5ef4117a4213bd785a02903d1b25ded965821e28a0155d59491e1bd7e76f03eb56f1052bc5af2f7f82358f6008228ba369985175dca08eaa3e82ba004f48941dea816449e49bbc121ad7ce7b90570468aad29274b4b8a041daac098787faaaea6de08d08f7fbac5adc72fe783daff123bf93d08dd3b4cda0bbc313e8353da043272aaa2b4dad484fd65ad832ade431cd9d4d6c567c8c0fb9a074c85dc357f3c01fad6fe1d5f801ac15c1cd0695d0cf19be226ebcb2ee69715da0a4b7e2287d825c0aaa494697012507e8ce86f2decea6fa0f18ed44a09e3d7778a09ea8b3cef67c5e5c6cf7b78b71171991c5a012e7441a8746569934cc35ec72e380",
                                     "f90211a088af0c98f29b354f5801982231cfaf32a21291de4a50cddb5919b7af4a3affc8a0646fd9cd70121f7aed81dcd3a3fa4032905b49ada1b269e1008dbc439ed8dd6ea09360adf6f6de594882463d6afb384a32bcbe075aab2ca772d32c25d877f015cea03f3fa2f3170926c970e1292dc31a5676af1aed81079c2f5c7934db9a412a04eea0df0c1e8fbc8bb7e9e86c7b87e915faae2c0c4e3fc15f786f3c815efba85f2c94a0c54057f44f64aacd0c20280168eb36c886b5ef2fdf91766990e7827425a6af90a06023a11acc770d7745556dc13a151ced8e06e69be2d8a2f2b77069af7472c43fa07556b4b2c3e648c5260055434e49551a4d58f4b0eb6e9199e3aa9850a8b9e85ea0a00895f7c1890ce6ab871e1936f544c16404344a0244fdf2a96d4b312bc1792ca04e617e01777906cff90a5497519ac519ea3303cc072f59da280750222581b30fa0aac76734716f149c1452cc6a24a7c6d6486126991dd0d9c8f409fa804544438ca0784105f279920dd248fd8ccd7f18855e2ce14d02d43a17339ef4fe85630c53a8a0f947985382b0d54e24536f2e08ee353994e298b928d946295853b98918e3c6f8a036b5d525ce50feef47ce0f7d1c95429fc607f21e2608242fcd22ab89e8dec82fa0a190c3e86d4b7806fc730f72f4a12a567e19a66b2d13281ac327adef4bb9a322a014fbde855de56cc7b2c8ceeb21bf728d9b16eb52f75519c7ef2e0d7438f9f52580",
@@ -1322,7 +1329,6 @@ mod tests {
                                     "f871808080808080a03f1587ebf71f19f47449b08f0960630ddbd60d045ea68ee7d89fb1c5682d215a8080808080a001210de038b44d1a57a695f46e2604e6646593958c64441b4fb679f4d16179d88080a05344081f911ad616b960a8f2841eb55f4936a97ec5dae614e726c8c0d51e0eff80",
                                     "f8669d3e3757038b7fea6585ca2d0a3dacd72d84bf0c7b916f169cea0348681bb846f8440180a09dc8b927bc1f203931c70cc3850246046859c40e0044964753b28ff41285b75da0932cddc50793da935ccf915651ad67f6b746e9936fcc5614f0ff492563782c75"
                                 ];
-        let processed_hash = "c687f93bfafb23a762293b4b190060938e6ac95cf15ddb66422865a925022b2f";
         let nonce = U128(1);
         let proof = generate_unlock_proof(header, account_data, key, proof, processed_hash, true);
         contract.unlock_callback(true, nonce, signer_account_id(), proof);

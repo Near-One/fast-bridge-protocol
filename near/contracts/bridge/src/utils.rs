@@ -14,12 +14,13 @@ pub fn get_transaction_id(id: u128) -> String {
     id.to_string()
 }
 
-pub fn get_processed_hash(transfer_data: TransferMessage, nonce: U128) -> [u8; 32] {
+pub fn get_storage_key(transfer_data: TransferMessage, nonce: U128) -> [u8; 32] {
     let args = vec![
         SolidityDataType::Address(transfer_data.transfer.token_eth.into()),
         SolidityDataType::Address(transfer_data.recipient.into()),
         SolidityDataType::Number(u128::try_from(nonce).unwrap().into()),
-        SolidityDataType::Number(u128::try_from(transfer_data.transfer.amount).unwrap().into())
+        SolidityDataType::Number(u128::try_from(transfer_data.transfer.amount).unwrap().into()),
+        SolidityDataType::Number(u128::try_from(302).unwrap().into())
     ];
 
     let (encoded_data, _) = eth_encode_packed::abi::encode_packed(&args);
