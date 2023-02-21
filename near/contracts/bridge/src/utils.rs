@@ -29,7 +29,7 @@ pub fn get_storage_key(transfer_data: TransferMessage, nonce: U128) -> [u8; 32] 
         eth_encode_packed::SolidityDataType::Number(u128::try_from(302).unwrap().into())
     ];
     let (key, _) = eth_encode_packed::abi::encode_packed(&_input);
-    near_keccak256(&key)
+    near_keccak256(&near_keccak256(&key))
 }
 
 pub fn is_valid_eth_address(address: String) -> bool {
