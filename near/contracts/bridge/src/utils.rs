@@ -20,11 +20,16 @@ pub fn get_storage_key(transfer_data: TransferMessage, nonce: U128) -> [u8; 32] 
         SolidityDataType::Address(transfer_data.recipient.into()),
         SolidityDataType::Number(u128::try_from(nonce).unwrap().into()),
         SolidityDataType::Number(u128::try_from(transfer_data.transfer.amount).unwrap().into()),
-        SolidityDataType::Number(u128::try_from(302).unwrap().into())
     ];
 
     let (encoded_data, _) = eth_encode_packed::abi::encode_packed(&args);
-    near_keccak256(&encoded_data)
+    let ph = near_keccak256(&encoded_data);
+    let _input = vec![
+        eth_encode_packed::SolidityDataType::Bytes(&ph),
+        eth_encode_packed::SolidityDataType::Number(u128::try_from(302).unwrap().into())
+    ];
+    let (key, _) = eth_encode_packed::abi::encode_packed(&_input);
+    near_keccak256(&key)
 }
 
 pub fn is_valid_eth_address(address: String) -> bool {
