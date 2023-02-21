@@ -41,9 +41,8 @@ pub fn get_transfer_id(
 
 #[cfg(test)]
 mod tests {
-    use fast_bridge_common::get_eth_address;
-
     use super::*;
+    use fast_bridge_common::get_eth_address;
 
     #[test]
     fn test_get_transfer_id() {
