@@ -369,7 +369,7 @@ impl FastBridge {
                 )
             });
 
-        let storage_key = utils::get_storage_key(transfer_data.clone(), nonce).to_vec();
+        let storage_key = utils::get_storage_key(transfer_data.transfer.token_eth, transfer_data.recipient, eth_types::U256((u128::try_from(nonce).unwrap()).into()), eth_types::U256((u128::try_from(transfer_data.transfer.amount).unwrap()).into()));
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
@@ -452,8 +452,8 @@ impl FastBridge {
             parsed_proof.eth_bridge_contract,
             self.eth_bridge_contract,
             "Event's address {} does not match the eth bridge address {}",
-            eth_encode_packed::hex::encode(parsed_proof.eth_bridge_contract),
-            eth_encode_packed::hex::encode(self.eth_bridge_contract),
+            hex::encode(parsed_proof.eth_bridge_contract),
+            hex::encode(self.eth_bridge_contract),
         );
 
         ext_prover::ext(self.prover_account.clone())
@@ -1401,7 +1401,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Balance for token transfer: token_near299 not found"#)]
+    #[should_panic(expected = r#"The fee token does not match the transfer token"#)]
     fn test_lock_balance_not_found() {
         let context = get_context(false);
         testing_env!(context);
@@ -1434,7 +1434,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Balance for token fee: token_near not found"#)]
+    #[should_panic(expected = r#"The fee token does not match the transfer token"#)]
     fn test_lock_fee_balance_not_found() {
         let context = get_context(false);
         testing_env!(context);
@@ -1682,7 +1682,7 @@ mod tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
-        let valid_eth_address: Vec<u8> = eth_encode_packed::hex::decode(valid_address.clone()).unwrap();
+        let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(valid_address);
 
