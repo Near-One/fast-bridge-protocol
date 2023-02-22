@@ -640,7 +640,7 @@ impl FastBridge {
 
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
+    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
         let receiver_id = env::predecessor_account_id();
         let balance = self.get_user_balance(&receiver_id, &token_id);
 
@@ -663,7 +663,7 @@ impl FastBridge {
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, receiver_id),
-            );
+            )
     }
 
     #[private]

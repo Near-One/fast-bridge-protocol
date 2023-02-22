@@ -1,5 +1,4 @@
 # rust
-near/contracts/Cargo.lock
 near/**/target/**
 
 # js
