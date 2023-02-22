@@ -13994,7 +13994,7 @@ impl FastBridge {
             .insert(&transfer_message.transfer.token_near, &new_balance);
         self.pending_transfers.remove(transfer_id);
     }
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) {
+    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14055,7 +14055,7 @@ impl FastBridge {
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, receiver_id),
-            );
+            )
     }
     pub fn withdraw_callback(
         &mut self,
@@ -16124,7 +16124,10 @@ pub extern "C" fn withdraw() {
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.withdraw(token_id, amount);
+    let result = contract.withdraw(token_id, amount);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
