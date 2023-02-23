@@ -46,7 +46,6 @@ pub trait Prover {
         #[serializer(borsh)] account_proof: Vec<Vec<u8>>, // account proof
         #[serializer(borsh)] contract_address: Vec<u8>,   // eth address
         #[serializer(borsh)] account_state: Vec<u8>,      // rlp encoded account state
-        #[serializer(borsh)] storage_hash: Vec<u8>,       // storage hash
         #[serializer(borsh)] storage_key: Vec<u8>,        // storage key
         #[serializer(borsh)] storage_proof: Vec<Vec<u8>>, // storage proof
         #[serializer(borsh)] value: Vec<u8>,              // storage value
@@ -102,7 +101,6 @@ pub struct UnlockProof {
     header_data: Vec<u8>,
     account_proof: Vec<Vec<u8>>,
     account_data: Vec<u8>,
-    storage_hash: Vec<u8>,
     storage_proof: Vec<Vec<u8>>,
     value: bool,
 }
@@ -378,7 +376,6 @@ impl FastBridge {
                 proof.account_proof,
                 self.eth_bridge_contract.to_vec(),
                 proof.account_data,
-                proof.storage_hash,
                 storage_key,
                 proof.storage_proof,
                 proof.value.try_to_vec().unwrap(),
