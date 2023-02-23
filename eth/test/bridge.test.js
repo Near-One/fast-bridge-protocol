@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable node/no-extraneous-require */
 const { expect, use } = require("chai");
 const { ethers, upgrades } = require("hardhat");
 const { getImplementationAddress } = require("@openzeppelin/upgrades-core");
@@ -156,8 +158,7 @@ describe("Fast Bridge", () => {
                     someone.address,
                     transferPart,
                     unlockRecipient,
-                    transferId,
-                    false
+                    transferId
                 );
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart);
@@ -188,8 +189,7 @@ describe("Fast Bridge", () => {
                     someone.address,
                     amount,
                     unlockRecipient,
-                    transferId,
-                    false
+                    transferId
                 );
 
             let transferPart2 = transferPart + 100;
@@ -221,8 +221,7 @@ describe("Fast Bridge", () => {
                     someone.address,
                     balanceRelayer,
                     unlockRecipient,
-                    transferId,
-                    false
+                    transferId
                 );
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
@@ -261,8 +260,7 @@ describe("Fast Bridge", () => {
                     someone.address,
                     balanceRelayer,
                     unlockRecipient,
-                    transferId,
-                    false
+                    transferId
                 );
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
 
@@ -280,8 +278,7 @@ describe("Fast Bridge", () => {
                     someone.address,
                     balanceRelayer,
                     unlockRecipient,
-                    transferId,
-                    false
+                    transferId
                 );
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer * 2);
@@ -327,16 +324,7 @@ describe("Fast Bridge", () => {
                 })
             )
                 .to.emit(proxy, "TransferTokens")
-                .withArgs(
-                    nonce,
-                    relayer2.address,
-                    ETH_address,
-                    user.address,
-                    ETH_amount,
-                    unlockRecipient,
-                    transferId,
-                    true
-                );
+                .withArgs(nonce, relayer2.address, ETH_address, user.address, ETH_amount, unlockRecipient, transferId);
         });
 
         it("Shouldn't process the same ETH-transfer twice", async () => {
@@ -352,16 +340,7 @@ describe("Fast Bridge", () => {
                 })
             )
                 .to.emit(proxy, "TransferTokens")
-                .withArgs(
-                    nonce,
-                    relayer3.address,
-                    ETH_address,
-                    user.address,
-                    ETH_amount,
-                    unlockRecipient,
-                    transferId,
-                    true
-                );
+                .withArgs(nonce, relayer3.address, ETH_address, user.address, ETH_amount, unlockRecipient, transferId);
 
             await expect(
                 proxy.connect(relayer3).transferTokens(ETH_address, user.address, nonce, ETH_amount, unlockRecipient, {

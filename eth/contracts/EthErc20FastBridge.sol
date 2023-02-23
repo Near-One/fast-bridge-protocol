@@ -25,8 +25,7 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         address _recipient,
         uint256 _amount,
         string _unlock_recipient,
-        bytes32 indexed _transfer_id,
-        bool isEthTransfer
+        bytes32 indexed _transfer_id
     );
 
     event AddTokenToWhitelist(address token);
@@ -103,14 +102,14 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
             _recipient.transfer(_amount);
 
             // slither-disable-next-line reentrancy-events
-            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash, true);
+            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
         } else {
             require(msg.value == 0, "Ethers not accepted for ERC-20 transfers");
             IERC20 token = IERC20(_token);
             token.safeTransferFrom(msg.sender, _recipient, _amount);
 
             // slither-disable-next-line reentrancy-events
-            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash, false);
+            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
         }
     }
 
