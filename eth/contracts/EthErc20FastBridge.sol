@@ -7,19 +7,16 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
+contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
     bytes32 public constant PAUSABLE_ADMIN_ROLE = keccak256("PAUSABLE_ADMIN_ROLE");
     bytes32 public constant UNPAUSABLE_ADMIN_ROLE = keccak256("UNPAUSABLE_ADMIN_ROLE");
     bytes32 public constant WHITELISTING_TOKENS_ADMIN_ROLE = keccak256("WHITELISTING_TOKENS_ADMIN_ROLE");
 
-    mapping (address => bool) public whitelistedTokens;
-    mapping (bytes32 => bool) public processedHashes;
+    mapping(address => bool) public whitelistedTokens;
+    mapping(bytes32 => bool) public processedHashes;
 
-    event SetTokens(
-        address[] _tokens,
-        bool[] _states
-    );
+    event SetTokens(address[] _tokens, bool[] _states);
 
     event TransferTokens(
         uint256 indexed _nonce,
@@ -32,26 +29,16 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         bool isEthTransfer
     );
 
-    event AddTokenToWhitelist(
-        address token
-    );
+    event AddTokenToWhitelist(address token);
 
-    event RemoveTokenFromWhitelist(
-        address token
-    );
+    event RemoveTokenFromWhitelist(address token);
 
     modifier isWhitelisted(address _token) {
         require(whitelistedTokens[_token], "Token not whitelisted!");
         _;
     }
 
-    function initialize(
-        address[] memory _tokens,
-        bool[] memory _states
-    )
-        public
-        initializer
-    { 
+    function initialize(address[] memory _tokens, bool[] memory _states) public initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -62,7 +49,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         setWhitelistedTokens(_tokens, _states);
     }
 
-    function isTokenInWhitelist(address _token) external view returns(bool) {
+    function isTokenInWhitelist(address _token) external view returns (bool) {
         return whitelistedTokens[_token];
     }
 
@@ -74,13 +61,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         _unpause();
     }
 
-    function setWhitelistedTokens(
-        address[] memory _tokens,
-        bool[] memory _states
-    )
-        public
-        onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE)
-    {
+    function setWhitelistedTokens(address[] memory _tokens, bool[] memory _states) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < _tokens.length; i++) {
@@ -108,12 +89,7 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         uint256 _nonce,
         uint256 _amount,
         string memory _unlock_recipient
-    )         
-        external
-        payable
-        whenNotPaused
-        isWhitelisted(_token)
-    {
+    ) external payable whenNotPaused isWhitelisted(_token) {
         require(_recipient != address(0) && _recipient != msg.sender, "Wrong recipient provided");
         require(_amount != 0, "Wrong amount provided");
 
@@ -138,26 +114,10 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         }
     }
 
-    function withdrawStuckTokens(
-        address _token
-    )
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-    {
+    function withdrawStuckTokens(address _token) external onlyRole(DEFAULT_ADMIN_ROLE) {
         IERC20 token = IERC20(_token);
-        token.safeTransfer(
-            msg.sender, 
-            token.balanceOf(address(this))
-        );
+        token.safeTransfer(msg.sender, token.balanceOf(address(this)));
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    )
-        internal
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-    {
-
-    }
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 }
