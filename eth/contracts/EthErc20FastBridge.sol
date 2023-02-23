@@ -28,7 +28,8 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
         address _recipient,
         uint256 _amount,
         string _unlock_recipient,
-        bytes32 indexed _transfer_id
+        bytes32 indexed _transfer_id,
+        bool isEthTransfer
     );
 
     event AddTokenToWhitelist(
@@ -103,29 +104,37 @@ contract EthErc20FastBridge is  Initializable, UUPSUpgradeable, AccessControlUpg
 
     function transferTokens(
         address _token,
-        address _recipient,
+        address payable _recipient,
         uint256 _nonce,
         uint256 _amount,
         string memory _unlock_recipient
-    )
+    )         
         external
+        payable
         whenNotPaused
         isWhitelisted(_token)
     {
         require(_recipient != address(0) && _recipient != msg.sender, "Wrong recipient provided");
         require(_amount != 0, "Wrong amount provided");
 
-        IERC20 token = IERC20(_token);
-        bytes32 processedHash = keccak256(
-            abi.encodePacked(_token, _recipient, _nonce, _amount));
+        bytes32 processedHash = keccak256(abi.encodePacked(_token, _recipient, _nonce, _amount));
 
         require(!processedHashes[processedHash], "This transaction has already been processed!");
         processedHashes[processedHash] = true;
 
-        token.safeTransferFrom(msg.sender, _recipient, _amount);
+        if (_token == address(0)) {
+            require(_amount == msg.value, "Wrong ethers amount provided");
+            _recipient.transfer(_amount);
 
-        // slither-disable-next-line reentrancy-events
-        emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
+            // slither-disable-next-line reentrancy-events
+            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash, true);
+        } else {
+            IERC20 token = IERC20(_token);
+            token.safeTransferFrom(msg.sender, _recipient, _amount);
+
+            // slither-disable-next-line reentrancy-events
+            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash, false);
+        }
     }
 
     function withdrawStuckTokens(
