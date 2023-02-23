@@ -25,8 +25,6 @@ mod whitelist;
 
 pub const NO_DEPOSIT: u128 = 0;
 
-
-
 #[ext_contract(ext_prover)]
 pub trait Prover {
     #[result_serializer(borsh)]
@@ -46,13 +44,15 @@ pub trait Prover {
         &self,
         #[serializer(borsh)] header_data: Vec<u8>,
         #[serializer(borsh)] account_proof: Vec<Vec<u8>>, // account proof
-        #[serializer(borsh)] contract_address: Vec<u8>,  // eth address
-        #[serializer(borsh)] account_state: Vec<u8>,  // rlp encoded account state
-        #[serializer(borsh)] storage_hash: Vec<u8>,  // storage hash
-        #[serializer(borsh)] storage_key: Vec<u8>,  // storage key
-        #[serializer(borsh)] storage_proof: Vec<Vec<u8>>,  // storage proof
-        #[serializer(borsh)] value: Vec<u8>,  // storage value
-        #[serializer(borsh)] skip_bridge_call: bool
+        #[serializer(borsh)] contract_address: Vec<u8>,   // eth address
+        #[serializer(borsh)] account_state: Vec<u8>,      // rlp encoded account state
+        #[serializer(borsh)] storage_hash: Vec<u8>,       // storage hash
+        #[serializer(borsh)] storage_key: Vec<u8>,        // storage key
+        #[serializer(borsh)] storage_proof: Vec<Vec<u8>>, // storage proof
+        #[serializer(borsh)] value: Vec<u8>,              // storage value
+        #[serializer(borsh)] min_header_height: Option<u64>,
+        #[serializer(borsh)] max_header_height: Option<u64>,
+        #[serializer(borsh)] skip_bridge_call: bool,
     ) -> PromiseOrValue<bool>;
 }
 
@@ -84,8 +84,6 @@ trait FastBridgeInterface {
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-        #[serializer(borsh)] proof: UnlockProof,
-        #[serializer(borsh)] transaction_id: String,
         #[serializer(borsh)] transfer_data: TransferMessage,
         #[serializer(borsh)] recipient_id: AccountId,
     );
@@ -97,14 +95,16 @@ trait FastBridgeInterface {
     ) -> PromiseOrValue<U128>;
 }
 
-#[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize, PartialEq,)]
+#[derive(
+    Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize, PartialEq,
+)]
 pub struct UnlockProof {
     header_data: Vec<u8>,
     account_proof: Vec<Vec<u8>>,
     account_data: Vec<u8>,
     storage_hash: Vec<u8>,
     storage_proof: Vec<Vec<u8>>,
-    value: bool
+    value: bool,
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -168,7 +168,6 @@ pub struct FastBridge {
     is_whitelist_mode_enabled: bool,
     pending_transfers_balances: UnorderedMap<AccountId, u128>,
 }
-
 
 #[near_bindgen]
 impl FastBridge {
@@ -355,40 +354,48 @@ impl FastBridge {
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
-        let cloned_proof = proof.clone();
-        
-        require!(!proof.value, "transfer has been processed");
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = self
-            .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Transaction with id: {} not found",
-                    &transaction_id.to_string()
-                )
-            });
+        require!(
+            !proof.value,
+            "The transfer has been processed on ethereum side"
+        );
 
-        let storage_key = utils::get_storage_key(transfer_data.transfer.token_eth, transfer_data.recipient, eth_types::U256((u128::try_from(nonce).unwrap()).into()), eth_types::U256((u128::try_from(transfer_data.transfer.amount).unwrap()).into()));
+        let (recipient_id, transfer_data) = self
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+
+        let storage_key = utils::get_eth_storage_key(
+            transfer_data.transfer.token_eth,
+            transfer_data.recipient,
+            eth_types::U256(nonce.0.into()),
+            eth_types::U256(transfer_data.transfer.amount.0.into()),
+        );
+
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
             .verify_storage_proof(
                 proof.header_data,
                 proof.account_proof,
-                Vec::try_from(self.eth_bridge_contract).unwrap(),
+                self.eth_bridge_contract.to_vec(),
                 proof.account_data,
                 proof.storage_hash,
                 storage_key,
                 proof.storage_proof,
                 proof.value.try_to_vec().unwrap(),
-                false
+                transfer_data.valid_till_block_height,
+                None,
+                false,
             )
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id(), cloned_proof, transaction_id, transfer_data, recipient_id),
+                    .unlock_callback(
+                        nonce,
+                        env::predecessor_account_id(),
+                        transfer_data,
+                        recipient_id,
+                    ),
             )
     }
 
@@ -400,7 +407,6 @@ impl FastBridge {
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-        #[serializer(borsh)] transaction_id: String,
         #[serializer(borsh)] transfer_data: TransferMessage,
         #[serializer(borsh)] recipient_id: AccountId,
     ) {
@@ -418,11 +424,9 @@ impl FastBridge {
 
         require!(
             verification_result,
-            format!(
-                "Verification failed for unlock proof"
-            )
+            format!("Verification failed for unlock proof")
         );
-        
+
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
@@ -433,17 +437,15 @@ impl FastBridge {
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce.0.to_string(), &transfer_data);
 
         Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
             transfer_message: transfer_data,
         }
-        .emit();  
-
+        .emit();
     }
-
 
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
@@ -486,17 +488,12 @@ impl FastBridge {
     ) {
         require!(verification_success, "Failed to verify the proof");
 
-        let transaction_id = utils::get_transaction_id(proof.nonce);
+        let nonce_str = proof.nonce.to_string();
 
         let transfer = self
             .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Transaction with id: {} not found",
-                    &transaction_id.to_string()
-                )
-            });
+            .get(&nonce_str)
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
         let transfer_data = transfer.1;
 
         require!(
@@ -534,7 +531,7 @@ impl FastBridge {
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce_str, &transfer_data);
 
         Event::FastBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
@@ -618,10 +615,9 @@ impl FastBridge {
             .insert(&transfer_message.transfer.token_near, &new_balance);
 
         self.nonce += 1;
-        let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (sender_id, transfer_message);
         self.pending_transfers
-            .insert(&transaction_id, &account_pending);
+            .insert(&self.nonce.to_string(), &account_pending);
         self.nonce
     }
 
@@ -1305,9 +1301,18 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = contract.pending_transfers.get(&transaction_id).unwrap_or_else(|| {panic!("Transaction with id: {} not found", &transaction_id.to_string())});
-        contract.unlock_callback(true, nonce, signer_account_id(), transaction_id, transfer_data, recipient_id);
+        let nonce_str = nonce.0.to_string();
+        let (recipient_id, transfer_data) = contract
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
+        contract.unlock_callback(
+            true,
+            nonce,
+            signer_account_id(),
+            transfer_data,
+            recipient_id,
+        );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1358,17 +1363,23 @@ mod tests {
         testing_env!(context);
 
         let nonce = U128(1);
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = contract.pending_transfers.get(&transaction_id).unwrap_or_else(|| {panic!("Transaction with id: {} not found", &transaction_id.to_string())});
+        let nonce_str = nonce.0.to_string();
+        let (recipient_id, transfer_data) = contract
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
 
-
-        contract.unlock_callback(true, nonce, signer_account_id(), transaction_id, transfer_data, recipient_id);
+        contract.unlock_callback(
+            true,
+            nonce,
+            signer_account_id(),
+            transfer_data,
+            recipient_id,
+        );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(400, transfer_token_amount); //user get the all 400 tokens back after successfull valid proof submition
     }
-    
-    
 
     //audit tests
     #[test]
@@ -1518,10 +1529,19 @@ mod tests {
         testing_env!(context);
 
         let nonce = U128(9);
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = contract.pending_transfers.get(&transaction_id).unwrap_or_else(|| {panic!("Transaction with id: {} not found", &transaction_id.to_string())});
-                            
-        contract.unlock_callback(true, nonce, signer_account_id(), transaction_id, transfer_data, recipient_id);
+        let nonce_str = nonce.0.to_string();
+        let (recipient_id, transfer_data) = contract
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
+
+        contract.unlock_callback(
+            true,
+            nonce,
+            signer_account_id(),
+            transfer_data,
+            recipient_id,
+        );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1599,12 +1619,20 @@ mod tests {
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
 
-
         let nonce = U128(1);
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = contract.pending_transfers.get(&transaction_id).unwrap_or_else(|| {panic!("Transaction with id: {} not found", &transaction_id.to_string())});
+        let nonce_str = nonce.0.to_string();
+        let (recipient_id, transfer_data) = contract
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| panic!("Transfer with nonce: {} not found", &nonce_str));
 
-        contract.unlock_callback(true, nonce, signer_account_id(), transaction_id, transfer_data, recipient_id);
+        contract.unlock_callback(
+            true,
+            nonce,
+            signer_account_id(),
+            transfer_data,
+            recipient_id,
+        );
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
