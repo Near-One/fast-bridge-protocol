@@ -58,6 +58,7 @@ jobs:
           cd eth
           npm install
           npm run flatten
+          npm run storage-layout
           git diff
           git status
           changed_files=$(git status --porcelain --untracked-files=no | wc -l)

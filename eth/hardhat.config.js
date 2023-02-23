@@ -9,6 +9,7 @@ require("@nomicfoundation/hardhat-network-helpers");
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
+require('hardhat-storage-layout');
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '11'.repeat(32);
