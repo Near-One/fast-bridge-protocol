@@ -102,7 +102,6 @@ pub struct UnlockProof {
     account_proof: Vec<Vec<u8>>,
     account_data: Vec<u8>,
     storage_proof: Vec<Vec<u8>>,
-    value: bool,
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -352,10 +351,6 @@ impl FastBridge {
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
-        require!(
-            !proof.value,
-            "The transfer has been processed on ethereum side"
-        );
 
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
@@ -378,7 +373,7 @@ impl FastBridge {
                 proof.account_data,
                 storage_key,
                 proof.storage_proof,
-                proof.value.try_to_vec().unwrap(),
+                false.try_to_vec().unwrap(),
                 transfer_data.valid_till_block_height,
                 None,
                 false,
@@ -490,7 +485,7 @@ impl FastBridge {
         let transfer = self
             .pending_transfers
             .get(&nonce_str)
-            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str));
         let transfer_data = transfer.1;
 
         require!(
