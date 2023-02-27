@@ -1,0 +1,6 @@
+[submodule "aurora/lib/aurora-engine"]
+	path = aurora/lib/aurora-engine
+	url = https://github.com/aurora-is-near/aurora-engine
+[submodule "aurora/lib/aurora-contracts-sdk"]
+	path = aurora/lib/aurora-contracts-sdk
+	url = https://github.com/aurora-is-near/aurora-contracts-sdk

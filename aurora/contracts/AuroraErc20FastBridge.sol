@@ -1,9 +1,9 @@
 pragma solidity ^0.8.17;
 
 import {IERC20 as IERC20_NEAR} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import "../lib/aurora-engine/etc/eth-contracts/contracts/EvmErc20.sol";
-import {AuroraSdk, NEAR, PromiseCreateArgs} from "../lib/aurora-solidity-sdk/src/AuroraSdk.sol";
-import "../lib/aurora-solidity-sdk/src/Borsh.sol";
+import "aurora-engine/etc/eth-contracts/contracts/EvmErc20.sol";
+import {AuroraSdk, NEAR, PromiseCreateArgs} from "aurora-solidity-sdk/AuroraSdk.sol";
+import "aurora-solidity-sdk/Borsh.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 

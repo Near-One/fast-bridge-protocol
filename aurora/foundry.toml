@@ -1,0 +1,16 @@
+[profile.default]
+src = 'src'
+out = 'artifacts'
+libs = [
+    'lib',
+    'node_modules',
+]
+remappings = [
+    '@openzeppelin/=node_modules/@openzeppelin/',
+    'aurora-engine/=lib/aurora-engine/',
+    'aurora-solidity-sdk/=lib/aurora-contracts-sdk/aurora-solidity-sdk/src/',
+    'hardhat/=node_modules/hardhat/',
+    'openzeppelin-contracts/=node_modules/openzeppelin-contracts/',
+]
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
