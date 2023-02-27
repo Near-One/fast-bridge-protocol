@@ -1,0 +1,19 @@
+{
+  "name": "hardhat-project",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.3.0",
+    "ethers": "^5.1.4",
+    "hardhat": "^2.12.7"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.1",
+    "aurora": "^2.1.3",
+    "aurora-engine": "^1.2.0",
+    "dotenv": "^9.0.2",
+    "openzeppelin-contracts": "^4.0.0"
+  }
+}
