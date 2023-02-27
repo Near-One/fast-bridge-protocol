@@ -21,7 +21,7 @@ pub fn get_eth_storage_key(
     ]
     .concat();
 
-    near_sdk::env::keccak256(&near_sdk::env::keccak256(&encoded_slot_key.as_slice()))
+    near_sdk::env::keccak256(&near_sdk::env::keccak256(&encoded_slot_key))
 }
 
 pub fn is_valid_eth_address(address: String) -> bool {
