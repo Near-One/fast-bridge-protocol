@@ -11,3 +11,5 @@ $ make deploy
 ```bash
 $ make init_near_contract
 ```
+ You should register aurora fast bridge near contract for USDC tokens
+ 

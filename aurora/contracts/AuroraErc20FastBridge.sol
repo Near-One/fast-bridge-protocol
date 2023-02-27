@@ -20,7 +20,7 @@ contract AuroraErc20FastBridge {
     EvmErc20 public usdc;
 
     event NearContractInit(string near_addres);
-    event LogInt128(uint128 msg);
+    event Log(string msg);
 
     constructor() {
         creator = msg.sender;
@@ -29,10 +29,10 @@ contract AuroraErc20FastBridge {
     }
 
     function init_near_contract() public {
+        emit NearContractInit(string(get_near_address()));
+
         PromiseCreateArgs memory callInc = near.call("dev-1676024144404-59802219762521", "increment", "", 0, INC_NEAR_GAS);
         callInc.transact();
-
-        emit NearContractInit(string(get_near_address()));
     }
 
     function init_token_transfer(bytes memory init_transfer_args) public {
@@ -44,7 +44,15 @@ contract AuroraErc20FastBridge {
         borsh.decodeBytes(); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
 
-        emit LogInt128(transfer_token_amount + fee_token_amount);
+        usdc.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
+        usdc.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
+
+        string memory init_args_base64 = Base64.encode(init_transfer_args);
+        bytes memory args = bytes(string.concat('{"receiver_id": "fb.olga24912_3.testnet", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
+
+        PromiseCreateArgs memory callTr = near.call("07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet", "ft_transfer_call", args, 1, INIT_NEAR_GAS);
+        callTr.transact();
     }
 
     function get_near_address() public view returns (bytes memory) {
