@@ -1,4 +1,4 @@
-const { ethers, upgrades} =  require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const { verify, getAddressSaver } = require("./utilities/helpers");
 const path = require("path");
 const { test } = require("mocha");
@@ -21,7 +21,7 @@ async function main() {
     await testWBTC.deployed();
     const testWETH = await TestToken.deploy(wethDecimals, "TEST_WETH", "TWETH");
     await testWETH.deployed();
-    
+
     console.log(`TEST USDC at ${testUSDC.address}`);
     console.log(`TEST WBTC at ${testWBTC.address}`);
     console.log(`TEST WETH at ${testWETH.address}`);
