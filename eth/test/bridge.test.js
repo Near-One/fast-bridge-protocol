@@ -10,7 +10,7 @@ const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const Uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const unlockRecipient = "near_recipient.near";
-const ETH_address = ethers.constants.AddressZero;
+const relayerEthAddress = ethers.constants.AddressZero;
 
 function getTransferId(token, recipient, nonce, amount) {
     return ethers.utils.solidityKeccak256(
@@ -311,56 +311,56 @@ describe("Fast Bridge", () => {
         });
 
         it("Should transfer with ETH", async () => {
-            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([ETH_address], [true]))
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([relayerEthAddress], [true]))
                 .to.emit(proxy, "SetTokens")
-                .withArgs([ETH_address], [true]);
+                .withArgs([relayerEthAddress], [true]);
 
-            const ETH_amount = ethers.utils.parseEther("0.0000001");
+            const ethAmount = ethers.utils.parseEther("0.0000001");
 
-            let transferId = getTransferId(ETH_address, user.address, nonce, ETH_amount);
+            let transferId = getTransferId(relayerEthAddress, user.address, nonce, ethAmount);
             await expect(
-                proxy.connect(relayer2).transferTokens(ETH_address, user.address, nonce, ETH_amount, unlockRecipient, {
-                    value: ETH_amount
+                proxy.connect(relayer2).transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
+                    value: ethAmount
                 })
             )
                 .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, relayer2.address, ETH_address, user.address, ETH_amount, unlockRecipient, transferId);
+                .withArgs(nonce, relayer2.address, relayerEthAddress, user.address, ethAmount, unlockRecipient, transferId);
         });
 
         it("Shouldn't process the same ETH-transfer twice", async () => {
-            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([ETH_address], [true]))
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([relayerEthAddress], [true]))
                 .to.emit(proxy, "SetTokens")
-                .withArgs([ETH_address], [true]);
+                .withArgs([relayerEthAddress], [true]);
 
-            const ETH_amount = ethers.utils.parseEther("0.0000001");
-            let transferId = getTransferId(ETH_address, user.address, nonce, ETH_amount);
+            const ethAmount = ethers.utils.parseEther("0.0000001");
+            let transferId = getTransferId(relayerEthAddress, user.address, nonce, ethAmount);
             await expect(
-                proxy.connect(relayer3).transferTokens(ETH_address, user.address, nonce, ETH_amount, unlockRecipient, {
-                    value: ETH_amount
+                proxy.connect(relayer3).transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
+                    value: ethAmount
                 })
             )
                 .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, relayer3.address, ETH_address, user.address, ETH_amount, unlockRecipient, transferId);
+                .withArgs(nonce, relayer3.address, relayerEthAddress, user.address, ethAmount, unlockRecipient, transferId);
 
             await expect(
-                proxy.connect(relayer3).transferTokens(ETH_address, user.address, nonce, ETH_amount, unlockRecipient, {
-                    value: ETH_amount
+                proxy.connect(relayer3).transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
+                    value: ethAmount
                 })
             ).to.be.revertedWith("This transaction has already been processed!");
         });
 
         it("Shouldn't process ETH-transfer with undesirable amount", async () => {
-            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([ETH_address], [true]))
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([relayerEthAddress], [true]))
                 .to.emit(proxy, "SetTokens")
-                .withArgs([ETH_address], [true]);
+                .withArgs([relayerEthAddress], [true]);
 
-            const ETH_amount_actual = ethers.utils.parseEther("0.0000001");
-            const ETH_amount_expected = ethers.utils.parseEther("0.0000002");
+            const ethAmountActual = ethers.utils.parseEther("0.0000001");
+            const ethAmountExpected = ethers.utils.parseEther("0.0000002");
             await expect(
                 proxy
                     .connect(relayer3)
-                    .transferTokens(ETH_address, user.address, nonce, ETH_amount_expected, unlockRecipient, {
-                        value: ETH_amount_actual
+                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmountExpected, unlockRecipient, {
+                        value: ethAmountActual
                     })
             ).to.be.revertedWith("Wrong ethers amount provided");
         });
@@ -375,12 +375,12 @@ describe("Fast Bridge", () => {
 
             let transferPart = relayerBalance - 100;
 
-            const ETH_amount = ethers.utils.parseEther("0.0000001");
+            const ethAmount = ethers.utils.parseEther("0.0000001");
             await expect(
                 proxy
                     .connect(relayer)
                     .transferTokens(tokenAddress, someone.address, nonce, transferPart, unlockRecipient, {
-                        value: ETH_amount
+                        value: ethAmount
                     })
             ).to.be.revertedWith("Ethers not accepted for ERC-20 transfers");
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(0);
