@@ -319,12 +319,22 @@ describe("Fast Bridge", () => {
 
             let transferId = getTransferId(relayerEthAddress, user.address, nonce, ethAmount);
             await expect(
-                proxy.connect(relayer2).transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
-                    value: ethAmount
-                })
+                proxy
+                    .connect(relayer2)
+                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
+                        value: ethAmount
+                    })
             )
                 .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, relayer2.address, relayerEthAddress, user.address, ethAmount, unlockRecipient, transferId);
+                .withArgs(
+                    nonce,
+                    relayer2.address,
+                    relayerEthAddress,
+                    user.address,
+                    ethAmount,
+                    unlockRecipient,
+                    transferId
+                );
         });
 
         it("Shouldn't process the same ETH-transfer twice", async () => {
@@ -335,17 +345,29 @@ describe("Fast Bridge", () => {
             const ethAmount = ethers.utils.parseEther("0.0000001");
             let transferId = getTransferId(relayerEthAddress, user.address, nonce, ethAmount);
             await expect(
-                proxy.connect(relayer3).transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
-                    value: ethAmount
-                })
+                proxy
+                    .connect(relayer3)
+                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
+                        value: ethAmount
+                    })
             )
                 .to.emit(proxy, "TransferTokens")
-                .withArgs(nonce, relayer3.address, relayerEthAddress, user.address, ethAmount, unlockRecipient, transferId);
+                .withArgs(
+                    nonce,
+                    relayer3.address,
+                    relayerEthAddress,
+                    user.address,
+                    ethAmount,
+                    unlockRecipient,
+                    transferId
+                );
 
             await expect(
-                proxy.connect(relayer3).transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
-                    value: ethAmount
-                })
+                proxy
+                    .connect(relayer3)
+                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
+                        value: ethAmount
+                    })
             ).to.be.revertedWith("This transaction has already been processed!");
         });
 

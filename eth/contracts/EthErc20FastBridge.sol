@@ -100,14 +100,13 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         if (_token == address(0)) {
             require(_amount == msg.value, "Wrong ethers amount provided");
             _recipient.transfer(_amount);
-
         } else {
             require(msg.value == 0, "Ethers not accepted for ERC-20 transfers");
             IERC20 token = IERC20(_token);
             token.safeTransferFrom(msg.sender, _recipient, _amount);
         }
-            // slither-disable-next-line reentrancy-events
-            emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
+        // slither-disable-next-line reentrancy-events
+        emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
     }
 
     function withdrawStuckTokens(address _token) external onlyRole(DEFAULT_ADMIN_ROLE) {
