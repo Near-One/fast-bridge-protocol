@@ -702,8 +702,21 @@ mod utils {
     pub fn tera_gas(gas: u64) -> near_sdk::Gas {
         TGAS * gas
     }
-    pub fn get_transaction_id(id: u128) -> String {
-        id.to_string()
+    pub fn get_eth_storage_key(
+        token: fast_bridge_common::EthAddress,
+        recipient: fast_bridge_common::EthAddress,
+        nonce: eth_types::U256,
+        amount: eth_types::U256,
+    ) -> Vec<u8> {
+        let slot = eth_types::U256(302u128.into());
+        let mut be_slot = [0u8; 32];
+        slot.0.to_big_endian(&mut be_slot);
+        let encoded_slot_key = [
+            get_transfer_id(token, recipient, nonce, amount).as_slice(),
+            be_slot.as_slice(),
+        ]
+            .concat();
+        near_sdk::env::keccak256(&near_sdk::env::keccak256(&encoded_slot_key))
     }
     pub fn is_valid_eth_address(address: String) -> bool {
         if hex::decode(address.clone()).is_err() {
@@ -711,7 +724,6 @@ mod utils {
         }
         hex::decode(address).unwrap().len() == 20
     }
-    #[allow(dead_code)]
     pub fn get_transfer_id(
         token: fast_bridge_common::EthAddress,
         recipient: fast_bridge_common::EthAddress,
@@ -3079,6 +3091,19 @@ pub trait Prover {
         proof: Vec<Vec<u8>>,
         skip_bridge_call: bool,
     ) -> bool;
+    fn verify_storage_proof(
+        &self,
+        header_data: Vec<u8>,
+        account_proof: Vec<Vec<u8>>,
+        contract_address: Vec<u8>,
+        account_state: Vec<u8>,
+        storage_key: Vec<u8>,
+        storage_proof: Vec<Vec<u8>>,
+        value: Vec<u8>,
+        min_header_height: Option<u64>,
+        max_header_height: Option<u64>,
+        skip_bridge_call: bool,
+    ) -> PromiseOrValue<bool>;
 }
 pub mod ext_prover {
     use super::*;
@@ -3175,6 +3200,98 @@ pub mod ext_prover {
             near_sdk::Promise::new(self.account_id)
                 .function_call_weight(
                     "verify_log_entry".to_string(),
+                    __args,
+                    self.deposit,
+                    self.static_gas,
+                    self.gas_weight,
+                )
+        }
+        pub fn verify_storage_proof(
+            self,
+            header_data: Vec<u8>,
+            account_proof: Vec<Vec<u8>>,
+            contract_address: Vec<u8>,
+            account_state: Vec<u8>,
+            storage_key: Vec<u8>,
+            storage_proof: Vec<Vec<u8>>,
+            value: Vec<u8>,
+            min_header_height: Option<u64>,
+            max_header_height: Option<u64>,
+            skip_bridge_call: bool,
+        ) -> near_sdk::Promise {
+            let __args = {
+                struct Input<'nearinput> {
+                    header_data: &'nearinput Vec<u8>,
+                    account_proof: &'nearinput Vec<Vec<u8>>,
+                    contract_address: &'nearinput Vec<u8>,
+                    account_state: &'nearinput Vec<u8>,
+                    storage_key: &'nearinput Vec<u8>,
+                    storage_proof: &'nearinput Vec<Vec<u8>>,
+                    value: &'nearinput Vec<u8>,
+                    min_header_height: &'nearinput Option<u64>,
+                    max_header_height: &'nearinput Option<u64>,
+                    skip_bridge_call: &'nearinput bool,
+                }
+                impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
+                where
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Option<u64>: borsh::ser::BorshSerialize,
+                    &'nearinput Option<u64>: borsh::ser::BorshSerialize,
+                    &'nearinput bool: borsh::ser::BorshSerialize,
+                {
+                    fn serialize<W: borsh::maybestd::io::Write>(
+                        &self,
+                        writer: &mut W,
+                    ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+                        borsh::BorshSerialize::serialize(&self.header_data, writer)?;
+                        borsh::BorshSerialize::serialize(&self.account_proof, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.contract_address,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(&self.account_state, writer)?;
+                        borsh::BorshSerialize::serialize(&self.storage_key, writer)?;
+                        borsh::BorshSerialize::serialize(&self.storage_proof, writer)?;
+                        borsh::BorshSerialize::serialize(&self.value, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.min_header_height,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(
+                            &self.max_header_height,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(
+                            &self.skip_bridge_call,
+                            writer,
+                        )?;
+                        Ok(())
+                    }
+                }
+                let __args = Input {
+                    header_data: &header_data,
+                    account_proof: &account_proof,
+                    contract_address: &contract_address,
+                    account_state: &account_state,
+                    storage_key: &storage_key,
+                    storage_proof: &storage_proof,
+                    value: &value,
+                    min_header_height: &min_header_height,
+                    max_header_height: &max_header_height,
+                    skip_bridge_call: &skip_bridge_call,
+                };
+                near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
+                    .expect("Failed to serialize the cross contract args using Borsh.")
+            };
+            near_sdk::Promise::new(self.account_id)
+                .function_call_weight(
+                    "verify_storage_proof".to_string(),
                     __args,
                     self.deposit,
                     self.static_gas,
@@ -3378,7 +3495,14 @@ trait FastBridgeInterface {
         verification_success: bool,
         proof: EthTransferEvent,
     ) -> Promise;
-    fn unlock_callback(&self, nonce: U128, recipient_id: AccountId);
+    fn unlock_callback(
+        &mut self,
+        verification_result: bool,
+        nonce: U128,
+        sender_id: AccountId,
+        transfer_data: TransferMessage,
+        recipient_id: AccountId,
+    );
     fn init_transfer_callback(
         &mut self,
         transfer_message: TransferMessage,
@@ -3546,16 +3670,22 @@ pub mod ext_self {
         pub fn unlock_callback(
             self,
             nonce: U128,
+            sender_id: AccountId,
+            transfer_data: TransferMessage,
             recipient_id: AccountId,
         ) -> near_sdk::Promise {
             let __args = {
                 struct Input<'nearinput> {
                     nonce: &'nearinput U128,
+                    sender_id: &'nearinput AccountId,
+                    transfer_data: &'nearinput TransferMessage,
                     recipient_id: &'nearinput AccountId,
                 }
                 impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
                 where
                     &'nearinput U128: borsh::ser::BorshSerialize,
+                    &'nearinput AccountId: borsh::ser::BorshSerialize,
+                    &'nearinput TransferMessage: borsh::ser::BorshSerialize,
                     &'nearinput AccountId: borsh::ser::BorshSerialize,
                 {
                     fn serialize<W: borsh::maybestd::io::Write>(
@@ -3563,12 +3693,16 @@ pub mod ext_self {
                         writer: &mut W,
                     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
+                        borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                        borsh::BorshSerialize::serialize(&self.transfer_data, writer)?;
                         borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
                         Ok(())
                     }
                 }
                 let __args = Input {
                     nonce: &nonce,
+                    sender_id: &sender_id,
+                    transfer_data: &transfer_data,
                     recipient_id: &recipient_id,
                 };
                 near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
@@ -3631,6 +3765,542 @@ pub mod ext_self {
                     self.gas_weight,
                 )
         }
+    }
+}
+pub struct UnlockProof {
+    header_data: Vec<u8>,
+    account_proof: Vec<Vec<u8>>,
+    account_data: Vec<u8>,
+    storage_proof: Vec<Vec<u8>>,
+}
+#[automatically_derived]
+impl ::core::default::Default for UnlockProof {
+    #[inline]
+    fn default() -> UnlockProof {
+        UnlockProof {
+            header_data: ::core::default::Default::default(),
+            account_proof: ::core::default::Default::default(),
+            account_data: ::core::default::Default::default(),
+            storage_proof: ::core::default::Default::default(),
+        }
+    }
+}
+impl borsh::de::BorshDeserialize for UnlockProof
+where
+    Vec<u8>: borsh::BorshDeserialize,
+    Vec<Vec<u8>>: borsh::BorshDeserialize,
+    Vec<u8>: borsh::BorshDeserialize,
+    Vec<Vec<u8>>: borsh::BorshDeserialize,
+{
+    fn deserialize(
+        buf: &mut &[u8],
+    ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
+        Ok(Self {
+            header_data: borsh::BorshDeserialize::deserialize(buf)?,
+            account_proof: borsh::BorshDeserialize::deserialize(buf)?,
+            account_data: borsh::BorshDeserialize::deserialize(buf)?,
+            storage_proof: borsh::BorshDeserialize::deserialize(buf)?,
+        })
+    }
+}
+impl borsh::ser::BorshSerialize for UnlockProof
+where
+    Vec<u8>: borsh::ser::BorshSerialize,
+    Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+    Vec<u8>: borsh::ser::BorshSerialize,
+    Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+{
+    fn serialize<W: borsh::maybestd::io::Write>(
+        &self,
+        writer: &mut W,
+    ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+        borsh::BorshSerialize::serialize(&self.header_data, writer)?;
+        borsh::BorshSerialize::serialize(&self.account_proof, writer)?;
+        borsh::BorshSerialize::serialize(&self.account_data, writer)?;
+        borsh::BorshSerialize::serialize(&self.storage_proof, writer)?;
+        Ok(())
+    }
+}
+#[automatically_derived]
+impl ::core::fmt::Debug for UnlockProof {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        ::core::fmt::Formatter::debug_struct_field4_finish(
+            f,
+            "UnlockProof",
+            "header_data",
+            &&self.header_data,
+            "account_proof",
+            &&self.account_proof,
+            "account_data",
+            &&self.account_data,
+            "storage_proof",
+            &&self.storage_proof,
+        )
+    }
+}
+#[automatically_derived]
+impl ::core::clone::Clone for UnlockProof {
+    #[inline]
+    fn clone(&self) -> UnlockProof {
+        UnlockProof {
+            header_data: ::core::clone::Clone::clone(&self.header_data),
+            account_proof: ::core::clone::Clone::clone(&self.account_proof),
+            account_data: ::core::clone::Clone::clone(&self.account_data),
+            storage_proof: ::core::clone::Clone::clone(&self.storage_proof),
+        }
+    }
+}
+#[doc(hidden)]
+#[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+const _: () = {
+    #[allow(unused_extern_crates, clippy::useless_attribute)]
+    extern crate serde as _serde;
+    #[automatically_derived]
+    impl _serde::Serialize for UnlockProof {
+        fn serialize<__S>(
+            &self,
+            __serializer: __S,
+        ) -> _serde::__private::Result<__S::Ok, __S::Error>
+        where
+            __S: _serde::Serializer,
+        {
+            let mut __serde_state = match _serde::Serializer::serialize_struct(
+                __serializer,
+                "UnlockProof",
+                false as usize + 1 + 1 + 1 + 1,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "header_data",
+                &self.header_data,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "account_proof",
+                &self.account_proof,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "account_data",
+                &self.account_data,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "storage_proof",
+                &self.storage_proof,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            _serde::ser::SerializeStruct::end(__serde_state)
+        }
+    }
+};
+#[doc(hidden)]
+#[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+const _: () = {
+    #[allow(unused_extern_crates, clippy::useless_attribute)]
+    extern crate serde as _serde;
+    #[automatically_derived]
+    impl<'de> _serde::Deserialize<'de> for UnlockProof {
+        fn deserialize<__D>(
+            __deserializer: __D,
+        ) -> _serde::__private::Result<Self, __D::Error>
+        where
+            __D: _serde::Deserializer<'de>,
+        {
+            #[allow(non_camel_case_types)]
+            enum __Field {
+                __field0,
+                __field1,
+                __field2,
+                __field3,
+                __ignore,
+            }
+            struct __FieldVisitor;
+            impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                type Value = __Field;
+                fn expecting(
+                    &self,
+                    __formatter: &mut _serde::__private::Formatter,
+                ) -> _serde::__private::fmt::Result {
+                    _serde::__private::Formatter::write_str(
+                        __formatter,
+                        "field identifier",
+                    )
+                }
+                fn visit_u64<__E>(
+                    self,
+                    __value: u64,
+                ) -> _serde::__private::Result<Self::Value, __E>
+                where
+                    __E: _serde::de::Error,
+                {
+                    match __value {
+                        0u64 => _serde::__private::Ok(__Field::__field0),
+                        1u64 => _serde::__private::Ok(__Field::__field1),
+                        2u64 => _serde::__private::Ok(__Field::__field2),
+                        3u64 => _serde::__private::Ok(__Field::__field3),
+                        _ => _serde::__private::Ok(__Field::__ignore),
+                    }
+                }
+                fn visit_str<__E>(
+                    self,
+                    __value: &str,
+                ) -> _serde::__private::Result<Self::Value, __E>
+                where
+                    __E: _serde::de::Error,
+                {
+                    match __value {
+                        "header_data" => _serde::__private::Ok(__Field::__field0),
+                        "account_proof" => _serde::__private::Ok(__Field::__field1),
+                        "account_data" => _serde::__private::Ok(__Field::__field2),
+                        "storage_proof" => _serde::__private::Ok(__Field::__field3),
+                        _ => _serde::__private::Ok(__Field::__ignore),
+                    }
+                }
+                fn visit_bytes<__E>(
+                    self,
+                    __value: &[u8],
+                ) -> _serde::__private::Result<Self::Value, __E>
+                where
+                    __E: _serde::de::Error,
+                {
+                    match __value {
+                        b"header_data" => _serde::__private::Ok(__Field::__field0),
+                        b"account_proof" => _serde::__private::Ok(__Field::__field1),
+                        b"account_data" => _serde::__private::Ok(__Field::__field2),
+                        b"storage_proof" => _serde::__private::Ok(__Field::__field3),
+                        _ => _serde::__private::Ok(__Field::__ignore),
+                    }
+                }
+            }
+            impl<'de> _serde::Deserialize<'de> for __Field {
+                #[inline]
+                fn deserialize<__D>(
+                    __deserializer: __D,
+                ) -> _serde::__private::Result<Self, __D::Error>
+                where
+                    __D: _serde::Deserializer<'de>,
+                {
+                    _serde::Deserializer::deserialize_identifier(
+                        __deserializer,
+                        __FieldVisitor,
+                    )
+                }
+            }
+            struct __Visitor<'de> {
+                marker: _serde::__private::PhantomData<UnlockProof>,
+                lifetime: _serde::__private::PhantomData<&'de ()>,
+            }
+            impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                type Value = UnlockProof;
+                fn expecting(
+                    &self,
+                    __formatter: &mut _serde::__private::Formatter,
+                ) -> _serde::__private::fmt::Result {
+                    _serde::__private::Formatter::write_str(
+                        __formatter,
+                        "struct UnlockProof",
+                    )
+                }
+                #[inline]
+                fn visit_seq<__A>(
+                    self,
+                    mut __seq: __A,
+                ) -> _serde::__private::Result<Self::Value, __A::Error>
+                where
+                    __A: _serde::de::SeqAccess<'de>,
+                {
+                    let __field0 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<u8>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    0usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    let __field1 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<Vec<u8>>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    1usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    let __field2 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<u8>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    2usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    let __field3 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<Vec<u8>>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    3usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    _serde::__private::Ok(UnlockProof {
+                        header_data: __field0,
+                        account_proof: __field1,
+                        account_data: __field2,
+                        storage_proof: __field3,
+                    })
+                }
+                #[inline]
+                fn visit_map<__A>(
+                    self,
+                    mut __map: __A,
+                ) -> _serde::__private::Result<Self::Value, __A::Error>
+                where
+                    __A: _serde::de::MapAccess<'de>,
+                {
+                    let mut __field0: _serde::__private::Option<Vec<u8>> = _serde::__private::None;
+                    let mut __field1: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
+                    let mut __field2: _serde::__private::Option<Vec<u8>> = _serde::__private::None;
+                    let mut __field3: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
+                    while let _serde::__private::Some(__key)
+                        = match _serde::de::MapAccess::next_key::<__Field>(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                        match __key {
+                            __Field::__field0 => {
+                                if _serde::__private::Option::is_some(&__field0) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "header_data",
+                                        ),
+                                    );
+                                }
+                                __field0 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<u8>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            __Field::__field1 => {
+                                if _serde::__private::Option::is_some(&__field1) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "account_proof",
+                                        ),
+                                    );
+                                }
+                                __field1 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<Vec<u8>>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            __Field::__field2 => {
+                                if _serde::__private::Option::is_some(&__field2) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "account_data",
+                                        ),
+                                    );
+                                }
+                                __field2 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<u8>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            __Field::__field3 => {
+                                if _serde::__private::Option::is_some(&__field3) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "storage_proof",
+                                        ),
+                                    );
+                                }
+                                __field3 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<Vec<u8>>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            _ => {
+                                let _ = match _serde::de::MapAccess::next_value::<
+                                    _serde::de::IgnoredAny,
+                                >(&mut __map) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
+                            }
+                        }
+                    }
+                    let __field0 = match __field0 {
+                        _serde::__private::Some(__field0) => __field0,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("header_data") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    let __field1 = match __field1 {
+                        _serde::__private::Some(__field1) => __field1,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("account_proof") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    let __field2 = match __field2 {
+                        _serde::__private::Some(__field2) => __field2,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("account_data") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    let __field3 = match __field3 {
+                        _serde::__private::Some(__field3) => __field3,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("storage_proof") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    _serde::__private::Ok(UnlockProof {
+                        header_data: __field0,
+                        account_proof: __field1,
+                        account_data: __field2,
+                        storage_proof: __field3,
+                    })
+                }
+            }
+            const FIELDS: &'static [&'static str] = &[
+                "header_data",
+                "account_proof",
+                "account_data",
+                "storage_proof",
+            ];
+            _serde::Deserializer::deserialize_struct(
+                __deserializer,
+                "UnlockProof",
+                FIELDS,
+                __Visitor {
+                    marker: _serde::__private::PhantomData::<UnlockProof>,
+                    lifetime: _serde::__private::PhantomData,
+                },
+            )
+        }
+    }
+};
+#[automatically_derived]
+impl ::core::marker::StructuralPartialEq for UnlockProof {}
+#[automatically_derived]
+impl ::core::cmp::PartialEq for UnlockProof {
+    #[inline]
+    fn eq(&self, other: &UnlockProof) -> bool {
+        self.header_data == other.header_data
+            && self.account_proof == other.account_proof
+            && self.account_data == other.account_data
+            && self.storage_proof == other.storage_proof
     }
 }
 #[serde(crate = "near_sdk::serde")]
@@ -12396,11 +13066,12 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn unlock(self, nonce: U128) -> near_sdk::Promise {
+    pub fn unlock(self, nonce: U128, proof: UnlockProof) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
+                proof: &'nearinput UnlockProof,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12418,7 +13089,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1,
+                            false as usize + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -12435,11 +13106,24 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "proof",
+                            &self.proof,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
             };
-            let __args = Input { nonce: &nonce };
+            let __args = Input {
+                nonce: &nonce,
+                proof: &proof,
+            };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
         };
@@ -12456,15 +13140,21 @@ impl FastBridgeExt {
         self,
         nonce: U128,
         sender_id: AccountId,
+        transfer_data: TransferMessage,
+        recipient_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
                 sender_id: &'nearinput AccountId,
+                transfer_data: &'nearinput TransferMessage,
+                recipient_id: &'nearinput AccountId,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
                 &'nearinput U128: borsh::ser::BorshSerialize,
+                &'nearinput AccountId: borsh::ser::BorshSerialize,
+                &'nearinput TransferMessage: borsh::ser::BorshSerialize,
                 &'nearinput AccountId: borsh::ser::BorshSerialize,
             {
                 fn serialize<W: borsh::maybestd::io::Write>(
@@ -12473,12 +13163,16 @@ impl FastBridgeExt {
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                     borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                    borsh::BorshSerialize::serialize(&self.transfer_data, writer)?;
+                    borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
                     Ok(())
                 }
             }
             let __args = Input {
                 nonce: &nonce,
                 sender_id: &sender_id,
+                transfer_data: &transfer_data,
+                recipient_id: &recipient_id,
             };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
@@ -13445,7 +14139,7 @@ impl FastBridge {
             .emit();
         U128::from(0)
     }
-    pub fn unlock(&self, nonce: U128) -> Promise {
+    pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -13470,37 +14164,50 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        ext_eth_client::ext(self.eth_client_account.clone())
-            .with_static_gas(utils::tera_gas(5))
-            .last_block_number()
+        let (recipient_id, transfer_data) = self
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+        let storage_key = utils::get_eth_storage_key(
+            transfer_data.transfer.token_eth,
+            transfer_data.recipient,
+            eth_types::U256(nonce.0.into()),
+            eth_types::U256(transfer_data.transfer.amount.0.into()),
+        );
+        ext_prover::ext(self.prover_account.clone())
+            .with_static_gas(utils::tera_gas(50))
+            .with_attached_deposit(utils::NO_DEPOSIT)
+            .verify_storage_proof(
+                proof.header_data,
+                proof.account_proof,
+                self.eth_bridge_contract.to_vec(),
+                proof.account_data,
+                storage_key,
+                proof.storage_proof,
+                false.try_to_vec().unwrap(),
+                transfer_data.valid_till_block_height,
+                None,
+                false,
+            )
             .then(
-                ext_self::ext(env::current_account_id())
+                ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
-                    .unlock_callback(nonce, env::predecessor_account_id()),
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_callback(
+                        nonce,
+                        env::predecessor_account_id(),
+                        transfer_data,
+                        recipient_id,
+                    ),
             )
     }
     pub fn unlock_callback(
         &mut self,
-        last_block_height: u64,
+        verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
+        transfer_data: TransferMessage,
+        recipient_id: AccountId,
     ) {
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
-        let (recipient_id, transfer_data) = self
-            .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Transaction with id: ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &&transaction_id.to_string(),
-                            ),
-                        ],
-                    ),
-                )
-            });
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
         if true {
@@ -13541,38 +14248,22 @@ impl FastBridge {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
                     ::core::fmt::Arguments::new_v1(
-                        &[
-                            "Minimum allowed block height is ",
-                            ", but current client\'s block height is ",
-                        ],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &transfer_data.valid_till_block_height.unwrap(),
-                            ),
-                            ::core::fmt::ArgumentV1::new_display(&last_block_height),
-                        ],
+                        &["Verification failed for unlock proof"],
+                        &[],
                     ),
                 );
                 res
             };
-            if !(last_block_height > transfer_data.valid_till_block_height.unwrap()) {
+            if !verification_result {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(last_block_height > transfer_data.valid_till_block_height.unwrap()) {
+        } else if !verification_result {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
                         ::core::fmt::Arguments::new_v1(
-                            &[
-                                "Minimum allowed block height is ",
-                                ", but current client\'s block height is ",
-                            ],
-                            &[
-                                ::core::fmt::ArgumentV1::new_display(
-                                    &transfer_data.valid_till_block_height.unwrap(),
-                                ),
-                                ::core::fmt::ArgumentV1::new_display(&last_block_height),
-                            ],
+                            &["Verification failed for unlock proof"],
+                            &[],
                         ),
                     );
                     res
@@ -13589,7 +14280,7 @@ impl FastBridge {
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce.0.to_string(), &transfer_data);
         Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
@@ -13683,22 +14374,16 @@ impl FastBridge {
         } else if !verification_success {
             ::near_sdk::env::panic_str(&"Failed to verify the proof")
         }
-        let transaction_id = utils::get_transaction_id(proof.nonce);
+        let nonce_str = proof.nonce.to_string();
         let transfer = self
             .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Transaction with id: ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &&transaction_id.to_string(),
-                            ),
-                        ],
-                    ),
-                )
-            });
+            .get(&nonce_str)
+            .unwrap_or_else(|| ::core::panicking::panic_fmt(
+                ::core::fmt::Arguments::new_v1(
+                    &["Transaction with id: ", " not found"],
+                    &[::core::fmt::ArgumentV1::new_display(&&nonce_str)],
+                ),
+            ));
         let transfer_data = transfer.1;
         if true {
             let msg: &str = &{
@@ -13815,7 +14500,7 @@ impl FastBridge {
             &transfer_data.fee.token,
             &u128::from(transfer_data.fee.amount),
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce_str, &transfer_data);
         Event::FastBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
             recipient_id,
@@ -13975,9 +14660,8 @@ impl FastBridge {
         self.pending_transfers_balances
             .insert(&transfer_message.transfer.token_near, &new_balance);
         self.nonce += 1;
-        let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (sender_id, transfer_message);
-        self.pending_transfers.insert(&transaction_id, &account_pending);
+        self.pending_transfers.insert(&self.nonce.to_string(), &account_pending);
         self.nonce
     }
     fn remove_transfer(
@@ -15061,6 +15745,7 @@ pub extern "C" fn unlock() {
     #[serde(crate = "near_sdk::serde")]
     struct Input {
         nonce: U128,
+        proof: UnlockProof,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -15077,6 +15762,7 @@ pub extern "C" fn unlock() {
                 #[allow(non_camel_case_types)]
                 enum __Field {
                     __field0,
+                    __field1,
                     __ignore,
                 }
                 struct __FieldVisitor;
@@ -15100,6 +15786,7 @@ pub extern "C" fn unlock() {
                     {
                         match __value {
                             0u64 => _serde::__private::Ok(__Field::__field0),
+                            1u64 => _serde::__private::Ok(__Field::__field1),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -15112,6 +15799,7 @@ pub extern "C" fn unlock() {
                     {
                         match __value {
                             "nonce" => _serde::__private::Ok(__Field::__field0),
+                            "proof" => _serde::__private::Ok(__Field::__field1),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -15124,6 +15812,7 @@ pub extern "C" fn unlock() {
                     {
                         match __value {
                             b"nonce" => _serde::__private::Ok(__Field::__field0),
+                            b"proof" => _serde::__private::Ok(__Field::__field1),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -15178,12 +15867,33 @@ pub extern "C" fn unlock() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 1 element",
+                                        &"struct Input with 2 elements",
                                     ),
                                 );
                             }
                         };
-                        _serde::__private::Ok(Input { nonce: __field0 })
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
+                            UnlockProof,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        1usize,
+                                        &"struct Input with 2 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                        })
                     }
                     #[inline]
                     fn visit_map<__A>(
@@ -15194,6 +15904,7 @@ pub extern "C" fn unlock() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<UnlockProof> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -15213,6 +15924,23 @@ pub extern "C" fn unlock() {
                                     __field0 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
                                             U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field1 => {
+                                    if _serde::__private::Option::is_some(&__field1) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("proof"),
+                                        );
+                                    }
+                                    __field1 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            UnlockProof,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -15244,10 +15972,24 @@ pub extern "C" fn unlock() {
                                 }
                             }
                         };
-                        _serde::__private::Ok(Input { nonce: __field0 })
+                        let __field1 = match __field1 {
+                            _serde::__private::Some(__field1) => __field1,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("proof") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                        })
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["nonce"];
+                const FIELDS: &'static [&'static str] = &["nonce", "proof"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -15260,12 +16002,12 @@ pub extern "C" fn unlock() {
             }
         }
     };
-    let Input { nonce }: Input = near_sdk::serde_json::from_slice(
+    let Input { nonce, proof }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.unlock(nonce);
+    let result = contract.unlock(nonce, proof);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
@@ -15283,10 +16025,14 @@ pub extern "C" fn unlock_callback() {
     struct Input {
         nonce: U128,
         sender_id: AccountId,
+        transfer_data: TransferMessage,
+        recipient_id: AccountId,
     }
     impl borsh::de::BorshDeserialize for Input
     where
         U128: borsh::BorshDeserialize,
+        AccountId: borsh::BorshDeserialize,
+        TransferMessage: borsh::BorshDeserialize,
         AccountId: borsh::BorshDeserialize,
     {
         fn deserialize(
@@ -15295,10 +16041,12 @@ pub extern "C" fn unlock_callback() {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
                 sender_id: borsh::BorshDeserialize::deserialize(buf)?,
+                transfer_data: borsh::BorshDeserialize::deserialize(buf)?,
+                recipient_id: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce, sender_id, transfer_data, recipient_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -15306,10 +16054,19 @@ pub extern "C" fn unlock_callback() {
         near_sdk::PromiseResult::Successful(x) => x,
         _ => near_sdk::env::panic_str("Callback computation 0 was not successful"),
     };
-    let last_block_height: u64 = near_sdk::borsh::BorshDeserialize::try_from_slice(&data)
+    let verification_result: bool = near_sdk::borsh::BorshDeserialize::try_from_slice(
+            &data,
+        )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.unlock_callback(last_block_height, nonce, sender_id);
+    contract
+        .unlock_callback(
+            verification_result,
+            nonce,
+            sender_id,
+            transfer_data,
+            recipient_id,
+        );
     near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
