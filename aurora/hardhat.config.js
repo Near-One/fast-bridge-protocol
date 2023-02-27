@@ -7,6 +7,13 @@ require('dotenv').config();
 
 const AURORA_PRIVATE_KEY = process.env.AURORA_PRIVATE_KEY;
 
+task('init_near_contract', 'Init the Aurora Fast Bridge Contract on NEAR')
+    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .setAction(async taskArgs => {
+        const { initNearContract } = require('./scripts/utils');
+        await initNearContract(hre.ethers.provider, taskArgs.fastBridgeAddress);
+    });
+
 module.exports = {
     solidity: "0.8.17",
     networks: {

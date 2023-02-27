@@ -7,3 +7,7 @@ $ yarn add hardhat
 ```bash
 $ make deploy
 ```
+
+```bash
+$ make init_near_contract
+```
