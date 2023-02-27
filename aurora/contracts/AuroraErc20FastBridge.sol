@@ -20,7 +20,7 @@ contract AuroraErc20FastBridge {
     EvmErc20 public usdc;
 
     event NearContractInit(string near_addres);
-    event LogInt(uint64 msg);
+    event LogInt128(uint128 msg);
 
     constructor() {
         creator = msg.sender;
@@ -37,9 +37,14 @@ contract AuroraErc20FastBridge {
 
     function init_token_transfer(bytes memory init_transfer_args) public {
         Borsh.Data memory borsh = Borsh.from(init_transfer_args);
-        uint64 valid_till = borsh.decodeU64();
+        borsh.decodeU64(); //valid_till
+        borsh.decodeBytes(); //transfer token address on Near
+        borsh.decodeBytes20(); //transfer token address on Ethereum
+        uint128 transfer_token_amount = borsh.decodeU128();
+        borsh.decodeBytes(); // fee token address on Near
+        uint128 fee_token_amount = borsh.decodeU128();
 
-        emit LogInt(valid_till);
+        emit LogInt128(transfer_token_amount + fee_token_amount);
     }
 
     function get_near_address() public view returns (bytes memory) {
