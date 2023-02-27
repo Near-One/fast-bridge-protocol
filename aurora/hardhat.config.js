@@ -14,6 +14,13 @@ task('init_near_contract', 'Init the Aurora Fast Bridge Contract on NEAR')
         await initNearContract(hre.ethers.provider, taskArgs.fastBridgeAddress);
     });
 
+task('init_token_transfer', 'Init Token Transfer from Aurora to Eth')
+    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .setAction(async taskArgs => {
+        const { initTokenTransfer } = require('./scripts/utils');
+        await initTokenTransfer(hre.ethers.provider, taskArgs.fastBridgeAddress);
+    });
+
 module.exports = {
     solidity: "0.8.17",
     networks: {

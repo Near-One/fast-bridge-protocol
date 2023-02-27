@@ -20,6 +20,7 @@ contract AuroraErc20FastBridge {
     EvmErc20 public usdc;
 
     event NearContractInit(string near_addres);
+    event LogInt(uint64 msg);
 
     constructor() {
         creator = msg.sender;
@@ -34,6 +35,13 @@ contract AuroraErc20FastBridge {
         emit NearContractInit(string(get_near_address()));
     }
 
+    function init_token_transfer(bytes memory init_transfer_args) public {
+        Borsh.Data memory borsh = Borsh.from(init_transfer_args);
+        uint64 valid_till = borsh.decodeU64();
+
+        emit LogInt(valid_till);
+    }
+
     function get_near_address() public view returns (bytes memory) {
         bytes memory near_address_raw = bytes(string.concat(Strings.toHexString(uint160(address(this))), ".aurora"));
         bytes memory near_address = new bytes(near_address_raw.length - 2);
@@ -43,5 +51,11 @@ contract AuroraErc20FastBridge {
         }
 
         return near_address;
+    }
+
+    function destruct() public {
+        // Destroys this contract and sends remaining funds back to creator
+        if (msg.sender == creator)
+            selfdestruct(payable(creator));
     }
 }
