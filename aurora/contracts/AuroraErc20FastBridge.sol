@@ -2,18 +2,22 @@ pragma solidity ^0.8.17;
 
 import {IERC20 as IERC20_NEAR} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import "../lib/aurora-engine/etc/eth-contracts/contracts/EvmErc20.sol";
-import {AuroraSdk, NEAR, PromiseCreateArgs} from "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/AuroraSdk.sol";
+import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/AuroraSdk.sol";
 import "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/Borsh.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 uint64 constant INC_NEAR_GAS = 36_000_000_000_000;
 uint64 constant INIT_NEAR_GAS = 100_000_000_000_000;
 
-contract AuroraErc20FastBridge {
+contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
     using AuroraSdk for PromiseCreateArgs;
+    using AuroraSdk for PromiseWithCallback;
     using Borsh for Borsh.Data;
+
+    bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
     address constant WNEAR_ADDRESS = 0x4861825E75ab14553E5aF711EbbE6873d369d146;
     address constant USDC_ADDRESS = 0x901fb725c106E182614105335ad0E230c91B67C8;
@@ -25,11 +29,14 @@ contract AuroraErc20FastBridge {
 
     event NearContractInit(string near_addres);
     event Log(string msg);
+    event LogUint(uint128 msg);
 
     constructor() {
         creator = msg.sender;
         near = AuroraSdk.initNear(IERC20_NEAR(WNEAR_ADDRESS));
         usdc = EvmErc20(USDC_ADDRESS);
+
+        _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
     }
 
     function init_near_contract() public {
@@ -60,7 +67,20 @@ contract AuroraErc20FastBridge {
         bytes memory args = bytes(string.concat('{"receiver_id": "fb.olga24912_3.testnet", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
         PromiseCreateArgs memory callTr = near.call(USDC_ADDRESS_ON_NEAR, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
-        callTr.transact();
+        PromiseCreateArgs memory callback =
+        near.auroraCall(address(this), abi.encodePacked(this.init_token_transfer_callback.selector), 0, INC_NEAR_GAS);
+
+        callTr.then(callback).transact();
+    }
+
+    function init_token_transfer_callback() public onlyRole(CALLBACK_ROLE) {
+        uint128 transferred_amount = 0;
+
+        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
+            transferred_amount = uint128(bytes16(AuroraSdk.promiseResult(0).output));
+        }
+
+        emit LogUint(transferred_amount);
     }
 
     function get_near_address() public view returns (bytes memory) {

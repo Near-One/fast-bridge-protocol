@@ -32,7 +32,7 @@ async function main() {
             "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
         },
     });
-    const options = { gasLimit: 3000000 };
+    const options = { gasLimit: 4000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet).deploy(options);
     await fastbridge.deployed();
 
