@@ -9,7 +9,7 @@ async function initNearContract(provider, fastBridgeAddress) {
     console.log("Account balance:", (await deployerWallet.getBalance()).toString());
 
     const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", "0x4861825E75ab14553E5aF711EbbE6873d369d146");
-    await wnear.approve(fastBridgeAddress, "2000000000000000000000000");
+    await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
 
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {

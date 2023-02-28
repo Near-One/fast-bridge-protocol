@@ -17,6 +17,7 @@ contract AuroraErc20FastBridge {
 
     address constant WNEAR_ADDRESS = 0x4861825E75ab14553E5aF711EbbE6873d369d146;
     address constant USDC_ADDRESS = 0x901fb725c106E182614105335ad0E230c91B67C8;
+    string constant USDC_ADDRESS_ON_NEAR = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet";
 
     address creator;
     NEAR public near;
@@ -34,7 +35,11 @@ contract AuroraErc20FastBridge {
     function init_near_contract() public {
         emit NearContractInit(string(get_near_address()));
 
-        PromiseCreateArgs memory callInc = near.call("dev-1676024144404-59802219762521", "increment", "", 0, INC_NEAR_GAS);
+        uint128 deposit = 12_500_000_000_000_000_000_000;
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
+        bytes memory args = bytes(string.concat('{"account_id": "', string(get_near_address()), '", "registreation_only": true }'));
+
+        PromiseCreateArgs memory callInc = near.call(USDC_ADDRESS_ON_NEAR, "storage_deposit", args, deposit, INC_NEAR_GAS);
         callInc.transact();
     }
 
@@ -54,7 +59,7 @@ contract AuroraErc20FastBridge {
         string memory init_args_base64 = Base64.encode(init_transfer_args);
         bytes memory args = bytes(string.concat('{"receiver_id": "fb.olga24912_3.testnet", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
-        PromiseCreateArgs memory callTr = near.call("07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet", "ft_transfer_call", args, 1, INIT_NEAR_GAS);
+        PromiseCreateArgs memory callTr = near.call(USDC_ADDRESS_ON_NEAR, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
         callTr.transact();
     }
 
