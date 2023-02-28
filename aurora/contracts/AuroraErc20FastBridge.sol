@@ -20,10 +20,9 @@ contract AuroraErc20FastBridge is AccessControl {
     bytes32 public constant MASTER = keccak256("MASTER");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
-    address constant WNEAR_ADDRESS = 0x4861825E75ab14553E5aF711EbbE6873d369d146;
-
     address creator;
     NEAR public near;
+    string bridge_address_on_near;
 
     mapping(string => EvmErc20) registered_tokens;
 
@@ -31,9 +30,10 @@ contract AuroraErc20FastBridge is AccessControl {
     event Log(string msg);
     event LogUint(uint128 msg);
 
-    constructor() {
+    constructor(address wnear_address, string memory bridge_address) {
         creator = msg.sender;
-        near = AuroraSdk.initNear(IERC20_NEAR(WNEAR_ADDRESS));
+        near = AuroraSdk.initNear(IERC20_NEAR(wnear_address));
+        bridge_address_on_near = bridge_address;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(MASTER, msg.sender);
@@ -66,7 +66,7 @@ contract AuroraErc20FastBridge is AccessControl {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
-        bytes memory args = bytes(string.concat('{"receiver_id": "fb.olga24912_3.testnet", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
+        bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
         PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), abi.encodePacked(this.init_token_transfer_callback.selector), 0, INC_NEAR_GAS);
