@@ -7,11 +7,11 @@ require('dotenv').config();
 
 const AURORA_PRIVATE_KEY = process.env.AURORA_PRIVATE_KEY;
 
-task('init_near_contract', 'Init the Aurora Fast Bridge Contract on NEAR')
+task('tokens_registration', 'Init the Aurora Fast Bridge Contract on NEAR')
     .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
     .setAction(async taskArgs => {
-        const { initNearContract } = require('./scripts/utils');
-        await initNearContract(hre.ethers.provider, taskArgs.fastBridgeAddress);
+        const { tokensRegistration } = require('./scripts/utils');
+        await tokensRegistration(hre.ethers.provider, taskArgs.fastBridgeAddress);
     });
 
 task('init_token_transfer', 'Init Token Transfer from Aurora to Eth')

@@ -1,7 +1,7 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-async function initNearContract(provider, fastBridgeAddress) {
+async function tokensRegistration(provider, fastBridgeAddress) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
@@ -20,7 +20,7 @@ async function initNearContract(provider, fastBridgeAddress) {
         .attach(fastBridgeAddress)
         .connect(deployerWallet);
 
-    let tx = await fast_bridge.init_near_contract();
+    let tx = await fast_bridge.tokens_registration("0x901fb725c106E182614105335ad0E230c91B67C8", "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet");
     let receipt = await tx.wait();
 
     console.log("Aurora Fast Bridge Address on Near: ", receipt.events[0].args);
@@ -53,5 +53,5 @@ async function initTokenTransfer(provider, fastBridgeAddress) {
     console.log(receipt.events[0].args);
 }
 
-exports.initNearContract = initNearContract;
 exports.initTokenTransfer = initTokenTransfer;
+exports.tokensRegistration = tokensRegistration;

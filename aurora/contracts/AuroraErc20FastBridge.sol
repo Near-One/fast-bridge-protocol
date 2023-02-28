@@ -17,11 +17,10 @@ contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for PromiseWithCallback;
     using Borsh for Borsh.Data;
 
+    bytes32 public constant MASTER = keccak256("MASTER");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
     address constant WNEAR_ADDRESS = 0x4861825E75ab14553E5aF711EbbE6873d369d146;
-    address constant USDC_ADDRESS = 0x901fb725c106E182614105335ad0E230c91B67C8;
-    string constant USDC_ADDRESS_ON_NEAR = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet";
 
     address creator;
     NEAR public near;
@@ -37,39 +36,39 @@ contract AuroraErc20FastBridge is AccessControl {
         near = AuroraSdk.initNear(IERC20_NEAR(WNEAR_ADDRESS));
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
+        _grantRole(MASTER, msg.sender);
     }
 
-    function init_near_contract() public {
+    function tokens_registration(address aurora_token_address, string memory near_token_address) public onlyRole(MASTER) {
         emit NearContractInit(string(get_near_address()));
 
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(string.concat('{"account_id": "', string(get_near_address()), '", "registreation_only": true }'));
 
-        registered_tokens[USDC_ADDRESS_ON_NEAR] = EvmErc20(USDC_ADDRESS);
-
-        PromiseCreateArgs memory callInc = near.call(USDC_ADDRESS_ON_NEAR, "storage_deposit", args, deposit, INC_NEAR_GAS);
+        registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
+        PromiseCreateArgs memory callInc = near.call(near_token_address, "storage_deposit", args, deposit, INC_NEAR_GAS);
         callInc.transact();
     }
 
     function init_token_transfer(bytes memory init_transfer_args) public {
         Borsh.Data memory borsh = Borsh.from(init_transfer_args);
         borsh.decodeU64(); //valid_till
-        borsh.decodeBytes(); //transfer token address on Near
+        string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
         borsh.decodeBytes20(); //transfer token address on Ethereum
         uint128 transfer_token_amount = borsh.decodeU128();
         borsh.decodeBytes(); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
 
-        EvmErc20 usdc = registered_tokens[USDC_ADDRESS_ON_NEAR];
-        usdc.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
-        usdc.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
+        EvmErc20 token = registered_tokens[token_address_on_near];
+        token.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
+        token.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
         bytes memory args = bytes(string.concat('{"receiver_id": "fb.olga24912_3.testnet", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
-        PromiseCreateArgs memory callTr = near.call(USDC_ADDRESS_ON_NEAR, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
+        PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), abi.encodePacked(this.init_token_transfer_callback.selector), 0, INC_NEAR_GAS);
 
         callTr.then(callback).transact();
