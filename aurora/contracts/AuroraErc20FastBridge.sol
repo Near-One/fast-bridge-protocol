@@ -25,7 +25,8 @@ contract AuroraErc20FastBridge is AccessControl {
 
     address creator;
     NEAR public near;
-    EvmErc20 public usdc;
+
+    mapping(string => EvmErc20) registered_tokens;
 
     event NearContractInit(string near_addres);
     event Log(string msg);
@@ -34,7 +35,6 @@ contract AuroraErc20FastBridge is AccessControl {
     constructor() {
         creator = msg.sender;
         near = AuroraSdk.initNear(IERC20_NEAR(WNEAR_ADDRESS));
-        usdc = EvmErc20(USDC_ADDRESS);
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
     }
@@ -45,6 +45,8 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(string.concat('{"account_id": "', string(get_near_address()), '", "registreation_only": true }'));
+
+        registered_tokens[USDC_ADDRESS_ON_NEAR] = EvmErc20(USDC_ADDRESS);
 
         PromiseCreateArgs memory callInc = near.call(USDC_ADDRESS_ON_NEAR, "storage_deposit", args, deposit, INC_NEAR_GAS);
         callInc.transact();
@@ -59,6 +61,7 @@ contract AuroraErc20FastBridge is AccessControl {
         borsh.decodeBytes(); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
 
+        EvmErc20 usdc = registered_tokens[USDC_ADDRESS_ON_NEAR];
         usdc.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
         usdc.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
@@ -67,8 +70,7 @@ contract AuroraErc20FastBridge is AccessControl {
         bytes memory args = bytes(string.concat('{"receiver_id": "fb.olga24912_3.testnet", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
         PromiseCreateArgs memory callTr = near.call(USDC_ADDRESS_ON_NEAR, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
-        PromiseCreateArgs memory callback =
-        near.auroraCall(address(this), abi.encodePacked(this.init_token_transfer_callback.selector), 0, INC_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), abi.encodePacked(this.init_token_transfer_callback.selector), 0, INC_NEAR_GAS);
 
         callTr.then(callback).transact();
     }
