@@ -15,6 +15,9 @@ contract AuroraErc20FastBridge {
     using AuroraSdk for PromiseCreateArgs;
     using Borsh for Borsh.Data;
 
+    address constant WNEAR_ADDRESS = 0x4861825E75ab14553E5aF711EbbE6873d369d146;
+    address constant USDC_ADDRESS = 0x901fb725c106E182614105335ad0E230c91B67C8;
+
     address creator;
     NEAR public near;
     EvmErc20 public usdc;
@@ -24,8 +27,8 @@ contract AuroraErc20FastBridge {
 
     constructor() {
         creator = msg.sender;
-        near = AuroraSdk.initNear(IERC20_NEAR(0x4861825E75ab14553E5aF711EbbE6873d369d146));
-        usdc = EvmErc20(0x901fb725c106E182614105335ad0E230c91B67C8);
+        near = AuroraSdk.initNear(IERC20_NEAR(WNEAR_ADDRESS));
+        usdc = EvmErc20(USDC_ADDRESS);
     }
 
     function init_near_contract() public {
