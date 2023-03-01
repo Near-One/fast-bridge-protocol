@@ -25,6 +25,7 @@ contract AuroraErc20FastBridge is AccessControl {
     string bridge_address_on_near;
 
     mapping(string => EvmErc20) registered_tokens;
+    mapping(string => mapping(address => uint128)) balance;
 
     event NearContractInit(string near_addres);
     event Log(string msg);
@@ -51,6 +52,17 @@ contract AuroraErc20FastBridge is AccessControl {
         callInc.transact();
     }
 
+    function withdraw(string memory token) public {
+        uint128 signer_balance = balance[token][msg.sender];
+
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
+        bytes memory args = bytes(string.concat('{"receiver_id": "aurora", "amount": "', Strings.toString(signer_balance), '", "msg": "', string(address_to_string(address(msg.sender))), '"}'));
+        PromiseCreateArgs memory callTr = near.call(token, "ft_transfer_call", args, 1, INC_NEAR_GAS);
+        callTr.transact();
+
+        balance[token][msg.sender] = 0;
+    }
+
     function init_token_transfer(bytes memory init_transfer_args) public {
         Borsh.Data memory borsh = Borsh.from(init_transfer_args);
         borsh.decodeU64(); //valid_till
@@ -72,41 +84,57 @@ contract AuroraErc20FastBridge is AccessControl {
         bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
         PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), abi.encodeWithSelector(this.init_token_transfer_callback.selector, init_transfer_args), 0, INC_NEAR_GAS);
+        bytes memory callback_arg = abi.encodeWithSelector(this.init_token_transfer_callback.selector, msg.sender, init_transfer_args);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, INC_NEAR_GAS);
 
         callTr.then(callback).transact();
     }
 
-    function init_token_transfer_callback(bytes memory init_transfer_args) public onlyRole(CALLBACK_ROLE) {
+    function init_token_transfer_callback(address signer, bytes memory init_transfer_args) public onlyRole(CALLBACK_ROLE) {
         uint128 transferred_amount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferred_amount = uint128(bytes16(AuroraSdk.promiseResult(0).output));
+            transferred_amount = stringToUint(AuroraSdk.promiseResult(0).output);
         }
         emit LogUint(transferred_amount);
 
-        if (transferred_amount == 0) {
-            Borsh.Data memory borsh = Borsh.from(init_transfer_args);
-            borsh.decodeU64(); //valid_till
-            string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
-            borsh.decodeBytes20(); //transfer token address on Ethereum
-            uint128 transfer_token_amount = borsh.decodeU128();
-            borsh.decodeBytes(); // fee token address on Near
-            uint128 fee_token_amount = borsh.decodeU128();
+        Borsh.Data memory borsh = Borsh.from(init_transfer_args);
+        borsh.decodeU64(); //valid_till
+        string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
+        borsh.decodeBytes20(); //transfer token address on Ethereum
+        uint128 transfer_token_amount = borsh.decodeU128();
+        borsh.decodeBytes(); // fee token address on Near
+        uint128 fee_token_amount = borsh.decodeU128();
 
-
-        }
+        emit LogUint(transfer_token_amount + fee_token_amount);
+        balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount - transferred_amount);
     }
 
     function get_near_address() public view returns (bytes memory) {
-        bytes memory near_address_raw = bytes(string.concat(Strings.toHexString(uint160(address(this))), ".aurora"));
-        bytes memory near_address = new bytes(near_address_raw.length - 2);
+        bytes memory aurora_address = address_to_string(address(this));
+        return bytes(string.concat(string(aurora_address), ".aurora"));
+    }
 
-        for (uint256 i = 0; i < near_address_raw.length - 2; ++i) {
-            near_address[i] = near_address_raw[i + 2];
+    function address_to_string(address aurora_address) private pure returns (bytes memory) {
+        bytes memory address_raw = bytes(Strings.toHexString(uint160(aurora_address)));
+        bytes memory address_str = new bytes(address_raw.length - 2);
+
+        for (uint256 i = 0; i < address_raw.length - 2; ++i) {
+            address_str[i] = address_raw[i + 2];
         }
 
-        return near_address;
+        return address_str;
+    }
+
+    function stringToUint(bytes memory b) private pure returns (uint128) {
+        uint128 result = 0;
+        for (uint256 i = 0; i < b.length; i++) {
+            uint128 c = uint128(uint8(b[i]));
+            if (c >= 48 && c <= 57) {
+                result = result * 10 + (c - 48);
+            }
+        }
+        return result;
     }
 
     function destruct() public {

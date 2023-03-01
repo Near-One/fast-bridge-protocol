@@ -14,6 +14,13 @@ task('tokens_registration', 'Init the Aurora Fast Bridge Contract on NEAR')
         await tokensRegistration(hre.ethers.provider, taskArgs.fastBridgeAddress);
     });
 
+task('withdraw', 'Init the Aurora Fast Bridge Contract on NEAR')
+    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .setAction(async taskArgs => {
+        const { withdraw } = require('./scripts/utils');
+        await withdraw(hre.ethers.provider, taskArgs.fastBridgeAddress);
+    });
+
 task('init_token_transfer', 'Init Token Transfer from Aurora to Eth')
     .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
     .setAction(async taskArgs => {
