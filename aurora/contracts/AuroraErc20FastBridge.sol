@@ -57,8 +57,10 @@ contract AuroraErc20FastBridge is AccessControl {
         string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
         borsh.decodeBytes20(); //transfer token address on Ethereum
         uint128 transfer_token_amount = borsh.decodeU128();
-        borsh.decodeBytes(); // fee token address on Near
+        string memory fee_token_address_on_near = string(borsh.decodeBytes()); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
+
+        require(keccak256(abi.encodePacked(token_address_on_near)) == keccak256(abi.encodePacked(fee_token_address_on_near)));
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
@@ -92,7 +94,7 @@ contract AuroraErc20FastBridge is AccessControl {
             borsh.decodeBytes(); // fee token address on Near
             uint128 fee_token_amount = borsh.decodeU128();
 
-            
+
         }
     }
 
