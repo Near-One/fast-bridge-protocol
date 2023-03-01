@@ -60,28 +60,40 @@ contract AuroraErc20FastBridge is AccessControl {
         borsh.decodeBytes(); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
 
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
+
         EvmErc20 token = registered_tokens[token_address_on_near];
         token.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
         token.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
         bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
         PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), abi.encodePacked(this.init_token_transfer_callback.selector), 0, INC_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), abi.encodeWithSelector(this.init_token_transfer_callback.selector, init_transfer_args), 0, INC_NEAR_GAS);
 
         callTr.then(callback).transact();
     }
 
-    function init_token_transfer_callback() public onlyRole(CALLBACK_ROLE) {
+    function init_token_transfer_callback(bytes memory init_transfer_args) public onlyRole(CALLBACK_ROLE) {
         uint128 transferred_amount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
             transferred_amount = uint128(bytes16(AuroraSdk.promiseResult(0).output));
         }
-
         emit LogUint(transferred_amount);
+
+        if (transferred_amount == 0) {
+            Borsh.Data memory borsh = Borsh.from(init_transfer_args);
+            borsh.decodeU64(); //valid_till
+            string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
+            borsh.decodeBytes20(); //transfer token address on Ethereum
+            uint128 transfer_token_amount = borsh.decodeU128();
+            borsh.decodeBytes(); // fee token address on Near
+            uint128 fee_token_amount = borsh.decodeU128();
+
+            
+        }
     }
 
     function get_near_address() public view returns (bytes memory) {
