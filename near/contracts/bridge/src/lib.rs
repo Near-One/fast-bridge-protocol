@@ -215,7 +215,7 @@ impl FastBridge {
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
-                    .with_static_gas(utils::tera_gas(200))
+                    .with_static_gas(utils::tera_gas(50))
                     .init_transfer_callback(transfer_message, sender_id, update_balance),
             )
     }
