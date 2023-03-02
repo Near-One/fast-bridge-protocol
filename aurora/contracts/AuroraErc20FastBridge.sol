@@ -17,13 +17,14 @@ contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for PromiseWithCallback;
     using Borsh for Borsh.Data;
 
-    bytes32 public constant MASTER = keccak256("MASTER");
+    bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
     address creator;
     NEAR public near;
     string bridge_address_on_near;
 
+    mapping(address => bool) whitelisted_users;
     mapping(string => EvmErc20) registered_tokens;
     mapping(string => mapping(address => uint128)) balance;
 
@@ -37,10 +38,20 @@ contract AuroraErc20FastBridge is AccessControl {
         bridge_address_on_near = bridge_address;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
-        _grantRole(MASTER, msg.sender);
+        _grantRole(ADMIN, msg.sender);
+
+        whitelisted_users[msg.sender] = true;
     }
 
-    function tokens_registration(address aurora_token_address, string memory near_token_address) public onlyRole(MASTER) {
+    function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(ADMIN) {
+        require(users.length == states.length, "Arrays must be equal");
+
+        for (uint256 i = 0; i < users.length; i++) {
+            whitelisted_users[users[i]] = states[i];
+        }
+    }
+
+    function tokens_registration(address aurora_token_address, string memory near_token_address) public onlyRole(ADMIN) {
         emit NearContractInit(string(get_near_address()));
 
         uint128 deposit = 12_500_000_000_000_000_000_000;
@@ -64,6 +75,8 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function init_token_transfer(bytes memory init_transfer_args) public {
+        require(whitelisted_users[address(msg.sender)], "Sender not whitelisted!");
+
         Borsh.Data memory borsh = Borsh.from(init_transfer_args);
         borsh.decodeU64(); //valid_till
         string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
