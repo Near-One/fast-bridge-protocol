@@ -13,3 +13,6 @@ withdraw:
 
 init_token_transfer:
 	yarn hardhat init_token_transfer --network $(NETWORK) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --init-token-transfer-arg $(INIT_TOKEN_TRANSFER_ARG)
+
+test:
+	yarn hardhat test --network testnet_aurora
