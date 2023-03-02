@@ -8,8 +8,8 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-uint64 constant INC_NEAR_GAS = 36_000_000_000_000;
-uint64 constant INIT_NEAR_GAS = 100_000_000_000_000;
+uint64 constant BASE_NEAR_GAS = 50_000_000_000_000;
+uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
 
 contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
@@ -29,8 +29,6 @@ contract AuroraErc20FastBridge is AccessControl {
     mapping(string => mapping(address => uint128)) balance;
 
     event NearContractInit(string near_addres);
-    event Log(string msg);
-    event LogUint(uint128 msg);
 
     constructor(address wnear_address, string memory bridge_address) {
         creator = msg.sender;
@@ -59,7 +57,7 @@ contract AuroraErc20FastBridge is AccessControl {
         bytes memory args = bytes(string.concat('{"account_id": "', string(get_near_address()), '", "registreation_only": true }'));
 
         registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
-        PromiseCreateArgs memory callInc = near.call(near_token_address, "storage_deposit", args, deposit, INC_NEAR_GAS);
+        PromiseCreateArgs memory callInc = near.call(near_token_address, "storage_deposit", args, deposit, BASE_NEAR_GAS);
         callInc.transact();
     }
 
@@ -68,7 +66,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
         bytes memory args = bytes(string.concat('{"receiver_id": "aurora", "amount": "', Strings.toString(signer_balance), '", "msg": "', string(address_to_string(address(msg.sender))), '"}'));
-        PromiseCreateArgs memory callTr = near.call(token, "ft_transfer_call", args, 1, INC_NEAR_GAS);
+        PromiseCreateArgs memory callTr = near.call(token, "ft_transfer_call", args, 1, BASE_NEAR_GAS);
         callTr.transact();
 
         balance[token][msg.sender] = 0;
@@ -96,9 +94,9 @@ contract AuroraErc20FastBridge is AccessControl {
         string memory init_args_base64 = Base64.encode(init_transfer_args);
         bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
-        PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_NEAR_GAS);
+        PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_TRANSFER_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.init_token_transfer_callback.selector, msg.sender, init_transfer_args);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, INC_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
         callTr.then(callback).transact();
     }
@@ -109,7 +107,6 @@ contract AuroraErc20FastBridge is AccessControl {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
             transferred_amount = stringToUint(AuroraSdk.promiseResult(0).output);
         }
-        emit LogUint(transferred_amount);
 
         Borsh.Data memory borsh = Borsh.from(init_transfer_args);
         borsh.decodeU64(); //valid_till
@@ -119,7 +116,6 @@ contract AuroraErc20FastBridge is AccessControl {
         borsh.decodeBytes(); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
 
-        emit LogUint(transfer_token_amount + fee_token_amount);
         balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount - transferred_amount);
     }
 
