@@ -23,9 +23,10 @@ task('withdraw', 'Init the Aurora Fast Bridge Contract on NEAR')
 
 task('init_token_transfer', 'Init Token Transfer from Aurora to Eth')
     .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .addParam('initTokenTransferArg', 'argument for token transfer initialization')
     .setAction(async taskArgs => {
         const { initTokenTransfer } = require('./scripts/utils');
-        await initTokenTransfer(hre.ethers.provider, taskArgs.fastBridgeAddress);
+        await initTokenTransfer(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.initTokenTransferArg);
     });
 
 module.exports = {

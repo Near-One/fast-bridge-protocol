@@ -26,7 +26,7 @@ async function tokensRegistration(provider, fastBridgeAddress) {
     console.log("Aurora Fast Bridge Address on Near: ", receipt.events[0].args);
 }
 
-async function initTokenTransfer(provider, fastBridgeAddress) {
+async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
@@ -48,7 +48,7 @@ async function initTokenTransfer(provider, fastBridgeAddress) {
         .attach(fastBridgeAddress)
         .connect(deployerWallet);
 
-    let tx = await fast_bridge.init_token_transfer("0xc5b125d33b0e48173f000000303738363563366538376239663730323535333737653032346163653636333063316561613337662e666163746f72792e676f65726c692e746573746e657407865c6e87b9f70255377e024ace6630c1eaa37fa08601000000000000000000000000003f000000303738363563366538376239663730323535333737653032346163653636333063316561613337662e666163746f72792e676f65726c692e746573746e6574a08601000000000000000000000000001c6a38ac14e5fdd4f378192fad90db7025f1db6700");
+    let tx = await fast_bridge.init_token_transfer(initTokenTransferArg);
     let receipt = await tx.wait();
     console.log(receipt.events[0].args);
 }
