@@ -31,6 +31,8 @@ contract AuroraErc20FastBridge is AccessControl {
     event NearContractInit(string near_addres);
     event Unlock(uint128 amount);
 
+    event LogAddr(address addr);
+
     constructor(address wnear_address, string memory bridge_address) {
         creator = msg.sender;
         near = AuroraSdk.initNear(IERC20_NEAR(wnear_address));
@@ -83,6 +85,16 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 transfer_token_amount = borsh.decodeU128();
         string memory fee_token_address_on_near = string(borsh.decodeBytes()); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
+        borsh.decodeBytes20(); //recipient
+        uint8 option_valid_till = borsh.decodeU8();
+        if (option_valid_till == 1) {
+            borsh.decodeU64();//valid_till_block_height
+        }
+        uint8 option_aurora_sender = borsh.decodeU8();
+        require(option_aurora_sender == 1, "Aurora sender not present in Transfer Message!");
+        address aurora_sender = address(borsh.decodeBytes20());
+        emit LogAddr(aurora_sender);
+        require(aurora_sender == msg.sender, "Aurora sender in transfer message doesn't equal to signer");
 
         require(keccak256(abi.encodePacked(token_address_on_near)) == keccak256(abi.encodePacked(fee_token_address_on_near)));
 
