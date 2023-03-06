@@ -4,8 +4,8 @@
 # build & test
 ./build.sh && ./test.sh
 
-MASTER_ACCOUNT="olga24912_3.testnet"
-BRIDGE_ACCOUNT=fb.$MASTER_ACCOUNT
+MASTER_ACCOUNT="<YOUR_ACCOUNT>"
+BRIDGE_ACCOUNT=fast-bridge.$MASTER_ACCOUNT
 TOKEN_ACCOUNT=token.$MASTER_ACCOUNT
 MIN_TIME_LOCK_NS=3600000000000
 export NEAR_ENV=testnet
@@ -27,7 +27,7 @@ near call $BRIDGE_ACCOUNT acl_grant_role '{"role": "WhitelistManager", "account_
 near call $BRIDGE_ACCOUNT acl_grant_role '{"role": "ConfigManager", "account_id": "'"$MASTER_ACCOUNT"'"}' --accountId $BRIDGE_ACCOUNT
 
 # add the token to whitelist
-near call $BRIDGE_ACCOUNT set_token_whitelist_mode '{"token": "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet", "mode": "CheckToken"}' --accountId $MASTER_ACCOUNT
+near call $BRIDGE_ACCOUNT set_token_whitelist_mode '{"token": "'"$TOKEN_ACCOUNT"'", "mode": "CheckToken"}' --accountId $MASTER_ACCOUNT
 
 near call $TOKEN_ACCOUNT mint '{"account_id": "'"$MASTER_ACCOUNT"'", "amount": "1000000000000000000000000000"}' --accountId $MASTER_ACCOUNT
 
