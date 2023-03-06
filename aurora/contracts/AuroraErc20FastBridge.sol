@@ -120,6 +120,14 @@ contract AuroraErc20FastBridge is AccessControl {
         balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount - transferred_amount);
     }
 
+    function withdraw_from_near(string memory token_id, uint128 amount) public {
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
+
+        bytes memory args = bytes(string.concat('{"token_id": "', token_id, '", "amount": "', Strings.toString(amount), '"}'));
+        PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "withdraw", args, 1, BASE_NEAR_GAS);
+        callTr.transact();
+    }
+
     function unlock(uint128 nonce) public {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '"}'));
 
