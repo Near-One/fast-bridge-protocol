@@ -1,0 +1,11 @@
+{
+    "tokens": {
+        "USDC": "0xb2d75C5a142A68BDA438e6a318C7FBB2242f9693",
+        "ETH": "0x0000000000000000000000000000000000000000"
+    },
+    "whitelisted_tokens": {
+        "USDC": true,
+        "ETH": true
+    }
+    
+}
