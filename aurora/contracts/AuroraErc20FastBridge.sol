@@ -141,7 +141,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function unlock(uint128 nonce) public {
-        bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '"}'));
+        bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "aurora_sender": "', string(address_to_string(address(msg.sender))) ,'"}'));
 
         PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "unlock", args, 0, INIT_TRANSFER_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.unlock_callback.selector, msg.sender);

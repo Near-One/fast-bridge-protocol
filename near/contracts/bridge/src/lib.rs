@@ -64,6 +64,7 @@ trait FastBridgeInterface {
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
+        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
         #[serializer(borsh)] recipient_id: AccountId,
     );
     fn init_transfer_callback(
@@ -320,14 +321,19 @@ impl FastBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(&self, nonce: U128) -> Promise {
+    pub fn unlock(&self, nonce: U128, aurora_sender: Option<String>) -> Promise {
+        let aurora_sender: Option<EthAddress> = match aurora_sender {
+            Some(aurora_str) => Some(get_eth_address(aurora_str)),
+            None => None,
+        };
+
         ext_eth_client::ext(self.eth_client_account.clone())
             .with_static_gas(utils::tera_gas(5))
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(utils::tera_gas(50))
-                    .unlock_callback(nonce, env::predecessor_account_id()),
+                    .unlock_callback(nonce, aurora_sender, env::predecessor_account_id()),
             )
     }
 
@@ -339,6 +345,7 @@ impl FastBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
+        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
         #[serializer(borsh)] sender_id: AccountId,
     ) -> TransferMessage {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
@@ -351,6 +358,9 @@ impl FastBridge {
                     &transaction_id.to_string()
                 )
             });
+
+        require!(aurora_sender == transfer_data.aurora_sender,
+                 "Aurora sender in unlock arg unequal to the aurora sender in transfer data");
 
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
