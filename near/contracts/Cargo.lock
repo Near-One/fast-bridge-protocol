@@ -556,7 +556,7 @@ dependencies = [
 [[package]]
 name = "fast-bridge-common"
 version = "1.0.0"
-source = "git+https://github.com/aurora-is-near/fast-bridge-common.git?tag=0.1.2#fe507e29fa029a2519769034c6f971f9587bf801"
+source = "git+https://github.com/aurora-is-near/fast-bridge-common.git?branch=aurora_data#00e34757f2ea1e90fddc16f30ff538fe81a58ba0"
 dependencies = [
  "assert-json-diff",
  "hex",
