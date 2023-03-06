@@ -53,6 +53,27 @@ async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferA
     console.log(receipt.events[0].args);
 }
 
+async function unlock(provider, fastBridgeAddress, nonce) {
+    fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
+    const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
+
+    console.log("Sending transaction with the account:", deployerWallet.address);
+    console.log("Account balance:", (await deployerWallet.getBalance()).toString());
+
+    const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
+        libraries: {
+            "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+        },
+    });
+    const fast_bridge = await FastBridge
+        .attach(fastBridgeAddress)
+        .connect(deployerWallet);
+
+    let tx = await fast_bridge.unlock(nonce);
+    let receipt = await tx.wait();
+    console.log(receipt.events[0].args);
+}
+
 async function withdraw(provider, fastBridgeAddress) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
@@ -76,3 +97,4 @@ async function withdraw(provider, fastBridgeAddress) {
 exports.initTokenTransfer = initTokenTransfer;
 exports.tokensRegistration = tokensRegistration;
 exports.withdraw = withdraw;
+exports.unlock = unlock;

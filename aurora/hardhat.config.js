@@ -29,6 +29,14 @@ task('init_token_transfer', 'Init Token Transfer from Aurora to Eth')
         await initTokenTransfer(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.initTokenTransferArg);
     });
 
+task('unlock', 'Init Token Transfer from Aurora to Eth')
+    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .addParam('nonce', 'nonce')
+    .setAction(async taskArgs => {
+        const { unlock } = require('./scripts/utils');
+        await unlock(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nonce);
+    });
+
 module.exports = {
     solidity: "0.8.17",
     networks: {

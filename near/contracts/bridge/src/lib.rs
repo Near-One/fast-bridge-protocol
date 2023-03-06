@@ -332,6 +332,7 @@ impl FastBridge {
     }
 
     #[private]
+    #[result_serializer(borsh)]
     pub fn unlock_callback(
         &mut self,
         #[callback]
@@ -339,7 +340,7 @@ impl FastBridge {
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-    ) {
+    ) -> TransferMessage {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let (recipient_id, transfer_data) = self
             .pending_transfers
@@ -387,9 +388,11 @@ impl FastBridge {
         Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
-            transfer_message: transfer_data,
+            transfer_message: transfer_data.clone(),
         }
         .emit();
+
+        transfer_data
     }
 
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
