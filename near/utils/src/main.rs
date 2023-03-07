@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use eth_types::U256;
 use fast_bridge_common::TransferMessage;
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 use storage_proof::{get_eth_storage_key, JsonProof, UnlockProof};
 
 use crate::storage_proof::UnlockArgs;
@@ -74,11 +74,15 @@ fn main() {
                 U256(transfer_message.transfer.amount.0.into()),
             );
 
-            println!("Storage key:\n{}", hex::encode(storage_key));
+            println!(
+                "block_height:\n{}",
+                transfer_message.valid_till_block_height.unwrap()
+            );
+            println!("storage_key:\n{}", hex::encode(storage_key));
         }
         SubCommand::EncodeUnlockProof { nonce, proof } => {
             let json_proof: JsonProof =
-                serde_json::from_str(&proof).expect("Invalid json format of the `TransferMessage`");
+                serde_json::from_str(&proof).expect("Invalid json format of the `JsonProof`");
             let unlock_proof = UnlockProof {
                 header_data: json_proof.header_data.bytes,
                 account_proof: json_proof
@@ -120,4 +124,17 @@ fn fix_json_msg_formating(msg: String) -> String {
         .replace("token:", "\"token\":")
         .replace("recipient:", "\"recipient\":")
         .replace("valid_till_block_height:", "\"valid_till_block_height\":")
+}
+
+#[cfg(test)]
+mod tests {
+    use near_sdk::AccountId;
+    use super::*;
+
+    #[test]
+    fn encode_borsh_account_id() {
+        let account_id: AccountId = "client-eth2.goerli.testnet".parse().unwrap();
+        let account_id_base64 = near_sdk::base64::encode(account_id.try_to_vec().unwrap());
+        println!("Borsh account id: {}", account_id_base64);
+    }
 }
