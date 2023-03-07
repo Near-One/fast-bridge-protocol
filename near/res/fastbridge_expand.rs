@@ -702,7 +702,7 @@ mod utils {
     pub fn tera_gas(gas: u64) -> near_sdk::Gas {
         TGAS * gas
     }
-    pub fn get_eth_storage_key(
+    pub fn get_eth_storage_key_hash(
         token: fast_bridge_common::EthAddress,
         recipient: fast_bridge_common::EthAddress,
         nonce: eth_types::U256,
@@ -14167,7 +14167,7 @@ impl FastBridge {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
-        let storage_key = utils::get_eth_storage_key(
+        let storage_key = utils::get_eth_storage_key_hash(
             transfer_data.transfer.token_eth,
             transfer_data.recipient,
             eth_types::U256(nonce.0.into()),

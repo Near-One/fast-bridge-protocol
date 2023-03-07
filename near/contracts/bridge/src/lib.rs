@@ -46,7 +46,7 @@ pub trait Prover {
         #[serializer(borsh)] account_proof: Vec<Vec<u8>>, // account proof
         #[serializer(borsh)] contract_address: Vec<u8>,   // eth address
         #[serializer(borsh)] account_state: Vec<u8>,      // rlp encoded account state
-        #[serializer(borsh)] storage_key: Vec<u8>,        // storage key
+        #[serializer(borsh)] storage_key_hash: Vec<u8>,   // keccak256 of storage key
         #[serializer(borsh)] storage_proof: Vec<Vec<u8>>, // storage proof
         #[serializer(borsh)] value: Vec<u8>,              // storage value
         #[serializer(borsh)] min_header_height: Option<u64>,
@@ -350,12 +350,16 @@ impl FastBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
+    pub fn unlock(
+        &self,
+        #[serializer(borsh)] nonce: U128,
+        #[serializer(borsh)] proof: UnlockProof,
+    ) -> Promise {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
 
-        let storage_key = utils::get_eth_storage_key(
+        let storage_key_hash = utils::get_eth_storage_key_hash(
             transfer_data.transfer.token_eth,
             transfer_data.recipient,
             eth_types::U256(nonce.0.into()),
@@ -370,7 +374,7 @@ impl FastBridge {
                 proof.account_proof,
                 self.eth_bridge_contract.to_vec(),
                 proof.account_data,
-                storage_key,
+                storage_key_hash,
                 proof.storage_proof,
                 false.try_to_vec().unwrap(),
                 transfer_data.valid_till_block_height,

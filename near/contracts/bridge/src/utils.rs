@@ -5,7 +5,7 @@ pub fn tera_gas(gas: u64) -> near_sdk::Gas {
     TGAS * gas
 }
 
-pub fn get_eth_storage_key(
+pub fn get_eth_storage_key_hash(
     token: fast_bridge_common::EthAddress,
     recipient: fast_bridge_common::EthAddress,
     nonce: eth_types::U256,
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_get_storage_key() {
-        let key = get_eth_storage_key(
+        let key = get_eth_storage_key_hash(
             get_eth_address("07865c6E87B9F70255377e024ace6630C1Eaa37F".to_owned()),
             get_eth_address("e6220257D157Ec7b481290fD10d2037Cf0E83Ea5".to_owned()),
             eth_types::U256(360u128.into()),
@@ -72,7 +72,7 @@ mod tests {
             "1c8ba9af7041ec3098c4d818db9972f67827520c1db7d022f6c3041b6f40ecc3"
         );
 
-        let key = get_eth_storage_key(
+        let key = get_eth_storage_key_hash(
             get_eth_address("AaAAAA20D9E0e2461697782ef11675f668207961".to_owned()),
             get_eth_address("b003DB6E49C55c2fD4Bca506ddDB408039D190c8".to_owned()),
             eth_types::U256(280u128.into()),
