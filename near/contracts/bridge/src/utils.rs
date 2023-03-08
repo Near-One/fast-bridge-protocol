@@ -30,8 +30,8 @@ pub fn get_transfer_id(
     amount.0.to_big_endian(&mut be_amount);
 
     let encoded = [
-        token.as_slice(),
-        recipient.as_slice(),
+        token.0.as_slice(),
+        recipient.0.as_slice(),
         be_nonce.as_slice(),
         be_amount.as_slice(),
     ]

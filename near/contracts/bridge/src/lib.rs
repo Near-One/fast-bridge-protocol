@@ -412,8 +412,8 @@ impl FastBridge {
             parsed_proof.eth_bridge_contract,
             self.eth_bridge_contract,
             "Event's address {} does not match the eth bridge address {}",
-            hex::encode(parsed_proof.eth_bridge_contract),
-            hex::encode(self.eth_bridge_contract),
+            hex::encode(parsed_proof.eth_bridge_contract.0),
+            hex::encode(self.eth_bridge_contract.0),
         );
 
         ext_prover::ext(self.prover_account.clone())
@@ -1577,7 +1577,7 @@ mod tests {
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_enear_address(valid_address);
 
-        assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
+        assert_eq!(contract.eth_bridge_contract.0, valid_eth_address[..]);
     }
 
     #[test]
