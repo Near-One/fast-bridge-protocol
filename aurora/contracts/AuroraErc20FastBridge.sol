@@ -34,8 +34,10 @@ contract AuroraErc20FastBridge is AccessControl {
     event Unlock(
         uint128 nonce,
         address sender,
-        string token,
-        uint128 amount
+        string transfer_token,
+        uint128 transfer_amount,
+        string fee_token,
+        uint128 fee_amount
     );
     event SetWhitelistedUsers(
         address[] users,
@@ -216,8 +218,11 @@ contract AuroraErc20FastBridge is AccessControl {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
             TransferMessage memory transfer_message = decode_transfer_message_from_borsh(AuroraSdk.promiseResult(0).output);
 
-            balance[transfer_message.transfer_token_address_on_near][signer] += (transfer_message.transfer_token_amount + transfer_message.fee_token_amount);
-            emit Unlock(nonce, signer, transfer_message.transfer_token_address_on_near, transfer_message.transfer_token_amount + transfer_message.fee_token_amount);
+            balance[transfer_message.transfer_token_address_on_near][signer] += transfer_message.transfer_token_amount;
+            balance[transfer_message.fee_token_address_on_near][signer] += transfer_message.fee_token_amount;
+
+            emit Unlock(nonce, signer, transfer_message.transfer_token_address_on_near, transfer_message.transfer_token_amount,
+                transfer_message.fee_token_address_on_near, transfer_message.fee_token_amount);
         }
     }
 
