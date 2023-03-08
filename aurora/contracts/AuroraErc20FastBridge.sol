@@ -29,7 +29,45 @@ contract AuroraErc20FastBridge is AccessControl {
     mapping(string => mapping(address => uint128)) balance;
 
     event NearContractInit(string near_addres);
-    event Unlock(uint128 amount);
+    event Unlock(
+        uint128 nonce,
+        address sender,
+        string token,
+        uint128 amount
+    );
+    event SetWhitelistedUsers(
+        address[] users,
+        bool[] states
+    );
+    event TokenRegistered(
+        address aurora_address,
+        string near_address
+    );
+    event Withdraw(
+        address recipient,
+        string token,
+        uint128 amount
+    );
+    event WithdrawFromNear(
+        string token,
+        uint128 amount
+    );
+    event InitTokenTransfer(
+        address sender,
+        string init_transfer_arg,
+        string token,
+        uint128 transfer_amount,
+        uint128 fee_amount,
+        address recipient
+    );
+    event InitTokenTransferRevert(
+        address sender,
+        string init_transfer_arg,
+        string token,
+        uint128 transfer_amount,
+        uint128 fee_amount,
+        address recipient
+    );
 
     constructor(address wnear_address, string memory bridge_address) {
         creator = msg.sender;
@@ -48,6 +86,8 @@ contract AuroraErc20FastBridge is AccessControl {
         for (uint256 i = 0; i < users.length; i++) {
             whitelisted_users[users[i]] = states[i];
         }
+
+        emit SetWhitelistedUsers(users, states);
     }
 
     function tokens_registration(address aurora_token_address, string memory near_token_address) public onlyRole(ADMIN) {
@@ -60,6 +100,8 @@ contract AuroraErc20FastBridge is AccessControl {
         registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
         PromiseCreateArgs memory callInc = near.call(near_token_address, "storage_deposit", args, deposit, BASE_NEAR_GAS);
         callInc.transact();
+
+        emit TokenRegistered(aurora_token_address, near_token_address);
     }
 
     function withdraw(string memory token) public {
@@ -71,6 +113,7 @@ contract AuroraErc20FastBridge is AccessControl {
         callTr.transact();
 
         balance[token][msg.sender] = 0;
+        emit Withdraw(msg.sender, token, signer_balance);
     }
 
     function init_token_transfer(bytes memory init_transfer_args) public {
@@ -125,8 +168,16 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 transfer_token_amount = borsh.decodeU128();
         borsh.decodeBytes(); // fee token address on Near
         uint128 fee_token_amount = borsh.decodeU128();
+        address recipient = address(borsh.decodeBytes20());
 
         balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount - transferred_amount);
+
+        string memory init_args_base64 = Base64.encode(init_transfer_args);
+        if (transferred_amount == 0) {
+            emit InitTokenTransferRevert(signer, init_args_base64, token_address_on_near, transfer_token_amount, fee_token_amount, recipient);
+        } else {
+            emit InitTokenTransfer(signer, init_args_base64, token_address_on_near, transfer_token_amount, fee_token_amount, recipient);
+        }
     }
 
     function withdraw_from_near(string memory token_id, uint128 amount) public {
@@ -135,19 +186,21 @@ contract AuroraErc20FastBridge is AccessControl {
         bytes memory args = bytes(string.concat('{"token_id": "', token_id, '", "amount": "', Strings.toString(amount), '"}'));
         PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "withdraw", args, 1, BASE_NEAR_GAS);
         callTr.transact();
+
+        emit WithdrawFromNear(token_id, amount);
     }
 
     function unlock(uint128 nonce) public {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "aurora_sender": "', string(address_to_string(address(msg.sender))) ,'"}'));
 
         PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "unlock", args, 0, INIT_TRANSFER_NEAR_GAS);
-        bytes memory callback_arg = abi.encodeWithSelector(this.unlock_callback.selector, msg.sender);
+        bytes memory callback_arg = abi.encodeWithSelector(this.unlock_callback.selector, msg.sender, nonce);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
         callTr.then(callback).transact();
     }
 
-    function unlock_callback(address signer) public onlyRole(CALLBACK_ROLE) {
+    function unlock_callback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
             Borsh.Data memory borsh = Borsh.from(AuroraSdk.promiseResult(0).output);
             borsh.decodeU64(); //valid_till
@@ -158,7 +211,7 @@ contract AuroraErc20FastBridge is AccessControl {
             uint128 fee_token_amount = borsh.decodeU128();
 
             balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount);
-            emit Unlock(transfer_token_amount + fee_token_amount);
+            emit Unlock(nonce, signer, token_address_on_near, transfer_token_amount + fee_token_amount);
         }
     }
 
