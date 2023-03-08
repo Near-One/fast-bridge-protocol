@@ -1570,6 +1570,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "fast-bridge-common",
+ "hex",
  "near-sdk",
  "serde_json",
 ]

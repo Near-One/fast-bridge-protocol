@@ -31,7 +31,11 @@ fn main() {
             let encoded_transfer_message =
                 near_sdk::base64::encode(transfer_message.try_to_vec().unwrap());
             println!(
-                "Encoded message:\n{}",
+                "Encoded message(hex):\n{}",
+                serde_json::to_string(&hex::encode(transfer_message.try_to_vec().unwrap().as_slice())).unwrap()
+            );
+            println!(
+                "Encoded message(base64):\n{}",
                 serde_json::to_string(&encoded_transfer_message).unwrap()
             );
         }
