@@ -4,6 +4,7 @@ import {IERC20 as IERC20_NEAR} from "openzeppelin-contracts/token/ERC20/IERC20.s
 import "../lib/aurora-engine/etc/eth-contracts/contracts/EvmErc20.sol";
 import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/AuroraSdk.sol";
 import "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/Borsh.sol";
+import "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/Utils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -108,7 +109,7 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 signer_balance = balance[token][msg.sender];
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
-        bytes memory args = bytes(string.concat('{"receiver_id": "aurora", "amount": "', Strings.toString(signer_balance), '", "msg": "', string(address_to_string(address(msg.sender))), '"}'));
+        bytes memory args = bytes(string.concat('{"receiver_id": "aurora", "amount": "', Strings.toString(signer_balance), '", "msg": "', address_to_string(msg.sender), '"}'));
         PromiseCreateArgs memory callTr = near.call(token, "ft_transfer_call", args, 1, BASE_NEAR_GAS);
         callTr.transact();
 
@@ -191,7 +192,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function unlock(uint128 nonce) public {
-        bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "aurora_sender": "', string(address_to_string(address(msg.sender))) ,'"}'));
+        bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "aurora_sender": "', address_to_string(msg.sender) ,'"}'));
 
         PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "unlock", args, 0, INIT_TRANSFER_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.unlock_callback.selector, msg.sender, nonce);
@@ -216,19 +217,12 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function get_near_address() public view returns (bytes memory) {
-        bytes memory aurora_address = address_to_string(address(this));
-        return bytes(string.concat(string(aurora_address), ".aurora"));
+        string memory aurora_address = address_to_string(address(this));
+        return bytes(string.concat(aurora_address, ".aurora"));
     }
 
-    function address_to_string(address aurora_address) private pure returns (bytes memory) {
-        bytes memory address_raw = bytes(Strings.toHexString(uint160(aurora_address)));
-        bytes memory address_str = new bytes(address_raw.length - 2);
-
-        for (uint256 i = 0; i < address_raw.length - 2; ++i) {
-            address_str[i] = address_raw[i + 2];
-        }
-
-        return address_str;
+    function address_to_string(address aurora_address) private pure returns (string memory) {
+        return Utils.bytesToHex(abi.encodePacked(aurora_address));
     }
 
     function stringToUint(bytes memory b) private pure returns (uint128) {

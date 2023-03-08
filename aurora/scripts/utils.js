@@ -14,6 +14,7 @@ async function tokensRegistration(provider, fastBridgeAddress) {
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+            "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
         },
     });
     const fast_bridge = await FastBridge
@@ -42,6 +43,7 @@ async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferA
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+            "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
         },
     });
     const fast_bridge = await FastBridge
@@ -63,6 +65,7 @@ async function unlock(provider, fastBridgeAddress, nonce) {
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+            "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
         },
     });
     const fast_bridge = await FastBridge
@@ -84,6 +87,7 @@ async function withdraw(provider, fastBridgeAddress) {
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+            "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
         },
     });
     const fast_bridge = await FastBridge
@@ -104,6 +108,7 @@ async function withdraw_from_near(provider, fastBridgeAddress) {
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+            "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
         },
     });
     const fast_bridge = await FastBridge
