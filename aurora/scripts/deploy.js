@@ -6,6 +6,7 @@
 require('dotenv').config();
 const hre = require("hardhat");
 const {WNEAR_AURORA_ADDRESS} = require("./utils");
+const NEAR_FAST_BRIDGE_ADDRESS="fb.olga24912_3.testnet"
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -36,7 +37,7 @@ async function main() {
     });
     const options = { gasLimit: 6000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-        .deploy(WNEAR_AURORA_ADDRESS, "fb.olga24912_3.testnet", options);
+        .deploy(WNEAR_AURORA_ADDRESS, NEAR_FAST_BRIDGE_ADDRESS, options);
     await fastbridge.deployed();
 
     console.log("AuroraErc20FastBridge deployed to:", fastbridge.address);
