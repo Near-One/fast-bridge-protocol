@@ -1036,6 +1036,7 @@ mod tests {
                 "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
             ),
             valid_till_block_height: None,
+            aurora_sender: None,
         };
         assert_eq!(
             serde_json::to_string(&original).unwrap(),
@@ -1265,7 +1266,7 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock_callback(312, nonce, signer_account_id());
+        contract.unlock_callback(312, nonce, None, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1417,7 +1418,7 @@ mod tests {
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(10, U128(9), signer_account_id());
+        contract.unlock_callback(10, U128(9), None, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1494,7 +1495,7 @@ mod tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(1000, U128(1), signer_account_id());
+        contract.unlock_callback(1000, U128(1), None, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
