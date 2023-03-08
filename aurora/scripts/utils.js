@@ -3,7 +3,7 @@ const hre = require("hardhat");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
 
-async function tokensRegistration(provider, fastBridgeAddress) {
+async function tokensRegistration(provider, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
@@ -23,20 +23,20 @@ async function tokensRegistration(provider, fastBridgeAddress) {
         .attach(fastBridgeAddress)
         .connect(deployerWallet);
 
-    let tx = await fast_bridge.tokens_registration("0x901fb725c106E182614105335ad0E230c91B67C8", "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet");
+    let tx = await fast_bridge.tokens_registration(auroraTokenAddress, nearTokenAddress);
     let receipt = await tx.wait();
 
     console.log("Aurora Fast Bridge Address on Near: ", receipt.events[0].args);
 }
 
-async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg) {
+async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
     console.log("Sending transaction with the account:", deployerWallet.address);
     console.log("Account balance:", (await deployerWallet.getBalance()).toString());
 
-    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", "0x901fb725c106E182614105335ad0E230c91B67C8");
+    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
     const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
@@ -79,7 +79,7 @@ async function unlock(provider, fastBridgeAddress, nonce) {
     console.log(receipt.events[0].args);
 }
 
-async function withdraw(provider, fastBridgeAddress) {
+async function withdraw(provider, fastBridgeAddress, nearTokenAddress) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
@@ -96,11 +96,11 @@ async function withdraw(provider, fastBridgeAddress) {
         .attach(fastBridgeAddress)
         .connect(deployerWallet);
 
-    let tx = await fast_bridge.withdraw("07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet");
+    let tx = await fast_bridge.withdraw(nearTokenAddress);
     let receipt = await tx.wait();
 }
 
-async function withdraw_from_near(provider, fastBridgeAddress) {
+async function withdraw_from_near(provider, fastBridgeAddress, nearTokenAddress, amount) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
@@ -117,7 +117,7 @@ async function withdraw_from_near(provider, fastBridgeAddress) {
         .attach(fastBridgeAddress)
         .connect(deployerWallet);
 
-    let tx = await fast_bridge.withdraw_from_near("07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet", 200000);
+    let tx = await fast_bridge.withdraw_from_near(nearTokenAddress, amount);
     let receipt = await tx.wait();
 }
 
