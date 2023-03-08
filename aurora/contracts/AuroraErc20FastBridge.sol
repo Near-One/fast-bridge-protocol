@@ -70,6 +70,18 @@ contract AuroraErc20FastBridge is AccessControl {
         address recipient
     );
 
+    struct TransferMessage {
+        uint64 valid_till;
+        string transfer_token_address_on_near;
+        address transfer_token_address_on_eth;
+        uint128 transfer_token_amount;
+        string fee_token_address_on_near;
+        uint128 fee_token_amount;
+        address recipient;
+        uint64 valid_till_block_height;
+        address aurora_sender;
+    }
+
     constructor(address wnear_address, string memory bridge_address) {
         creator = msg.sender;
         near = AuroraSdk.initNear(IERC20_NEAR(wnear_address));
@@ -117,38 +129,43 @@ contract AuroraErc20FastBridge is AccessControl {
         emit Withdraw(msg.sender, token, signer_balance);
     }
 
-    function init_token_transfer(bytes memory init_transfer_args) public {
-        require(whitelisted_users[address(msg.sender)], "Sender not whitelisted!");
-
-        Borsh.Data memory borsh = Borsh.from(init_transfer_args);
-        borsh.decodeU64(); //valid_till
-        string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
-        borsh.decodeBytes20(); //transfer token address on Ethereum
-        uint128 transfer_token_amount = borsh.decodeU128();
-        string memory fee_token_address_on_near = string(borsh.decodeBytes()); // fee token address on Near
-        uint128 fee_token_amount = borsh.decodeU128();
-        borsh.decodeBytes20(); //recipient
+    function decode_transfer_message_from_borsh(bytes memory transfer_message_borsh) private pure returns(TransferMessage memory) {
+        TransferMessage memory result;
+        Borsh.Data memory borsh = Borsh.from(transfer_message_borsh);
+        result.valid_till = borsh.decodeU64();
+        result.transfer_token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
+        result.transfer_token_address_on_eth = address(borsh.decodeBytes20()); //transfer token address on Ethereum
+        result.transfer_token_amount = borsh.decodeU128();
+        result.fee_token_address_on_near = string(borsh.decodeBytes()); // fee token address on Near
+        result.fee_token_amount = borsh.decodeU128();
+        result.recipient = address(borsh.decodeBytes20()); //recipient
         uint8 option_valid_till = borsh.decodeU8();
         if (option_valid_till == 1) {
-            borsh.decodeU64();//valid_till_block_height
+            result.valid_till_block_height = borsh.decodeU64();//valid_till_block_height
         }
         uint8 option_aurora_sender = borsh.decodeU8();
-        require(option_aurora_sender == 1, "Aurora sender not present in Transfer Message!");
-        address aurora_sender = address(borsh.decodeBytes20());
-        require(aurora_sender == msg.sender, "Aurora sender in transfer message doesn't equal to signer");
+        if (option_aurora_sender == 1) {
+            result.aurora_sender = address(borsh.decodeBytes20());
+        }
+        return result;
+    }
 
-        require(keccak256(abi.encodePacked(token_address_on_near)) == keccak256(abi.encodePacked(fee_token_address_on_near)));
+    function init_token_transfer(bytes memory init_transfer_args) public {
+        require(whitelisted_users[address(msg.sender)], "Sender not whitelisted!");
+        TransferMessage memory transfer_message = decode_transfer_message_from_borsh(init_transfer_args);
+        require(transfer_message.aurora_sender == msg.sender, "Aurora sender in transfer message doesn't equal to signer");
+        require(keccak256(abi.encodePacked(transfer_message.transfer_token_address_on_near)) == keccak256(abi.encodePacked(transfer_message.fee_token_address_on_near)));
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
-        EvmErc20 token = registered_tokens[token_address_on_near];
-        token.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
-        token.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
+        EvmErc20 token = registered_tokens[transfer_message.transfer_token_address_on_near];
+        token.transferFrom(msg.sender, address(this), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
+        token.withdrawToNear(get_near_address(), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
-        bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_token_amount + fee_token_amount), '", "msg": "', init_args_base64, '"}'));
+        bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_message.transfer_token_amount + transfer_message.fee_token_amount), '", "msg": "', init_args_base64, '"}'));
 
-        PromiseCreateArgs memory callTr = near.call(token_address_on_near, "ft_transfer_call", args, 1, INIT_TRANSFER_NEAR_GAS);
+        PromiseCreateArgs memory callTr = near.call(transfer_message.transfer_token_address_on_near, "ft_transfer_call", args, 1, INIT_TRANSFER_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.init_token_transfer_callback.selector, msg.sender, init_transfer_args);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
@@ -162,22 +179,15 @@ contract AuroraErc20FastBridge is AccessControl {
             transferred_amount = stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
-        Borsh.Data memory borsh = Borsh.from(init_transfer_args);
-        borsh.decodeU64(); //valid_till
-        string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
-        borsh.decodeBytes20(); //transfer token address on Ethereum
-        uint128 transfer_token_amount = borsh.decodeU128();
-        borsh.decodeBytes(); // fee token address on Near
-        uint128 fee_token_amount = borsh.decodeU128();
-        address recipient = address(borsh.decodeBytes20());
+        TransferMessage memory transfer_message = decode_transfer_message_from_borsh(init_transfer_args);
 
-        balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount - transferred_amount);
+        balance[transfer_message.transfer_token_address_on_near][signer] += (transfer_message.transfer_token_amount + transfer_message.fee_token_amount - transferred_amount);
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
         if (transferred_amount == 0) {
-            emit InitTokenTransferRevert(signer, init_args_base64, token_address_on_near, transfer_token_amount, fee_token_amount, recipient);
+            emit InitTokenTransferRevert(signer, init_args_base64, transfer_message.transfer_token_address_on_near, transfer_message.transfer_token_amount, transfer_message.fee_token_amount, transfer_message.recipient);
         } else {
-            emit InitTokenTransfer(signer, init_args_base64, token_address_on_near, transfer_token_amount, fee_token_amount, recipient);
+            emit InitTokenTransfer(signer, init_args_base64, transfer_message.transfer_token_address_on_near, transfer_message.transfer_token_amount, transfer_message.fee_token_amount, transfer_message.recipient);
         }
     }
 
@@ -203,16 +213,10 @@ contract AuroraErc20FastBridge is AccessControl {
 
     function unlock_callback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            Borsh.Data memory borsh = Borsh.from(AuroraSdk.promiseResult(0).output);
-            borsh.decodeU64(); //valid_till
-            string memory token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
-            borsh.decodeBytes20(); //transfer token address on Ethereum
-            uint128 transfer_token_amount = borsh.decodeU128();
-            borsh.decodeBytes(); // fee token address on Near
-            uint128 fee_token_amount = borsh.decodeU128();
+            TransferMessage memory transfer_message = decode_transfer_message_from_borsh(AuroraSdk.promiseResult(0).output);
 
-            balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount);
-            emit Unlock(nonce, signer, token_address_on_near, transfer_token_amount + fee_token_amount);
+            balance[transfer_message.transfer_token_address_on_near][signer] += (transfer_message.transfer_token_amount + transfer_message.fee_token_amount);
+            emit Unlock(nonce, signer, transfer_message.transfer_token_address_on_near, transfer_message.transfer_token_amount + transfer_message.fee_token_amount);
         }
     }
 
