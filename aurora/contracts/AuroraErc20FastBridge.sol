@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 uint64 constant BASE_NEAR_GAS = 50_000_000_000_000;
 uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
+uint64 constant UNLOCK_NEAR_GAS = 100_000_000_000_000;
 
 contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
@@ -204,7 +205,7 @@ contract AuroraErc20FastBridge is AccessControl {
     function unlock(uint128 nonce) public {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "aurora_sender": "', address_to_string(msg.sender) ,'"}'));
 
-        PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "unlock", args, 0, INIT_TRANSFER_NEAR_GAS);
+        PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "unlock", args, 0, UNLOCK_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.unlock_callback.selector, msg.sender, nonce);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
