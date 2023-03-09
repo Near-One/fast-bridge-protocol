@@ -184,10 +184,17 @@ contract AuroraErc20FastBridge is AccessControl {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         bytes memory args = bytes(string.concat('{"token_id": "', token_id, '", "amount": "', Strings.toString(amount), '"}'));
-        PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "withdraw", args, 1, BASE_NEAR_GAS);
-        callTr.transact();
+        PromiseCreateArgs memory call_withdraw = near.call(bridge_address_on_near, "withdraw", args, 1, BASE_NEAR_GAS);
+        bytes memory callback_arg = abi.encodeWithSelector(this.withdraw_from_near_callback.selector, token_id, amount);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
-        emit WithdrawFromNear(token_id, amount);
+        call_withdraw.then(callback).transact();
+    }
+
+    function withdraw_from_near_callback(string memory token_id, uint128 amount) public onlyRole(CALLBACK_ROLE) {
+        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
+            emit WithdrawFromNear(token_id, amount);
+        }
     }
 
     function withdraw(string memory token) public {
