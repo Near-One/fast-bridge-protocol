@@ -5,11 +5,9 @@ const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
 
 async function tokensRegistration(provider, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     const fast_bridge = await get_fast_bridge_contract(provider, fastBridgeAddress);
+    await fast_bridge.tokens_registration(auroraTokenAddress, nearTokenAddress);
 
-    let tx = await fast_bridge.tokens_registration(auroraTokenAddress, nearTokenAddress);
-    let receipt = await tx.wait();
-
-    console.log("Aurora Fast Bridge Address on Near: ", receipt.events[0].args);
+    console.log("Aurora Fast Bridge Address on Near: ", await fast_bridge.get_near_address());
 }
 
 async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {

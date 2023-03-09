@@ -30,7 +30,6 @@ contract AuroraErc20FastBridge is AccessControl {
     mapping(string => EvmErc20) registered_tokens;
     mapping(string => mapping(address => uint128)) balance;
 
-    event NearContractInit(string near_addres);
     event Unlock(
         uint128 nonce,
         address sender,
@@ -107,11 +106,9 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function tokens_registration(address aurora_token_address, string memory near_token_address) public onlyRole(ADMIN) {
-        emit NearContractInit(string(get_near_address()));
-
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
-        bytes memory args = bytes(string.concat('{"account_id": "', string(get_near_address()), '", "registreation_only": true }'));
+        bytes memory args = bytes(string.concat('{"account_id": "', get_near_address(), '", "registreation_only": true }'));
 
         registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
         PromiseCreateArgs memory callInc = near.call(near_token_address, "storage_deposit", args, deposit, BASE_NEAR_GAS);
@@ -130,7 +127,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
         EvmErc20 token = registered_tokens[transfer_message.transfer_token_address_on_near];
         token.transferFrom(msg.sender, address(this), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
-        token.withdrawToNear(get_near_address(), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
+        token.withdrawToNear(bytes(get_near_address()), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
         bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_message.transfer_token_amount + transfer_message.fee_token_amount), '", "msg": "', init_args_base64, '"}'));
@@ -226,9 +223,9 @@ contract AuroraErc20FastBridge is AccessControl {
         return result;
     }
 
-    function get_near_address() public view returns (bytes memory) {
+    function get_near_address() public view returns (string memory) {
         string memory aurora_address = address_to_string(address(this));
-        return bytes(string.concat(aurora_address, ".aurora"));
+        return string.concat(aurora_address, ".aurora");
     }
 
     function address_to_string(address aurora_address) private pure returns (string memory) {
