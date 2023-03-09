@@ -125,12 +125,14 @@ contract AuroraErc20FastBridge is AccessControl {
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
+        uint256 total_token_amount =  uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount);
+
         EvmErc20 token = registered_tokens[transfer_message.transfer_token_address_on_near];
-        token.transferFrom(msg.sender, address(this), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
-        token.withdrawToNear(bytes(get_near_address()), uint256(transfer_message.transfer_token_amount + transfer_message.fee_token_amount));
+        token.transferFrom(msg.sender, address(this), total_token_amount);
+        token.withdrawToNear(bytes(get_near_address()), total_token_amount);
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
-        bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(transfer_message.transfer_token_amount + transfer_message.fee_token_amount), '", "msg": "', init_args_base64, '"}'));
+        bytes memory args = bytes(string.concat('{"receiver_id": "', bridge_address_on_near, '", "amount": "', Strings.toString(total_token_amount), '", "msg": "', init_args_base64, '"}'));
 
         PromiseCreateArgs memory callTr = near.call(transfer_message.transfer_token_address_on_near, "ft_transfer_call", args, 1, INIT_TRANSFER_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.init_token_transfer_callback.selector, msg.sender, init_transfer_args);
