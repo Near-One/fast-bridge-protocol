@@ -110,10 +110,10 @@ contract AuroraErc20FastBridge is AccessControl {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(string.concat('{"account_id": "', get_near_address(), '", "registreation_only": true }'));
 
-        registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
         PromiseCreateArgs memory callInc = near.call(near_token_address, "storage_deposit", args, deposit, BASE_NEAR_GAS);
         callInc.transact();
 
+        registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
         emit TokenRegistered(aurora_token_address, near_token_address);
     }
 
@@ -195,11 +195,24 @@ contract AuroraErc20FastBridge is AccessControl {
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
         bytes memory args = bytes(string.concat('{"receiver_id": "aurora", "amount": "', Strings.toString(signer_balance), '", "msg": "', address_to_string(msg.sender), '"}'));
-        PromiseCreateArgs memory callTr = near.call(token, "ft_transfer_call", args, 1, BASE_NEAR_GAS);
-        callTr.transact();
+        PromiseCreateArgs memory call_withdraw = near.call(token, "ft_transfer_call", args, 1, BASE_NEAR_GAS);
+        bytes memory callback_arg = abi.encodeWithSelector(this.withdraw_callback.selector, msg.sender, token);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
-        balance[token][msg.sender] = 0;
-        emit Withdraw(msg.sender, token, signer_balance);
+        call_withdraw.then(callback).transact();
+    }
+
+    function withdraw_callback(address signer, string memory token) public onlyRole(CALLBACK_ROLE) {
+        uint128 transferred_amount = 0;
+
+        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
+            transferred_amount = stringToUint(AuroraSdk.promiseResult(0).output);
+        }
+
+        if (transferred_amount > 0) {
+            balance[token][signer] -= transferred_amount;
+            emit Withdraw(signer, token, transferred_amount);
+        }
     }
 
     function decode_transfer_message_from_borsh(bytes memory transfer_message_borsh) private pure returns(TransferMessage memory) {
