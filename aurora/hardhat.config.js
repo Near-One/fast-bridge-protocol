@@ -16,23 +16,6 @@ task('tokens_registration', 'Init the Aurora Fast Bridge Contract on NEAR')
         await tokensRegistration(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.auroraTokenAddress);
     });
 
-task('withdraw', 'Init the Aurora Fast Bridge Contract on NEAR')
-    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
-    .addParam('nearTokenAddress', "Token address on Near")
-    .setAction(async taskArgs => {
-        const { withdraw } = require('./scripts/utils');
-        await withdraw(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
-    });
-
-task('withdraw_from_near', 'Init the Aurora Fast Bridge Contract on NEAR')
-    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
-    .addParam('nearTokenAddress', "Token address on Near")
-    .addParam('tokenAmount', "Withdraw tokens amount")
-    .setAction(async taskArgs => {
-        const { withdraw_from_near } = require('./scripts/utils');
-        await withdraw_from_near(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.tokenAmount);
-    });
-
 task('init_token_transfer', 'Init Token Transfer from Aurora to Eth')
     .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
     .addParam('initTokenTransferArg', 'argument for token transfer initialization')
@@ -48,6 +31,23 @@ task('unlock', 'Init Token Transfer from Aurora to Eth')
     .setAction(async taskArgs => {
         const { unlock } = require('./scripts/utils');
         await unlock(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nonce);
+    });
+
+task('withdraw_from_near', 'Init the Aurora Fast Bridge Contract on NEAR')
+    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('tokenAmount', "Withdraw tokens amount")
+    .setAction(async taskArgs => {
+        const { withdraw_from_near } = require('./scripts/utils');
+        await withdraw_from_near(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.tokenAmount);
+    });
+
+task('withdraw', 'Init the Aurora Fast Bridge Contract on NEAR')
+    .addParam('fastBridgeAddress', 'Eth address of Aurora Fast Bridge')
+    .addParam('nearTokenAddress', "Token address on Near")
+    .setAction(async taskArgs => {
+        const { withdraw } = require('./scripts/utils');
+        await withdraw(hre.ethers.provider, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
     });
 
 module.exports = {

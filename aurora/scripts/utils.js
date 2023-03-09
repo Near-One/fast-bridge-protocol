@@ -31,17 +31,17 @@ async function unlock(provider, fastBridgeAddress, nonce) {
     console.log(receipt.events[0].args);
 }
 
-async function withdraw(provider, fastBridgeAddress, nearTokenAddress) {
-    const fast_bridge = await get_fast_bridge_contract(provider, fastBridgeAddress);
-
-    let tx = await fast_bridge.withdraw(nearTokenAddress);
-    let receipt = await tx.wait();
-}
-
 async function withdraw_from_near(provider, fastBridgeAddress, nearTokenAddress, amount) {
     const fast_bridge = await get_fast_bridge_contract(provider, fastBridgeAddress);
 
     let tx = await fast_bridge.withdraw_from_near(nearTokenAddress, amount);
+    let receipt = await tx.wait();
+}
+
+async function withdraw(provider, fastBridgeAddress, nearTokenAddress) {
+    const fast_bridge = await get_fast_bridge_contract(provider, fastBridgeAddress);
+
+    let tx = await fast_bridge.withdraw(nearTokenAddress);
     let receipt = await tx.wait();
 }
 
@@ -69,8 +69,8 @@ async function get_fast_bridge_contract(provider, fastBridgeAddress) {
 
 exports.initTokenTransfer = initTokenTransfer;
 exports.tokensRegistration = tokensRegistration;
-exports.withdraw = withdraw;
 exports.unlock = unlock;
 exports.withdraw_from_near = withdraw_from_near;
+exports.withdraw = withdraw;
 
 exports.WNEAR_AURORA_ADDRESS = WNEAR_AURORA_ADDRESS;
