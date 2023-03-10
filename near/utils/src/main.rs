@@ -4,8 +4,6 @@ use fast_bridge_common::TransferMessage;
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 use storage_proof::{get_eth_storage_key, JsonProof, UnlockProof};
 
-use crate::storage_proof::UnlockArgs;
-
 mod storage_proof;
 
 #[derive(Subcommand, Debug)]
@@ -26,7 +24,9 @@ enum SubCommand {
     },
     EncodeUnlockProof {
         #[clap(short, long)]
-        nonce: u128,
+        proof: String,
+    },
+    DecodeUnlockProof {
         #[clap(short, long)]
         proof: String,
     },
@@ -56,7 +56,7 @@ fn main() {
         SubCommand::DecodeTransferMsg { msg } => {
             let decoded_base64 = near_sdk::base64::decode(msg).expect("Invalid base64 message");
             let transfer_message = TransferMessage::try_from_slice(&decoded_base64)
-                .expect("Invalid json format of the `TransferMessage`");
+                .expect("Invalid borsh format of the `TransferMessage`");
 
             println!(
                 "Decoded message:\n{}",
@@ -80,34 +80,31 @@ fn main() {
             );
             println!("storage_key:\n{}", hex::encode(storage_key));
         }
-        SubCommand::EncodeUnlockProof { nonce, proof } => {
+        SubCommand::EncodeUnlockProof { proof } => {
             let json_proof: JsonProof =
                 serde_json::from_str(&proof).expect("Invalid json format of the `JsonProof`");
             let unlock_proof = UnlockProof {
-                header_data: json_proof.header_data.bytes,
-                account_proof: json_proof
-                    .account_proof
-                    .into_iter()
-                    .map(|x| x.bytes)
-                    .collect(),
-                account_data: json_proof.expected_account_state.bytes,
-                storage_proof: json_proof
-                    .storage_proof
-                    .into_iter()
-                    .map(|x| x.bytes)
-                    .collect(),
+                header_data: json_proof.header_data,
+                account_proof: json_proof.account_proof,
+                account_data: json_proof.expected_account_state,
+                storage_proof: json_proof.storage_proof,
             };
 
-            let unlock_args = UnlockArgs {
-                nonce: nonce.into(),
-                proof: unlock_proof,
-            };
-
-            let encoded_unlock_args = near_sdk::base64::encode(unlock_args.try_to_vec().unwrap());
+            let encoded_unlock_proof = near_sdk::base64::encode(unlock_proof.try_to_vec().unwrap());
 
             println!(
-                "Encoded unlock args:\n{}",
-                serde_json::to_string(&encoded_unlock_args).unwrap()
+                "Encoded unlock proof:\n{}",
+                serde_json::to_string(&encoded_unlock_proof).unwrap()
+            );
+        }
+        SubCommand::DecodeUnlockProof { proof } => {
+            let decoded_base64 = near_sdk::base64::decode(proof).expect("Invalid base64 proof");
+            let transfer_message = UnlockProof::try_from_slice(&decoded_base64)
+                .expect("Invalid borsh format of the `UnlockProof`");
+
+            println!(
+                "Decoded proof:\n{}",
+                serde_json::to_string(&transfer_message).unwrap()
             );
         }
     }
@@ -128,13 +125,30 @@ fn fix_json_msg_formating(msg: String) -> String {
 
 #[cfg(test)]
 mod tests {
-    use near_sdk::AccountId;
     use super::*;
+    use near_sdk::AccountId;
 
     #[test]
     fn encode_borsh_account_id() {
         let account_id: AccountId = "client-eth2.goerli.testnet".parse().unwrap();
         let account_id_base64 = near_sdk::base64::encode(account_id.try_to_vec().unwrap());
         println!("Borsh account id: {}", account_id_base64);
+    }
+
+    #[test]
+    fn encode_storage_key() {
+        let storage_key = get_eth_storage_key(
+            fast_bridge_common::get_eth_address(
+                "BA62BCfcAaFc6622853cca2BE6Ac7d845BC0f2Dc".to_owned(),
+            ),
+            fast_bridge_common::get_eth_address(
+                "574D7e57fE9477fFA470796eE05D85f6aF240C25".to_owned(),
+            ),
+            U256(368.into()),
+            U256(899800000000000000u128.into()),
+        );
+
+        println!("block_height:\n{}", 8570800);
+        println!("storage_key:\n{}", hex::encode(storage_key));
     }
 }

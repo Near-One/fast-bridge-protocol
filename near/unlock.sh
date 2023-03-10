@@ -16,6 +16,7 @@ BLOCK_NUMBER=${STORAGE_KEY_OUTPUT[1]}
 STORAGE_KEY="0x"${STORAGE_KEY_OUTPUT[3]}
 echo "\n-----------------------------\n" 
 JSON_PROOF=$($RAINBOW_BRIDGE_INDEX_JS_PATH eth-to-near-find-storage-proof $ETH_CONTRACT_ADDRESS $STORAGE_KEY $BLOCK_NUMBER --eth-node-url $ETH_RPC_URL)
-ENCODED_UNLOCK_ARGS=$(cargo run --manifest-path utils/Cargo.toml -- encode-unlock-proof -n $TRANSFER_NONCE -p $JSON_PROOF | tail -n 1)
+ENCODED_UNLOCK_PROOF=$(cargo run --manifest-path utils/Cargo.toml -- encode-unlock-proof -p $JSON_PROOF | tail -n 1)
 echo "\n-----------------------------\n" 
-near call $BRIDGE_ACCOUNT unlock --base64 $ENCODED_UNLOCK_ARGS --account-id $UNLOCK_ACCOUNT --depositYocto 1 --gas 300000000000000
+
+near call $BRIDGE_ACCOUNT unlock "{\"nonce\":\"$TRANSFER_NONCE\", \"proof\": $ENCODED_UNLOCK_PROOF}" --account-id $UNLOCK_ACCOUNT --depositYocto 1 --gas 300000000000000

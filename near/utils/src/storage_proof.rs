@@ -4,12 +4,6 @@ use serde::{Deserialize, Serialize};
 
 const STORAGE_KEY_SLOT: u32 = 302;
 
-#[derive(BorshSerialize)]
-pub struct UnlockArgs {
-    pub nonce: near_sdk::json_types::U128,
-    pub proof: UnlockProof,
-}
-
 pub fn keccak256(bytes: &[u8]) -> [u8; 32] {
     use tiny_keccak::{Hasher, Keccak};
     let mut output = [0u8; 32];
@@ -19,10 +13,8 @@ pub fn keccak256(bytes: &[u8]) -> [u8; 32] {
     output
 }
 
-#[derive(Serialize)]
-pub struct Hex {
-    pub bytes: Vec<u8>,
-}
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct Hex(pub Vec<u8>);
 
 impl<'de> Deserialize<'de> for Hex {
     fn deserialize<D>(deserializer: D) -> Result<Self, <D as serde::Deserializer<'de>>::Error>
@@ -34,7 +26,19 @@ impl<'de> Deserialize<'de> for Hex {
             s = s[2..].to_string();
         }
         let result = Vec::from_hex(&s).map_err(|err| serde::de::Error::custom(err.to_string()))?;
-        Ok(Hex { bytes: result })
+        Ok(Hex(result))
+    }
+}
+
+impl Serialize for Hex {
+    fn serialize<S>(
+        &self,
+        serializer: S,
+    ) -> Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(&self.0))
     }
 }
 
@@ -52,10 +56,10 @@ pub struct JsonProof {
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
 pub struct UnlockProof {
-    pub header_data: Vec<u8>,
-    pub account_proof: Vec<Vec<u8>>,
-    pub account_data: Vec<u8>,
-    pub storage_proof: Vec<Vec<u8>>,
+    pub header_data: Hex,
+    pub account_proof: Vec<Hex>,
+    pub account_data: Hex,
+    pub storage_proof: Vec<Hex>,
 }
 
 pub fn get_transfer_id(

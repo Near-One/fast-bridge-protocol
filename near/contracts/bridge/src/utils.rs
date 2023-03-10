@@ -24,14 +24,6 @@ pub fn get_eth_storage_key_hash(
     near_sdk::env::keccak256(&near_sdk::env::keccak256(&encoded_slot_key))
 }
 
-pub fn is_valid_eth_address(address: String) -> bool {
-    if hex::decode(address.clone()).is_err() {
-        return false;
-    }
-
-    hex::decode(address).unwrap().len() == 20
-}
-
 pub fn get_transfer_id(
     token: fast_bridge_common::EthAddress,
     recipient: fast_bridge_common::EthAddress,

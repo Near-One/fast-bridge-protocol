@@ -350,11 +350,10 @@ impl FastBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(
-        &self,
-        #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] proof: UnlockProof,
-    ) -> Promise {
+    pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8) -> Promise {
+        let proof = UnlockProof::try_from_slice(&proof.0)
+            .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `UnlockProof`"));
+
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
@@ -677,12 +676,8 @@ impl FastBridge {
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
-    pub fn set_enear_address(&mut self, near_address: String) {
-        require!(
-            utils::is_valid_eth_address(near_address.clone()),
-            format!("Ethereum address:{} not valid.", near_address)
-        );
-        self.eth_bridge_contract = fast_bridge_common::get_eth_address(near_address);
+    pub fn set_eth_bridge_contract_address(&mut self, address: String) {
+        self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
 
     pub fn get_lock_duration(self) -> LockDuration {
