@@ -376,7 +376,7 @@ impl FastBridge {
                 proof.account_data,
                 storage_key_hash,
                 proof.storage_proof,
-                false.try_to_vec().unwrap(),
+                vec![],
                 transfer_data.valid_till_block_height,
                 None,
                 false,
