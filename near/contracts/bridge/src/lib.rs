@@ -1684,25 +1684,25 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Ethereum address:test_addr not valid"#)]
-    fn test_set_enear_address_invalid_address() {
+    #[should_panic(expected = r#"address should be a valid hex string"#)]
+    fn test_set_eth_bridge_contract_address_address_invalid_address() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let invalid_address = "test_addr".to_string();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
-        contract.set_enear_address(invalid_address);
+        contract.set_eth_bridge_contract_address(invalid_address);
     }
 
     #[test]
-    fn test_set_enear_address() {
+    fn test_set_eth_bridge_contract_address() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
-        contract.set_enear_address(valid_address);
+        contract.set_eth_bridge_contract_address(valid_address);
 
         assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
     }
