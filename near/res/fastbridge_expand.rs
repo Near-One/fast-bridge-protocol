@@ -718,12 +718,6 @@ mod utils {
             .concat();
         near_sdk::env::keccak256(&near_sdk::env::keccak256(&encoded_slot_key))
     }
-    pub fn is_valid_eth_address(address: String) -> bool {
-        if hex::decode(address.clone()).is_err() {
-            return false;
-        }
-        hex::decode(address).unwrap().len() == 20
-    }
     pub fn get_transfer_id(
         token: fast_bridge_common::EthAddress,
         recipient: fast_bridge_common::EthAddress,
@@ -3097,7 +3091,7 @@ pub trait Prover {
         account_proof: Vec<Vec<u8>>,
         contract_address: Vec<u8>,
         account_state: Vec<u8>,
-        storage_key: Vec<u8>,
+        storage_key_hash: Vec<u8>,
         storage_proof: Vec<Vec<u8>>,
         value: Vec<u8>,
         min_header_height: Option<u64>,
@@ -3212,7 +3206,7 @@ pub mod ext_prover {
             account_proof: Vec<Vec<u8>>,
             contract_address: Vec<u8>,
             account_state: Vec<u8>,
-            storage_key: Vec<u8>,
+            storage_key_hash: Vec<u8>,
             storage_proof: Vec<Vec<u8>>,
             value: Vec<u8>,
             min_header_height: Option<u64>,
@@ -3225,7 +3219,7 @@ pub mod ext_prover {
                     account_proof: &'nearinput Vec<Vec<u8>>,
                     contract_address: &'nearinput Vec<u8>,
                     account_state: &'nearinput Vec<u8>,
-                    storage_key: &'nearinput Vec<u8>,
+                    storage_key_hash: &'nearinput Vec<u8>,
                     storage_proof: &'nearinput Vec<Vec<u8>>,
                     value: &'nearinput Vec<u8>,
                     min_header_height: &'nearinput Option<u64>,
@@ -3256,7 +3250,10 @@ pub mod ext_prover {
                             writer,
                         )?;
                         borsh::BorshSerialize::serialize(&self.account_state, writer)?;
-                        borsh::BorshSerialize::serialize(&self.storage_key, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.storage_key_hash,
+                            writer,
+                        )?;
                         borsh::BorshSerialize::serialize(&self.storage_proof, writer)?;
                         borsh::BorshSerialize::serialize(&self.value, writer)?;
                         borsh::BorshSerialize::serialize(
@@ -3279,7 +3276,7 @@ pub mod ext_prover {
                     account_proof: &account_proof,
                     contract_address: &contract_address,
                     account_state: &account_state,
-                    storage_key: &storage_key,
+                    storage_key_hash: &storage_key_hash,
                     storage_proof: &storage_proof,
                     value: &value,
                     min_header_height: &min_header_height,
@@ -13066,12 +13063,16 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn unlock(self, nonce: U128, proof: UnlockProof) -> near_sdk::Promise {
+    pub fn unlock(
+        self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+    ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
-                proof: &'nearinput UnlockProof,
+                proof: &'nearinput near_sdk::json_types::Base64VecU8,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -13564,11 +13565,11 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn set_enear_address(self, near_address: String) -> near_sdk::Promise {
+    pub fn set_eth_bridge_contract_address(self, address: String) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
-                near_address: &'nearinput String,
+                address: &'nearinput String,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -13595,8 +13596,8 @@ impl FastBridgeExt {
                         };
                         match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
-                            "near_address",
-                            &self.near_address,
+                            "address",
+                            &self.address,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -13607,15 +13608,13 @@ impl FastBridgeExt {
                     }
                 }
             };
-            let __args = Input {
-                near_address: &near_address,
-            };
+            let __args = Input { address: &address };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
         };
         near_sdk::Promise::new(self.account_id)
             .function_call_weight(
-                "set_enear_address".to_string(),
+                "set_eth_bridge_contract_address".to_string(),
                 __args,
                 self.deposit,
                 self.static_gas,
@@ -14139,7 +14138,11 @@ impl FastBridge {
             .emit();
         U128::from(0)
     }
-    pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
+    pub fn unlock(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+    ) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14164,10 +14167,14 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
+        let proof = UnlockProof::try_from_slice(&proof.0)
+            .unwrap_or_else(|_| env::panic_str(
+                "Invalid borsh format of the `UnlockProof`",
+            ));
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
-        let storage_key = utils::get_eth_storage_key_hash(
+        let storage_key_hash = utils::get_eth_storage_key_hash(
             transfer_data.transfer.token_eth,
             transfer_data.recipient,
             eth_types::U256(nonce.0.into()),
@@ -14181,9 +14188,9 @@ impl FastBridge {
                 proof.account_proof,
                 self.eth_bridge_contract.to_vec(),
                 proof.account_data,
-                storage_key,
+                storage_key_hash,
                 proof.storage_proof,
-                false.try_to_vec().unwrap(),
+                ::alloc::vec::Vec::new(),
                 transfer_data.valid_till_block_height,
                 None,
                 false,
@@ -14793,7 +14800,7 @@ impl FastBridge {
         }
         self.prover_account = prover_account;
     }
-    pub fn set_enear_address(&mut self, near_address: String) {
+    pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
             ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
@@ -14812,7 +14819,9 @@ impl FastBridge {
                             " restricted by access control. Requires one of these roles: ",
                         ],
                         &[
-                            ::core::fmt::ArgumentV1::new_display(&"set_enear_address"),
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"set_eth_bridge_contract_address",
+                            ),
                             ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
                         ],
                     ),
@@ -14821,33 +14830,7 @@ impl FastBridge {
             };
             near_sdk::env::panic_str(&message);
         }
-        if true {
-            let msg: &str = &{
-                let res = ::alloc::fmt::format(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Ethereum address:", " not valid."],
-                        &[::core::fmt::ArgumentV1::new_display(&near_address)],
-                    ),
-                );
-                res
-            };
-            if !utils::is_valid_eth_address(near_address.clone()) {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !utils::is_valid_eth_address(near_address.clone()) {
-            ::near_sdk::env::panic_str(
-                &{
-                    let res = ::alloc::fmt::format(
-                        ::core::fmt::Arguments::new_v1(
-                            &["Ethereum address:", " not valid."],
-                            &[::core::fmt::ArgumentV1::new_display(&near_address)],
-                        ),
-                    );
-                    res
-                },
-            )
-        }
-        self.eth_bridge_contract = fast_bridge_common::get_eth_address(near_address);
+        self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
     pub fn get_lock_duration(self) -> LockDuration {
         self.lock_duration
@@ -15745,7 +15728,7 @@ pub extern "C" fn unlock() {
     #[serde(crate = "near_sdk::serde")]
     struct Input {
         nonce: U128,
-        proof: UnlockProof,
+        proof: near_sdk::json_types::Base64VecU8,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -15873,7 +15856,7 @@ pub extern "C" fn unlock() {
                             }
                         };
                         let __field1 = match match _serde::de::SeqAccess::next_element::<
-                            UnlockProof,
+                            near_sdk::json_types::Base64VecU8,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -15904,7 +15887,9 @@ pub extern "C" fn unlock() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
-                        let mut __field1: _serde::__private::Option<UnlockProof> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<
+                            near_sdk::json_types::Base64VecU8,
+                        > = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -15940,7 +15925,7 @@ pub extern "C" fn unlock() {
                                     }
                                     __field1 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            UnlockProof,
+                                            near_sdk::json_types::Base64VecU8,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -17450,14 +17435,16 @@ pub extern "C" fn set_prover_account() {
 }
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-pub extern "C" fn set_enear_address() {
+pub extern "C" fn set_eth_bridge_contract_address() {
     near_sdk::env::setup_panic_hook();
     if near_sdk::env::attached_deposit() != 0 {
-        near_sdk::env::panic_str("Method set_enear_address doesn't accept deposit");
+        near_sdk::env::panic_str(
+            "Method set_eth_bridge_contract_address doesn't accept deposit",
+        );
     }
     #[serde(crate = "near_sdk::serde")]
     struct Input {
-        near_address: String,
+        address: String,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -17508,7 +17495,7 @@ pub extern "C" fn set_enear_address() {
                         __E: _serde::de::Error,
                     {
                         match __value {
-                            "near_address" => _serde::__private::Ok(__Field::__field0),
+                            "address" => _serde::__private::Ok(__Field::__field0),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -17520,7 +17507,7 @@ pub extern "C" fn set_enear_address() {
                         __E: _serde::de::Error,
                     {
                         match __value {
-                            b"near_address" => _serde::__private::Ok(__Field::__field0),
+                            b"address" => _serde::__private::Ok(__Field::__field0),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -17580,7 +17567,7 @@ pub extern "C" fn set_enear_address() {
                                 );
                             }
                         };
-                        _serde::__private::Ok(Input { near_address: __field0 })
+                        _serde::__private::Ok(Input { address: __field0 })
                     }
                     #[inline]
                     fn visit_map<__A>(
@@ -17605,7 +17592,7 @@ pub extern "C" fn set_enear_address() {
                                     if _serde::__private::Option::is_some(&__field0) {
                                         return _serde::__private::Err(
                                             <__A::Error as _serde::de::Error>::duplicate_field(
-                                                "near_address",
+                                                "address",
                                             ),
                                         );
                                     }
@@ -17635,7 +17622,7 @@ pub extern "C" fn set_enear_address() {
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                match _serde::__private::de::missing_field("near_address") {
+                                match _serde::__private::de::missing_field("address") {
                                     _serde::__private::Ok(__val) => __val,
                                     _serde::__private::Err(__err) => {
                                         return _serde::__private::Err(__err);
@@ -17643,10 +17630,10 @@ pub extern "C" fn set_enear_address() {
                                 }
                             }
                         };
-                        _serde::__private::Ok(Input { near_address: __field0 })
+                        _serde::__private::Ok(Input { address: __field0 })
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["near_address"];
+                const FIELDS: &'static [&'static str] = &["address"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -17659,12 +17646,12 @@ pub extern "C" fn set_enear_address() {
             }
         }
     };
-    let Input { near_address }: Input = near_sdk::serde_json::from_slice(
+    let Input { address }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.set_enear_address(near_address);
+    contract.set_eth_bridge_contract_address(address);
     near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
