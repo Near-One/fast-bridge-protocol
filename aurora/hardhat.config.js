@@ -65,6 +65,9 @@ module.exports = {
             url: 'https://rpc.testnet.aurora.dev:8545',
             accounts: [`0x${AURORA_PRIVATE_KEY}`]
         }
+    },
+    mocha: {
+        timeout: 100000000
     }
 };
 
