@@ -8,12 +8,14 @@ const AURORA_TOKEN_ADDRESS="0x901fb725c106E182614105335ad0E230c91B67C8"
 
 describe("Aurora Fast Bridge", function () {
     it("The Basic Aurora->Eth transfer with unlock", async function () {
-        const execSync = require('child_process').execSync;
-        execSync("near create-account fb-test.olga24912_3.testnet --masterAccount olga24912_3.testnet --initialBalance 20")
-        const output1 = execSync("near deploy fb-test.olga24912_3.testnet --wasmFile ../near/res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{\"eth_bridge_contract\": \"8AC4c4A1015A9A12A9DBA16234A3f7909b9396Eb\", \"prover_account\": \"prover.goerli.testnet\", \"eth_client_account\": \"client-eth2.goerli.testnet\", \"lock_time_min\": \"1m\", \"lock_time_max\": \"24h\", \"eth_block_time\": 12000000000}'", { encoding: 'utf-8' });
-        const near_fast_bridge_account = output1.split(/\r?\n/)[6].split(" ")[4];
-        console.log("Near fast bridge account: " + near_fast_bridge_account);
+        const master_account = process.env.MASTER_ACCOUNT;
+        const near_fast_bridge_account = "fb-test." + master_account;
 
+        const execSync = require('child_process').execSync;
+        execSync("near create-account " + near_fast_bridge_account + " --masterAccount "+ master_account + " --initialBalance 20")
+        execSync("near deploy " + near_fast_bridge_account + " --wasmFile ../near/res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{\"eth_bridge_contract\": \"8AC4c4A1015A9A12A9DBA16234A3f7909b9396Eb\", \"prover_account\": \"prover.goerli.testnet\", \"eth_client_account\": \"client-eth2.goerli.testnet\", \"lock_time_min\": \"1m\", \"lock_time_max\": \"24h\", \"eth_block_time\": 12000000000}'", { encoding: 'utf-8' });
+        console.log("Near fast bridge account: " + near_fast_bridge_account);
+        
         const provider = hre.ethers.provider;
         const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
         const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
@@ -24,7 +26,7 @@ describe("Aurora Fast Bridge", function () {
         });
         const options = { gasLimit: 6000000 };
         const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", "fb-test.olga24912_3.testnet", options);
+            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", near_fast_bridge_account, options);
         await fastbridge.deployed();
 
         const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
@@ -49,8 +51,14 @@ describe("Aurora Fast Bridge", function () {
         await fastbridge.unlock(0);
         await fastbridge.withdraw_from_near(NEAR_TOKEN_ADDRESS, 200000);
         await fastbridge.withdraw(NEAR_TOKEN_ADDRESS);
+    });
 
-        execSync("near delete fb-test.olga24912_3.testnet olga24912_3.testnet --force", { encoding: 'utf-8', stdio: [process.stdin, process.stdout, 'pipe']});
+    afterEach(async function() {
+        const master_account = process.env.MASTER_ACCOUNT;
+        const near_fast_bridge_account = "fb-test." + master_account;
+
+        const execSync = require('child_process').execSync;
+        execSync("near delete " + near_fast_bridge_account + " " + master_account, { encoding: 'utf-8', stdio: [process.stdin, process.stdout, 'pipe']});
     });
 });
 
