@@ -4,7 +4,8 @@ const {execSync} = require("child_process");
 const { expect } = require("chai");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
-const NEAR_TOKEN_ADDRESS="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
+const NEAR_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
+const ETH_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f";
 const AURORA_TOKEN_ADDRESS="0x901fb725c106E182614105335ad0E230c91B67C8"
 
 describe("Aurora Fast Bridge", function () {
@@ -27,7 +28,7 @@ describe("Aurora Fast Bridge", function () {
         });
         const options = { gasLimit: 6000000 };
         const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", near_fast_bridge_account, options);
+            .deploy(WNEAR_AURORA_ADDRESS, near_fast_bridge_account, options);
         await fastbridge.deployed();
 
         const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
@@ -40,7 +41,7 @@ describe("Aurora Fast Bridge", function () {
         await usdc.approve(fastbridge.address, "2000000000000000000000000");
 
         const valid_till = Date.now() * 1000000 + 120000000000;
-        const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"token_eth\":\"07865c6e87b9f70255377e024ace6630c1eaa37f\",\"amount\":\"100000\"},\"fee\":{\"token\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"amount\":\"100000\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
+        const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"" + NEAR_TOKEN_ADDRESS + "\",\"token_eth\":\"" + ETH_TOKEN_ADDRESS + "\",\"amount\":\"100000\"},\"fee\":{\"token\":\"" + NEAR_TOKEN_ADDRESS + "\",\"amount\":\"100000\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
 
         const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
