@@ -1,12 +1,19 @@
 require('dotenv').config();
 const hre = require("hardhat");
+const {execSync} = require("child_process");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
 const NEAR_TOKEN_ADDRESS="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
 const AURORA_TOKEN_ADDRESS="0x901fb725c106E182614105335ad0E230c91B67C8"
 
 describe("Aurora Fast Bridge", function () {
-    it("Deploy test", async function () {
+    it("The Basic Aurora->Eth transfer with unlock", async function () {
+        const execSync = require('child_process').execSync;
+        execSync("near create-account fb-test.olga24912_3.testnet --masterAccount olga24912_3.testnet --initialBalance 20")
+        const output1 = execSync("near deploy fb-test.olga24912_3.testnet --wasmFile ../near/res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{\"eth_bridge_contract\": \"8AC4c4A1015A9A12A9DBA16234A3f7909b9396Eb\", \"prover_account\": \"prover.goerli.testnet\", \"eth_client_account\": \"client-eth2.goerli.testnet\", \"lock_time_min\": \"1m\", \"lock_time_max\": \"24h\", \"eth_block_time\": 12000000000}'", { encoding: 'utf-8' });
+        const near_fast_bridge_account = output1.split(/\r?\n/)[6].split(" ")[4];
+        console.log("Near fast bridge account: " + near_fast_bridge_account);
+
         const provider = hre.ethers.provider;
         const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
         const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
@@ -17,7 +24,7 @@ describe("Aurora Fast Bridge", function () {
         });
         const options = { gasLimit: 6000000 };
         const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", "fb.olga24912_3.testnet", options);
+            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", "fb-test.olga24912_3.testnet", options);
         await fastbridge.deployed();
 
         const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
@@ -32,7 +39,6 @@ describe("Aurora Fast Bridge", function () {
         const valid_till = Date.now() * 1000000 + 120000000000;
         const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"token_eth\":\"07865c6e87b9f70255377e024ace6630c1eaa37f\",\"amount\":\"100000\"},\"fee\":{\"token\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"amount\":\"100000\"},\"recipient\":\"1c6a38ac14e5fdd4f378192fad90db7025f1db67\",\"valid_till_block_height\":null,\"aurora_sender\":\"1c6a38ac14e5fdd4f378192fad90db7025f1db67\"}";
 
-        const execSync = require('child_process').execSync;
         const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
         const transfer_msg_hex = "0x" + output.split(/\r?\n/)[1].slice(1, -1);
@@ -40,9 +46,11 @@ describe("Aurora Fast Bridge", function () {
 
         await sleep(150000);
 
-        await fastbridge.unlock(27);
+        await fastbridge.unlock(0);
         await fastbridge.withdraw_from_near(NEAR_TOKEN_ADDRESS, 200000);
         await fastbridge.withdraw(NEAR_TOKEN_ADDRESS);
+
+        execSync("near delete fb-test.olga24912_3.testnet olga24912_3.testnet --force", { encoding: 'utf-8', stdio: [process.stdin, process.stdout, 'pipe']});
     });
 });
 
