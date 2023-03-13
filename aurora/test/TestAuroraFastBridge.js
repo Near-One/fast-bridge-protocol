@@ -1,6 +1,7 @@
 require('dotenv').config();
 const hre = require("hardhat");
 const {execSync} = require("child_process");
+const { expect } = require("chai");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
 const NEAR_TOKEN_ADDRESS="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
@@ -15,7 +16,7 @@ describe("Aurora Fast Bridge", function () {
         execSync("near create-account " + near_fast_bridge_account + " --masterAccount "+ master_account + " --initialBalance 20")
         execSync("near deploy " + near_fast_bridge_account + " --wasmFile ../near/res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{\"eth_bridge_contract\": \"8AC4c4A1015A9A12A9DBA16234A3f7909b9396Eb\", \"prover_account\": \"prover.goerli.testnet\", \"eth_client_account\": \"client-eth2.goerli.testnet\", \"lock_time_min\": \"1m\", \"lock_time_max\": \"24h\", \"eth_block_time\": 12000000000}'", { encoding: 'utf-8' });
         console.log("Near fast bridge account: " + near_fast_bridge_account);
-        
+
         const provider = hre.ethers.provider;
         const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
         const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
@@ -39,18 +40,23 @@ describe("Aurora Fast Bridge", function () {
         await usdc.approve(fastbridge.address, "2000000000000000000000000");
 
         const valid_till = Date.now() * 1000000 + 120000000000;
-        const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"token_eth\":\"07865c6e87b9f70255377e024ace6630c1eaa37f\",\"amount\":\"100000\"},\"fee\":{\"token\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"amount\":\"100000\"},\"recipient\":\"1c6a38ac14e5fdd4f378192fad90db7025f1db67\",\"valid_till_block_height\":null,\"aurora_sender\":\"1c6a38ac14e5fdd4f378192fad90db7025f1db67\"}";
+        const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"token_eth\":\"07865c6e87b9f70255377e024ace6630c1eaa37f\",\"amount\":\"100000\"},\"fee\":{\"token\":\"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet\",\"amount\":\"100000\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
 
         const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
+        const balance_before = await usdc.balanceOf(deployerWallet.address);
         const transfer_msg_hex = "0x" + output.split(/\r?\n/)[1].slice(1, -1);
         await fastbridge.init_token_transfer(transfer_msg_hex);
+        const balance_after_init_transfer = await usdc.balanceOf(deployerWallet.address);
+        expect(balance_before - balance_after_init_transfer).to.equals(200000);
 
         await sleep(150000);
 
         await fastbridge.unlock(0);
         await fastbridge.withdraw_from_near(NEAR_TOKEN_ADDRESS, 200000);
         await fastbridge.withdraw(NEAR_TOKEN_ADDRESS);
+        const balance_after_unlock = await usdc.balanceOf(deployerWallet.address);
+        expect(balance_before).to.equals(balance_after_unlock);
     });
 
     afterEach(async function() {
