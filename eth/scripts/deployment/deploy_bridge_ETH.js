@@ -1,9 +1,10 @@
 const { ethers, upgrades } = require("hardhat");
 
-async function bridge_deployment_task(decimals_value) {
+async function bridge_deployment_task() {
+    const usdcDecimals = 6;
     const [bridge_deployer, token_deployer] = await ethers.getSigners();
     const tokenInstance = (await ethers.getContractFactory("TestToken")).connect(token_deployer);
-    let MockToken = await tokenInstance.deploy(decimals_value, "TEST_TOKEN", "MET");
+    let MockToken = await tokenInstance.deploy(usdcDecimals, "TEST_TOKEN", "MT");
     await MockToken.deployed();
 
     const bridge = (await ethers.getContractFactory("EthErc20FastBridge")).connect(bridge_deployer);
@@ -22,7 +23,7 @@ async function bridge_deployment_task(decimals_value) {
 }
 
 module.exports = bridge_deployment_task;
-// bridge_deployment_task(6).catch((error) => {
+// bridge_deployment_task.catch((error) => {
 //     console.error(error);
 //     process.exitCode = 1;
 // });

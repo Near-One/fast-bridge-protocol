@@ -21,13 +21,13 @@ const FORKING = true; // set undefined to disable forking
 const ENABLED_OPTIMIZER = true;
 const OPTIMIZER_RUNS = 200;
 
-task("deploy_fastbridge_with_token", "Deploys Eth erc20 Fastbridge with erc20 tokens and whitelists them")
-    .addParam("decimals", "decimal value of token to be set")
-    .setAction(async (taskArgs, hre) => {
+task("deploy_fastbridge_with_token", "Deploys Eth erc20 Fastbridge with erc20 tokens and whitelists them").setAction(
+    async (_taskArgs, hre) => {
         await hre.run("compile");
         const bridge_deployment_task = require("./scripts/deployment/deploy_bridge_ETH.js");
-        await bridge_deployment_task(taskArgs.decimals);
-    });
+        await bridge_deployment_task();
+    }
+);
 
 module.exports = {
     solidity: {
@@ -57,7 +57,7 @@ module.exports = {
             url: "HTTP://127.0.0.1:7545",
             allowUnlimitedContractSize: true
         },
-        local_net: {
+        localnet: {
             url: "HTTP://127.0.0.1:8545",
             allowUnlimitedContractSize: true
         },
