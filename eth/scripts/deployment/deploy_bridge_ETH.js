@@ -1,13 +1,13 @@
 const { ethers, upgrades } = require("hardhat");
 
-async function main() {
-    const [deployer] = await ethers.getSigners();
-    const Token = await ethers.getContractFactory("TestToken");
-    const tokenDeployed = await Token.deploy(18, "ETH", "ETH");
-    await tokenDeployed.deployed();
+async function bridge_deployment_task(decimals_value) {
+    const [bridge_deployer, token_deployer] = await ethers.getSigners();
+    const tokenInstance = (await ethers.getContractFactory("TestToken")).connect(token_deployer);
+    let MockToken = await tokenInstance.deploy(decimals_value, "TEST_TOKEN", "MET");
+    await MockToken.deployed();
 
-    const bridge = (await ethers.getContractFactory("EthErc20FastBridge")).connect(deployer);
-    let proxy = await upgrades.deployProxy(bridge, [[tokenDeployed.address], [true]], {
+    const bridge = (await ethers.getContractFactory("EthErc20FastBridge")).connect(bridge_deployer);
+    let proxy = await upgrades.deployProxy(bridge, [[MockToken.address], [true]], {
         unsafeAllow: ["delegatecall"]
     });
     await proxy.deployed();
@@ -16,11 +16,13 @@ async function main() {
     console.log("Deployment is completed.");
     console.log("Proxy FastBridge Deployed at: ", proxy.address);
     console.log("FastBridge Implemenation Address: ", bridge_implementation_address);
-    console.log("Proxy FastBridge Deployed by address: ", deployer.address);
-    console.log("Token Address: ", tokenDeployed.address)
+    console.log("Proxy FastBridge Deployed by address: ", bridge_deployer.address);
+    console.log("Token Address: ", MockToken.address);
+    console.log("Mock Token deployed by address: ", token_deployer.address);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+module.exports = bridge_deployment_task;
+// bridge_deployment_task(6).catch((error) => {
+//     console.error(error);
+//     process.exitCode = 1;
+// });
