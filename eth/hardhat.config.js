@@ -24,10 +24,17 @@ const OPTIMIZER_RUNS = 200;
 task("deploy_fastbridge_with_token", "Deploys Eth erc20 Fastbridge with erc20 tokens and whitelists them").setAction(
     async (_taskArgs, hre) => {
         await hre.run("compile");
-        const bridge_deployment_task = require("./scripts/deployment/deploy_bridge_ETH.js");
+        const { bridge_deployment_task } = require("./scripts/deployment/deploy_bridge_ETH.js");
         await bridge_deployment_task();
     }
 );
+
+task("getBlockHash", "returns the block hash of input block number")
+    .addParam("blocknumber", "Block number in integer")
+    .setAction(async (taskArgs) => {
+        const { getBlockHash } = require("./scripts/deployment/deploy_bridge_ETH.js");
+        await getBlockHash(taskArgs.blockNumber);
+    });
 
 module.exports = {
     solidity: {
