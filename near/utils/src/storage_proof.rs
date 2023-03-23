@@ -2,6 +2,8 @@ use hex::FromHex;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
+// The slot number of the storage `mapping(bytes32 => bool) public processedHashes;` in the contract `eth/contracts/EthErc20FastBridge.sol`.
+// This number can be found in the generated storage layout `eth/contracts/res/storage_layout.txt
 const STORAGE_KEY_SLOT: u32 = 302;
 
 pub fn keccak256(bytes: &[u8]) -> [u8; 32] {

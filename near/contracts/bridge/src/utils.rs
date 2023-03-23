@@ -1,5 +1,8 @@
 pub const TGAS: near_sdk::Gas = near_sdk::Gas::ONE_TERA;
 pub const NO_DEPOSIT: u128 = 0;
+// The slot number of the storage `mapping(bytes32 => bool) public processedHashes;` in the contract `eth/contracts/EthErc20FastBridge.sol`.
+// This number can be found in the generated storage layout `eth/contracts/res/storage_layout.txt
+const STORAGE_KEY_SLOT: u32 = 302;
 
 pub fn tera_gas(gas: u64) -> near_sdk::Gas {
     TGAS * gas
@@ -11,7 +14,7 @@ pub fn get_eth_storage_key_hash(
     nonce: eth_types::U256,
     amount: eth_types::U256,
 ) -> Vec<u8> {
-    let slot = eth_types::U256(302u128.into());
+    let slot = eth_types::U256(STORAGE_KEY_SLOT.into());
     let mut be_slot = [0u8; 32];
     slot.0.to_big_endian(&mut be_slot);
 

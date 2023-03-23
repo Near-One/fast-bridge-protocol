@@ -365,6 +365,8 @@ impl FastBridge {
             eth_types::U256(transfer_data.transfer.amount.0.into()),
         );
 
+        let expected_storage_value = vec![];
+
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
@@ -375,7 +377,7 @@ impl FastBridge {
                 proof.account_data,
                 storage_key_hash,
                 proof.storage_proof,
-                vec![],
+                expected_storage_value,
                 transfer_data.valid_till_block_height,
                 None,
                 false,
