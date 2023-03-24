@@ -29,7 +29,7 @@ task("deploy_fastbridge_with_token", "Deploys Eth erc20 Fastbridge with erc20 to
     }
 );
 
-task("getBlockHash", "returns the block hash of input block number")
+task("get_block_hash", "returns the block hash of input block number")
     .addParam("blocknumber", "Block number in integer")
     .setAction(async (taskArgs) => {
         const { getBlockHash } = require("./scripts/deployment/deploy_bridge_ETH.js");

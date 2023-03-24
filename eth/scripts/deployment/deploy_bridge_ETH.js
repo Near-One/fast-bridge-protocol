@@ -29,7 +29,3 @@ async function getBlockHash(blockNumber) {
 }
 
 module.exports = { bridge_deployment_task, getBlockHash };
-// bridge_deployment_task.catch((error) => {
-//     console.error(error);
-//     process.exitCode = 1;
-// });
