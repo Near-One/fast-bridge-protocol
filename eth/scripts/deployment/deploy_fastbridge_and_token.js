@@ -1,5 +1,4 @@
 const { ethers, upgrades } = require("hardhat");
-const provider = new ethers.providers.JsonRpcProvider("HTTP://127.0.0.1:8545");
 
 async function bridge_deployment_task() {
     const usdcDecimals = 6;
@@ -23,9 +22,4 @@ async function bridge_deployment_task() {
     console.log("Mock Token deployed by address: ", token_deployer.address);
 }
 
-async function getBlockHash(blockNumber) {
-    const block = await provider.getBlock(blockNumber);
-    console.log("BLOCK Hash is: ", block.hash);
-}
-
-module.exports = { bridge_deployment_task, getBlockHash };
+module.exports = bridge_deployment_task;
