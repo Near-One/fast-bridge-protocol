@@ -46,7 +46,7 @@ pub trait Prover {
         #[serializer(borsh)] account_proof: Vec<Vec<u8>>, // account proof
         #[serializer(borsh)] contract_address: Vec<u8>,   // eth address
         #[serializer(borsh)] account_state: Vec<u8>,      // rlp encoded account state
-        #[serializer(borsh)] storage_key: Vec<u8>,        // storage key
+        #[serializer(borsh)] storage_key_hash: Vec<u8>,   // keccak256 of storage key
         #[serializer(borsh)] storage_proof: Vec<Vec<u8>>, // storage proof
         #[serializer(borsh)] value: Vec<u8>,              // storage value
         #[serializer(borsh)] min_header_height: Option<u64>,
@@ -350,17 +350,22 @@ impl FastBridge {
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(&self, nonce: U128, proof: UnlockProof) -> Promise {
+    pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8) -> Promise {
+        let proof = UnlockProof::try_from_slice(&proof.0)
+            .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `UnlockProof`"));
+
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
 
-        let storage_key = utils::get_eth_storage_key(
+        let storage_key_hash = utils::get_eth_storage_key_hash(
             transfer_data.transfer.token_eth,
             transfer_data.recipient,
             eth_types::U256(nonce.0.into()),
             eth_types::U256(transfer_data.transfer.amount.0.into()),
         );
+
+        let expected_storage_value = vec![];
 
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
@@ -370,9 +375,9 @@ impl FastBridge {
                 proof.account_proof,
                 self.eth_bridge_contract.to_vec(),
                 proof.account_data,
-                storage_key,
+                storage_key_hash,
                 proof.storage_proof,
-                false.try_to_vec().unwrap(),
+                expected_storage_value,
                 transfer_data.valid_till_block_height,
                 None,
                 false,
@@ -673,12 +678,8 @@ impl FastBridge {
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
-    pub fn set_enear_address(&mut self, near_address: String) {
-        require!(
-            utils::is_valid_eth_address(near_address.clone()),
-            format!("Ethereum address:{} not valid.", near_address)
-        );
-        self.eth_bridge_contract = fast_bridge_common::get_eth_address(near_address);
+    pub fn set_eth_bridge_contract_address(&mut self, address: String) {
+        self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
 
     pub fn get_lock_duration(self) -> LockDuration {
@@ -1685,25 +1686,25 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Ethereum address:test_addr not valid"#)]
-    fn test_set_enear_address_invalid_address() {
+    #[should_panic(expected = r#"address should be a valid hex string"#)]
+    fn test_set_eth_bridge_contract_address_address_invalid_address() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let invalid_address = "test_addr".to_string();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
-        contract.set_enear_address(invalid_address);
+        contract.set_eth_bridge_contract_address(invalid_address);
     }
 
     #[test]
-    fn test_set_enear_address() {
+    fn test_set_eth_bridge_contract_address() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
-        contract.set_enear_address(valid_address);
+        contract.set_eth_bridge_contract_address(valid_address);
 
         assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
     }

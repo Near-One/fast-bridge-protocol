@@ -2,7 +2,7 @@
 #near login
 
 # build & test
-./build.sh && ./test.sh
+./build_locally.sh && ./test.sh
 
 MASTER_ACCOUNT="<YOUR_ACCOUNT>"
 BRIDGE_ACCOUNT=fast-bridge.$MASTER_ACCOUNT
