@@ -699,6 +699,7 @@ mod lp_relayer {
 mod utils {
     pub const TGAS: near_sdk::Gas = near_sdk::Gas::ONE_TERA;
     pub const NO_DEPOSIT: u128 = 0;
+    const STORAGE_KEY_SLOT: u32 = 302;
     pub fn tera_gas(gas: u64) -> near_sdk::Gas {
         TGAS * gas
     }
@@ -708,7 +709,7 @@ mod utils {
         nonce: eth_types::U256,
         amount: eth_types::U256,
     ) -> Vec<u8> {
-        let slot = eth_types::U256(302u128.into());
+        let slot = eth_types::U256(STORAGE_KEY_SLOT.into());
         let mut be_slot = [0u8; 32];
         slot.0.to_big_endian(&mut be_slot);
         let encoded_slot_key = [
@@ -761,7 +762,10 @@ mod whitelist {
                 _ => {
                     let msg = {
                         let res = ::alloc::fmt::format(
-                            format_args!("Unexpected variant index: {0:?}", variant_idx),
+                            ::core::fmt::Arguments::new_v1(
+                                &["Unexpected variant index: "],
+                                &[::core::fmt::ArgumentV1::new_debug(&variant_idx)],
+                            ),
                         );
                         res
                     };
@@ -1022,14 +1026,15 @@ mod whitelist {
     #[automatically_derived]
     impl ::core::fmt::Debug for WhitelistMode {
         fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-            ::core::fmt::Formatter::write_str(
-                f,
-                match self {
-                    WhitelistMode::Blocked => "Blocked",
-                    WhitelistMode::CheckToken => "CheckToken",
-                    WhitelistMode::CheckAccountAndToken => "CheckAccountAndToken",
-                },
-            )
+            match self {
+                WhitelistMode::Blocked => ::core::fmt::Formatter::write_str(f, "Blocked"),
+                WhitelistMode::CheckToken => {
+                    ::core::fmt::Formatter::write_str(f, "CheckToken")
+                }
+                WhitelistMode::CheckAccountAndToken => {
+                    ::core::fmt::Formatter::write_str(f, "CheckAccountAndToken")
+                }
+            }
         }
     }
     #[automatically_derived]
@@ -1046,7 +1051,15 @@ mod whitelist {
     fn get_token_account_key(token: Option<&AccountId>, account: &AccountId) -> String {
         if let Some(token) = token {
             {
-                let res = ::alloc::fmt::format(format_args!("{0}:{1}", token, account));
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &["", ":"],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&token),
+                            ::core::fmt::ArgumentV1::new_display(&account),
+                        ],
+                    ),
+                );
                 res
             }
         } else {
@@ -1467,9 +1480,17 @@ mod whitelist {
             if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
                 let message = {
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                            "set_token_whitelist_mode", __acl_any_roles
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Insufficient permissions for method ",
+                                " restricted by access control. Requires one of these roles: ",
+                            ],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &"set_token_whitelist_mode",
+                                ),
+                                ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                            ],
                         ),
                     );
                     res
@@ -1495,9 +1516,17 @@ mod whitelist {
             if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
                 let message = {
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                            "add_token_to_account_whitelist", __acl_any_roles
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Insufficient permissions for method ",
+                                " restricted by access control. Requires one of these roles: ",
+                            ],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &"add_token_to_account_whitelist",
+                                ),
+                                ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                            ],
                         ),
                     );
                     res
@@ -1507,7 +1536,10 @@ mod whitelist {
             if let Some(token) = &token {
                 if !self.whitelist_tokens.get(token).is_some() {
                     ::core::panicking::panic_fmt(
-                        format_args!("The whitelisted token mode is not set"),
+                        ::core::fmt::Arguments::new_v1(
+                            &["The whitelisted token mode is not set"],
+                            &[],
+                        ),
                     )
                 }
             }
@@ -1531,9 +1563,17 @@ mod whitelist {
             if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
                 let message = {
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                            "remove_token_from_account_whitelist", __acl_any_roles
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Insufficient permissions for method ",
+                                " restricted by access control. Requires one of these roles: ",
+                            ],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &"remove_token_from_account_whitelist",
+                                ),
+                                ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                            ],
                         ),
                     );
                     res
@@ -1558,7 +1598,10 @@ mod whitelist {
                     env::panic_str(
                         {
                             let res = ::alloc::fmt::format(
-                                format_args!("The token `{0}` is not whitelisted", token),
+                                ::core::fmt::Arguments::new_v1(
+                                    &["The token `", "` is not whitelisted"],
+                                    &[::core::fmt::ArgumentV1::new_display(&token)],
+                                ),
                             );
                             res
                         }
@@ -1571,9 +1614,16 @@ mod whitelist {
                     if true {
                         let msg: &str = &{
                             let res = ::alloc::fmt::format(
-                                format_args!(
-                                    "The token `{0}` isn\'t whitelisted for the account `{1}`",
-                                    token, account
+                                ::core::fmt::Arguments::new_v1(
+                                    &[
+                                        "The token `",
+                                        "` isn\'t whitelisted for the account `",
+                                        "`",
+                                    ],
+                                    &[
+                                        ::core::fmt::ArgumentV1::new_display(&token),
+                                        ::core::fmt::ArgumentV1::new_display(&account),
+                                    ],
                                 ),
                             );
                             res
@@ -1589,9 +1639,16 @@ mod whitelist {
                         ::near_sdk::env::panic_str(
                             &{
                                 let res = ::alloc::fmt::format(
-                                    format_args!(
-                                        "The token `{0}` isn\'t whitelisted for the account `{1}`",
-                                        token, account
+                                    ::core::fmt::Arguments::new_v1(
+                                        &[
+                                            "The token `",
+                                            "` isn\'t whitelisted for the account `",
+                                            "`",
+                                        ],
+                                        &[
+                                            ::core::fmt::ArgumentV1::new_display(&token),
+                                            ::core::fmt::ArgumentV1::new_display(&account),
+                                        ],
                                     ),
                                 );
                                 res
@@ -1604,7 +1661,10 @@ mod whitelist {
                     env::panic_str(
                         {
                             let res = ::alloc::fmt::format(
-                                format_args!("The token `{0}` is blocked", token),
+                                ::core::fmt::Arguments::new_v1(
+                                    &["The token `", "` is blocked"],
+                                    &[::core::fmt::ArgumentV1::new_display(&token)],
+                                ),
                             );
                             res
                         }
@@ -1626,9 +1686,17 @@ mod whitelist {
             if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
                 let message = {
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                            "set_whitelist_mode_enabled", __acl_any_roles
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Insufficient permissions for method ",
+                                " restricted by access control. Requires one of these roles: ",
+                            ],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &"set_whitelist_mode_enabled",
+                                ),
+                                ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                            ],
                         ),
                     );
                     res
@@ -3758,11 +3826,11 @@ impl ::core::fmt::Debug for UnlockProof {
             f,
             "UnlockProof",
             "header_data",
-            &self.header_data,
+            &&self.header_data,
             "account_proof",
-            &self.account_proof,
+            &&self.account_proof,
             "account_data",
-            &self.account_data,
+            &&self.account_data,
             "storage_proof",
             &&self.storage_proof,
         )
@@ -4643,9 +4711,9 @@ impl ::core::fmt::Debug for UpdateBalance {
             f,
             "UpdateBalance",
             "sender_id",
-            &self.sender_id,
+            &&self.sender_id,
             "token",
-            &self.token,
+            &&self.token,
             "amount",
             &&self.amount,
         )
@@ -5043,7 +5111,7 @@ impl ::core::fmt::Debug for LockDuration {
             f,
             "LockDuration",
             "lock_time_min",
-            &self.lock_time_min,
+            &&self.lock_time_min,
             "lock_time_max",
             &&self.lock_time_max,
         )
@@ -6573,9 +6641,15 @@ impl Pausable for FastBridge {
         if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
             let message = {
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                        "pa_pause_feature", __acl_any_roles
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&"pa_pause_feature"),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
                     ),
                 );
                 res
@@ -6616,9 +6690,15 @@ impl Pausable for FastBridge {
         if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
             let message = {
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                        "pa_unpause_feature", __acl_any_roles
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&"pa_unpause_feature"),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
                     ),
                 );
                 res
@@ -13972,9 +14052,14 @@ impl FastBridge {
             .get(&sender_id)
             .unwrap_or_else(|| {
                 ::core::panicking::panic_fmt(
-                    format_args!(
-                        "Balance in {0} for user {1} not found", transfer_message
-                        .transfer.token_near, sender_id
+                    ::core::fmt::Arguments::new_v1(
+                        &["Balance in ", " for user ", " not found"],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &transfer_message.transfer.token_near,
+                            ),
+                            ::core::fmt::ArgumentV1::new_display(&sender_id),
+                        ],
                     ),
                 )
             });
@@ -13982,9 +14067,13 @@ impl FastBridge {
             .get(&transfer_message.transfer.token_near)
             .unwrap_or_else(|| {
                 ::core::panicking::panic_fmt(
-                    format_args!(
-                        "Balance for token transfer: {0} not found", & transfer_message
-                        .transfer.token_near
+                    ::core::fmt::Arguments::new_v1(
+                        &["Balance for token transfer: ", " not found"],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &&transfer_message.transfer.token_near,
+                            ),
+                        ],
                     ),
                 )
             });
@@ -14008,9 +14097,13 @@ impl FastBridge {
             .get(&transfer_message.fee.token)
             .unwrap_or_else(|| {
                 ::core::panicking::panic_fmt(
-                    format_args!(
-                        "Balance for token fee: {0} not found", & transfer_message
-                        .transfer.token_near
+                    ::core::fmt::Arguments::new_v1(
+                        &["Balance for token fee: ", " not found"],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &&transfer_message.transfer.token_near,
+                            ),
+                        ],
                     ),
                 )
             });
@@ -14088,6 +14181,7 @@ impl FastBridge {
             eth_types::U256(nonce.0.into()),
             eth_types::U256(transfer_data.transfer.amount.0.into()),
         );
+        let expected_storage_value = ::alloc::vec::Vec::new();
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(utils::NO_DEPOSIT)
@@ -14098,7 +14192,7 @@ impl FastBridge {
                 proof.account_data,
                 storage_key_hash,
                 proof.storage_proof,
-                ::alloc::vec::Vec::new(),
+                expected_storage_value,
                 transfer_data.valid_till_block_height,
                 None,
                 false,
@@ -14128,7 +14222,10 @@ impl FastBridge {
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!("Permission denied for account: {0}", sender_id),
+                    ::core::fmt::Arguments::new_v1(
+                        &["Permission denied for account: "],
+                        &[::core::fmt::ArgumentV1::new_display(&sender_id)],
+                    ),
                 );
                 res
             };
@@ -14139,7 +14236,10 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!("Permission denied for account: {0}", sender_id),
+                        ::core::fmt::Arguments::new_v1(
+                            &["Permission denied for account: "],
+                            &[::core::fmt::ArgumentV1::new_display(&sender_id)],
+                        ),
                     );
                     res
                 },
@@ -14156,7 +14256,10 @@ impl FastBridge {
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!("Verification failed for unlock proof"),
+                    ::core::fmt::Arguments::new_v1(
+                        &["Verification failed for unlock proof"],
+                        &[],
+                    ),
                 );
                 res
             };
@@ -14167,7 +14270,10 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!("Verification failed for unlock proof"),
+                        ::core::fmt::Arguments::new_v1(
+                            &["Verification failed for unlock proof"],
+                            &[],
+                        ),
                     );
                     res
                 },
@@ -14226,10 +14332,19 @@ impl FastBridge {
                         &*left_val,
                         &*right_val,
                         ::core::option::Option::Some(
-                            format_args!(
-                                "Event\'s address {0} does not match the eth bridge address {1}",
-                                hex::encode(parsed_proof.eth_bridge_contract),
-                                hex::encode(self.eth_bridge_contract)
+                            ::core::fmt::Arguments::new_v1(
+                                &[
+                                    "Event\'s address ",
+                                    " does not match the eth bridge address ",
+                                ],
+                                &[
+                                    ::core::fmt::ArgumentV1::new_display(
+                                        &hex::encode(parsed_proof.eth_bridge_contract),
+                                    ),
+                                    ::core::fmt::ArgumentV1::new_display(
+                                        &hex::encode(self.eth_bridge_contract),
+                                    ),
+                                ],
                             ),
                         ),
                     );
@@ -14273,15 +14388,21 @@ impl FastBridge {
             .pending_transfers
             .get(&nonce_str)
             .unwrap_or_else(|| ::core::panicking::panic_fmt(
-                format_args!("Transaction with id: {0} not found", & nonce_str),
+                ::core::fmt::Arguments::new_v1(
+                    &["Transaction with id: ", " not found"],
+                    &[::core::fmt::ArgumentV1::new_display(&&nonce_str)],
+                ),
             ));
         let transfer_data = transfer.1;
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Wrong recipient {0:?}, expected {1:?}", proof.recipient,
-                        transfer_data.recipient
+                    ::core::fmt::Arguments::new_v1(
+                        &["Wrong recipient ", ", expected "],
+                        &[
+                            ::core::fmt::ArgumentV1::new_debug(&proof.recipient),
+                            ::core::fmt::ArgumentV1::new_debug(&transfer_data.recipient),
+                        ],
                     ),
                 );
                 res
@@ -14293,9 +14414,12 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Wrong recipient {0:?}, expected {1:?}", proof.recipient,
-                            transfer_data.recipient
+                        ::core::fmt::Arguments::new_v1(
+                            &["Wrong recipient ", ", expected "],
+                            &[
+                                ::core::fmt::ArgumentV1::new_debug(&proof.recipient),
+                                ::core::fmt::ArgumentV1::new_debug(&transfer_data.recipient),
+                            ],
                         ),
                     );
                     res
@@ -14305,9 +14429,14 @@ impl FastBridge {
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Wrong token transferred {0:?}, expected {1:?}", proof.token,
-                        transfer_data.transfer.token_eth
+                    ::core::fmt::Arguments::new_v1(
+                        &["Wrong token transferred ", ", expected "],
+                        &[
+                            ::core::fmt::ArgumentV1::new_debug(&proof.token),
+                            ::core::fmt::ArgumentV1::new_debug(
+                                &transfer_data.transfer.token_eth,
+                            ),
+                        ],
                     ),
                 );
                 res
@@ -14319,9 +14448,14 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Wrong token transferred {0:?}, expected {1:?}", proof.token,
-                            transfer_data.transfer.token_eth
+                        ::core::fmt::Arguments::new_v1(
+                            &["Wrong token transferred ", ", expected "],
+                            &[
+                                ::core::fmt::ArgumentV1::new_debug(&proof.token),
+                                ::core::fmt::ArgumentV1::new_debug(
+                                    &transfer_data.transfer.token_eth,
+                                ),
+                            ],
                         ),
                     );
                     res
@@ -14331,9 +14465,14 @@ impl FastBridge {
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Wrong amount transferred {0}, expected {1}", proof.amount,
-                        transfer_data.transfer.amount.0
+                    ::core::fmt::Arguments::new_v1(
+                        &["Wrong amount transferred ", ", expected "],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&proof.amount),
+                            ::core::fmt::ArgumentV1::new_display(
+                                &transfer_data.transfer.amount.0,
+                            ),
+                        ],
                     ),
                 );
                 res
@@ -14345,9 +14484,14 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Wrong amount transferred {0}, expected {1}", proof.amount,
-                            transfer_data.transfer.amount.0
+                        ::core::fmt::Arguments::new_v1(
+                            &["Wrong amount transferred ", ", expected "],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(&proof.amount),
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &transfer_data.transfer.amount.0,
+                                ),
+                            ],
                         ),
                     );
                     res
@@ -14387,7 +14531,10 @@ impl FastBridge {
         user_balance
             .get(token_id)
             .unwrap_or_else(|| ::core::panicking::panic_fmt(
-                format_args!("User token: {0} , balance is 0", token_id),
+                ::core::fmt::Arguments::new_v1(
+                    &["User token: ", " , balance is 0"],
+                    &[::core::fmt::ArgumentV1::new_display(&token_id)],
+                ),
             ))
     }
     fn decrease_balance(
@@ -14429,9 +14576,18 @@ impl FastBridge {
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Transfer valid time:{0} not correct, current block timestamp:{1}.",
-                        transfer_message.valid_till, block_timestamp()
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Transfer valid time:",
+                            " not correct, current block timestamp:",
+                            ".",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &transfer_message.valid_till,
+                            ),
+                            ::core::fmt::ArgumentV1::new_display(&block_timestamp()),
+                        ],
                     ),
                 );
                 res
@@ -14443,9 +14599,18 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Transfer valid time:{0} not correct, current block timestamp:{1}.",
-                            transfer_message.valid_till, block_timestamp()
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Transfer valid time:",
+                                " not correct, current block timestamp:",
+                                ".",
+                            ],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &transfer_message.valid_till,
+                                ),
+                                ::core::fmt::ArgumentV1::new_display(&block_timestamp()),
+                            ],
                         ),
                     );
                     res
@@ -14456,9 +14621,9 @@ impl FastBridge {
         if true {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Lock period:{0} does not fit the terms of the contract.",
-                        lock_period
+                    ::core::fmt::Arguments::new_v1(
+                        &["Lock period:", " does not fit the terms of the contract."],
+                        &[::core::fmt::ArgumentV1::new_display(&lock_period)],
                     ),
                 );
                 res
@@ -14474,9 +14639,12 @@ impl FastBridge {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Lock period:{0} does not fit the terms of the contract.",
-                            lock_period
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Lock period:",
+                                " does not fit the terms of the contract.",
+                            ],
+                            &[::core::fmt::ArgumentV1::new_display(&lock_period)],
                         ),
                     );
                     res
@@ -14562,9 +14730,14 @@ impl FastBridge {
                 amount,
                 Some({
                     let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Withdraw from: {0} amount: {1}", current_account_id(),
-                            u128::try_from(amount).unwrap()
+                        ::core::fmt::Arguments::new_v1(
+                            &["Withdraw from: ", " amount: "],
+                            &[
+                                ::core::fmt::ArgumentV1::new_display(&current_account_id()),
+                                ::core::fmt::ArgumentV1::new_display(
+                                    &u128::try_from(amount).unwrap(),
+                                ),
+                            ],
                         ),
                     );
                     res
@@ -14612,9 +14785,15 @@ impl FastBridge {
         if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
             let message = {
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                        "set_prover_account", __acl_any_roles
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&"set_prover_account"),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
                     ),
                 );
                 res
@@ -14636,9 +14815,17 @@ impl FastBridge {
         if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
             let message = {
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                        "set_eth_bridge_contract_address", __acl_any_roles
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"set_eth_bridge_contract_address",
+                            ),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
                     ),
                 );
                 res
@@ -14679,9 +14866,15 @@ impl FastBridge {
         if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
             let message = {
                 let res = ::alloc::fmt::format(
-                    format_args!(
-                        "Insufficient permissions for method {0} restricted by access control. Requires one of these roles: {1:?}",
-                        "set_lock_time", __acl_any_roles
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&"set_lock_time"),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
                     ),
                 );
                 res
