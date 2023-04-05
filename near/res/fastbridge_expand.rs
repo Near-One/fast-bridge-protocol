@@ -149,14 +149,6 @@ mod ft {
                     ::near_sdk::env::panic_str(&"Pausable: Method is paused")
                 }
             }
-            if true {
-                let msg: &str = &"Sender is not the same as the signer";
-                if !(sender_id == env::signer_account_id()) {
-                    ::core::panicking::panic_display(&msg)
-                }
-            } else if !(sender_id == env::signer_account_id()) {
-                ::near_sdk::env::panic_str(&"Sender is not the same as the signer")
-            }
             let token_account_id = env::predecessor_account_id();
             self.check_whitelist_token_and_account(&token_account_id, &sender_id);
             if !msg.is_empty() {
@@ -14012,7 +14004,7 @@ impl FastBridge {
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
-                    .with_static_gas(utils::tera_gas(200))
+                    .with_static_gas(utils::tera_gas(50))
                     .init_transfer_callback(transfer_message, sender_id, update_balance),
             )
     }

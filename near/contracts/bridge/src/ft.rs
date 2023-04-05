@@ -12,11 +12,6 @@ impl FungibleTokenReceiver for FastBridge {
         amount: U128,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        require!(
-            sender_id == env::signer_account_id(),
-            "Sender is not the same as the signer"
-        );
-
         let token_account_id = env::predecessor_account_id();
         self.check_whitelist_token_and_account(&token_account_id, &sender_id);
 
