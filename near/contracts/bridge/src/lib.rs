@@ -23,6 +23,9 @@ mod lp_relayer;
 mod utils;
 mod whitelist;
 
+#[cfg(test)]
+mod tests;
+
 pub const NO_DEPOSIT: u128 = 0;
 
 #[ext_contract(ext_prover)]
@@ -177,6 +180,7 @@ impl FastBridge {
         lock_time_min: String,
         lock_time_max: String,
         eth_block_time: Duration,
+        whitelist_mode: bool,
     ) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
@@ -211,7 +215,7 @@ impl FastBridge {
             eth_block_time,
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
-            is_whitelist_mode_enabled: true,
+            is_whitelist_mode_enabled: whitelist_mode,
             __acl: Default::default(),
         };
 
@@ -537,7 +541,7 @@ impl FastBridge {
         .emit();
     }
 
-    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> u128 {
+    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
         let user_balance = self
             .user_balances
             .get(account_id)
@@ -546,6 +550,7 @@ impl FastBridge {
         user_balance
             .get(token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
+            .into()
     }
 
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
@@ -636,7 +641,7 @@ impl FastBridge {
         let receiver_id = env::predecessor_account_id();
         let balance = self.get_user_balance(&receiver_id, &token_id);
 
-        require!(balance >= amount.into(), "Not enough token balance");
+        require!(balance >= amount, "Not enough token balance");
 
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
@@ -727,7 +732,7 @@ impl FastBridge {
 }
 
 #[cfg(test)]
-mod tests {
+mod unit_tests {
     use super::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
     use near_sdk::env::{sha256, signer_account_id};
@@ -896,6 +901,7 @@ mod tests {
             config.lock_time_min.unwrap_or("1h".to_string()),
             config.lock_time_max.unwrap_or("24h".to_string()),
             12_000_000_000,
+            true,
         );
 
         contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
@@ -1757,7 +1763,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    assert_eq!(contract.get_user_balance(user, token), 30);
+                    assert_eq!(contract.get_user_balance(user, token).0, 30);
                 }
             }
         }
