@@ -302,14 +302,14 @@ impl FastBridge {
             });
 
         require!(
-            token_transfer_balance >= u128::from(transfer_message.transfer.amount),
+            token_transfer_balance >= transfer_message.transfer.amount.0,
             "Not enough transfer token balance."
         );
 
         self.decrease_balance(
             &sender_id,
             &transfer_message.transfer.token_near,
-            &u128::from(transfer_message.transfer.amount),
+            &transfer_message.transfer.amount.0,
         );
 
         let token_fee_balance = user_token_balance
@@ -322,14 +322,14 @@ impl FastBridge {
             });
 
         require!(
-            token_fee_balance >= u128::from(transfer_message.fee.amount),
+            token_fee_balance >= transfer_message.fee.amount.0,
             "Not enough fee token balance."
         );
 
         self.decrease_balance(
             &sender_id,
             &transfer_message.fee.token,
-            &u128::from(transfer_message.fee.amount),
+            &transfer_message.fee.amount.0,
         );
 
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
@@ -430,12 +430,12 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
         self.remove_transfer(&nonce.0.to_string(), &transfer_data);
 
@@ -524,12 +524,12 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
         self.remove_transfer(&nonce_str, &transfer_data);
 
@@ -638,16 +638,16 @@ impl FastBridge {
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
     pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
-        let receiver_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&receiver_id, &token_id);
-
+        let recipient_id = env::predecessor_account_id();
+        let balance = self.get_user_balance(&recipient_id, &token_id);
         require!(balance >= amount, "Not enough token balance");
+        self.decrease_balance(&recipient_id, &token_id, &amount.0);
 
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                receiver_id.clone(),
+                recipient_id.clone(),
                 amount,
                 Some(format!(
                     "Withdraw from: {} amount: {}",
@@ -659,22 +659,27 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, receiver_id),
+                    .withdraw_callback(token_id, amount, recipient_id),
             )
     }
 
     #[private]
-    pub fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId) {
-        require!(is_promise_success(), "Error transfer");
-
-        self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
-
-        Event::FastBridgeWithdrawEvent {
-            recipient_id: sender_id,
-            token: token_id,
-            amount,
+    pub fn withdraw_callback(
+        &mut self,
+        token_id: AccountId,
+        amount: U128,
+        recipient_id: AccountId,
+    ) {
+        if is_promise_success() {
+            Event::FastBridgeWithdrawEvent {
+                recipient_id,
+                token: token_id,
+                amount,
+            }
+            .emit();
+        } else {
+            self.increase_balance(&recipient_id, &token_id, &amount.0);
         }
-        .emit();
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
