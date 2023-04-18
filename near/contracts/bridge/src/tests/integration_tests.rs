@@ -138,6 +138,28 @@ mod integration_tests {
             .json()?)
     }
 
+    async fn withdraw_tokens(
+        bridge_id: &AccountId,
+        account: &Account,
+        token_id: &AccountId,
+        amount: u128,
+        batch_size: u32,
+    ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
+        let mut transaction = account.batch(bridge_id);
+        for _i in 0..batch_size {
+            transaction = transaction.call(
+                Function::new("withdraw")
+                    .args_json(json!({
+                        "token_id": token_id,
+                        "amount": amount.to_string(),
+                    }))
+                    .gas(50 * near_sdk::Gas::ONE_TERA.0),
+            );
+        }
+
+        transaction.transact().await
+    }
+
     #[tokio::test]
     async fn test_multi_withdraw() -> anyhow::Result<()> {
         let test_data = deploy_bridge(
@@ -154,8 +176,13 @@ mod integration_tests {
         )
         .await?;
 
+        // Check init balances
         let alice = &test_data.accounts[0];
         let alice_token_balance = get_token_balance(&test_data.token, alice.id()).await?.0;
+        let bridge_balance = get_token_balance(&test_data.token, test_data.bridge.id())
+            .await?
+            .0;
+        assert_eq!(bridge_balance, 1000);
         assert_eq!(alice_token_balance, 1000);
         assert_eq!(
             get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
@@ -165,6 +192,7 @@ mod integration_tests {
             0
         );
 
+        // Transfer tokens from alice to bridge
         let transfer_amount: u128 = 10;
         let result = alice
             .call(test_data.token.id(), "ft_transfer_call")
@@ -180,6 +208,7 @@ mod integration_tests {
         let result: U128 = result.json()?;
         assert_eq!(result.0, transfer_amount);
 
+        // Check account balance after the transfer
         assert_eq!(
             get_token_balance(&test_data.token, alice.id()).await?.0,
             alice_token_balance - transfer_amount
@@ -191,20 +220,40 @@ mod integration_tests {
             transfer_amount
         );
 
-        let mut transaction = alice.batch(&test_data.bridge.id());
-        for _i in 0..3 {
-            transaction = transaction.call(
-                Function::new("withdraw")
-                    .args_json(json!({
-                        "token_id": test_data.token.id(),
-                        "amount": transfer_amount.to_string(),
-                    }))
-                    .gas(50 * near_sdk::Gas::ONE_TERA.0),
-            );
-        }
+        // Call withdraw multiple time with batch transaction
+        let _result = withdraw_tokens(
+            &test_data.bridge.id(),
+            alice,
+            &test_data.token.id(),
+            transfer_amount,
+            3,
+        )
+        .await?;
 
-        let _result = transaction.transact().await?;
+        // Check account balance after withdraw batch calls
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+                .await?
+                .0,
+            10
+        );
 
+        assert_eq!(
+            get_token_balance(&test_data.token, alice.id()).await?.0,
+            alice_token_balance - transfer_amount
+        );
+
+        // Check withdraw once
+        let _result = withdraw_tokens(
+            &test_data.bridge.id(),
+            alice,
+            &test_data.token.id(),
+            transfer_amount,
+            1,
+        )
+        .await?;
+
+        // Check acoount balance after withdraw call
         assert_eq!(
             get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
                 .await?
@@ -216,7 +265,6 @@ mod integration_tests {
             get_token_balance(&test_data.token, alice.id()).await?.0,
             alice_token_balance
         );
-
         Ok(())
     }
 }
