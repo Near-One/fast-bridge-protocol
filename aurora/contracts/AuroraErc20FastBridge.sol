@@ -118,9 +118,8 @@ contract AuroraErc20FastBridge is AccessControl {
         balance[token_address_on_near][signer] += (transfer_token_amount + fee_token_amount - transferred_amount);
     }
 
-    function get_near_address() public view returns (bytes memory) {
-        bytes memory aurora_address = address_to_string(address(this));
-        return bytes(string.concat(string(aurora_address), ".aurora"));
+    function get_near_address() public returns (bytes memory) {
+        return bytes(AuroraSdk.nearRepresentative(address(this)));
     }
 
     function address_to_string(address aurora_address) private pure returns (bytes memory) {
