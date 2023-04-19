@@ -243,7 +243,7 @@ mod integration_tests {
             alice_token_balance - transfer_amount
         );
 
-        // Check withdraw once
+        // Withdraw once
         let _result = withdraw_tokens(
             &test_data.bridge.id(),
             alice,
