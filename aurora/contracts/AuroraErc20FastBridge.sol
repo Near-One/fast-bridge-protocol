@@ -21,7 +21,6 @@ contract AuroraErc20FastBridge is AccessControl {
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
-    address creator;
     NEAR public near;
     string bridge_address_on_near;
 
@@ -32,7 +31,6 @@ contract AuroraErc20FastBridge is AccessControl {
     event NearContractInit(string near_addres);
 
     constructor(address wnear_address, string memory bridge_address) {
-        creator = msg.sender;
         near = AuroraSdk.initNear(IERC20_NEAR(wnear_address));
         bridge_address_on_near = bridge_address;
 
@@ -145,11 +143,5 @@ contract AuroraErc20FastBridge is AccessControl {
             }
         }
         return result;
-    }
-
-    function destruct() public {
-        // Destroys this contract and sends remaining funds back to creator
-        if (msg.sender == creator)
-            selfdestruct(payable(creator));
     }
 }
