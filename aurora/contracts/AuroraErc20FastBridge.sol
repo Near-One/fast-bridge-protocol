@@ -26,8 +26,13 @@ contract AuroraErc20FastBridge is AccessControl {
     NEAR public near;
     string bridge_address_on_near;
 
+    //The Whitelisted Aurora users which allowed use fast bridge.
     mapping(address => bool) whitelisted_users;
+    //By the token address on near returns correspondent ERC20 Aurora token.
+    //[token_address_on_near] => aurora_erc20_token
     mapping(string => EvmErc20) registered_tokens;
+    //By the token account id on near and user address on aurora return the user balance of this token in this contract
+    //[token_address_on_near][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
     mapping(string => mapping(address => uint128)) balance;
 
     event Unlock(
