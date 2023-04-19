@@ -53,15 +53,8 @@ contract AuroraErc20FastBridge is AccessControl {
         string token,
         uint128 transfer_amount,
         uint128 fee_amount,
-        address recipient
-    );
-    event InitTokenTransferRevert(
-        address sender,
-        string init_transfer_arg,
-        string token,
-        uint128 transfer_amount,
-        uint128 fee_amount,
-        address recipient
+        address recipient,
+        bool is_successful
     );
 
     struct TransferMessage {
@@ -189,25 +182,16 @@ contract AuroraErc20FastBridge is AccessControl {
             transferred_amount);
 
         string memory init_args_base64 = Base64.encode(init_transfer_args);
-        if (transferred_amount == 0) {
-            emit InitTokenTransferRevert(
+        bool is_successful = (transferred_amount != 0);
+        emit InitTokenTransfer(
                 signer,
                 init_args_base64,
                 transfer_message.transfer_token_address_on_near,
                 transfer_message.transfer_token_amount,
                 transfer_message.fee_token_amount,
-                transfer_message.recipient
+                transfer_message.recipient,
+                is_successful
             );
-        } else {
-            emit InitTokenTransfer(
-                signer,
-                init_args_base64,
-                transfer_message.transfer_token_address_on_near,
-                transfer_message.transfer_token_amount,
-                transfer_message.fee_token_amount,
-                transfer_message.recipient
-            );
-        }
     }
 
     function unlock(uint128 nonce) public {
