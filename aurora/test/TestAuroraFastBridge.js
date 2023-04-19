@@ -12,7 +12,7 @@ describe("Aurora Fast Bridge", function () {
         });
         const options = { gasLimit: 5000000 };
         const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", "fb.olga24912_3.testnet", options);
+            .deploy("0x4861825E75ab14553E5aF711EbbE6873d369d146", process.env.NEAR_FAST_BRIDGE_ACCOUNT, options);
         await fastbridge.deployed();
     });
 });
