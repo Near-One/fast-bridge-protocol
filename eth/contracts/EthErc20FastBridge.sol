@@ -87,8 +87,10 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         address payable _recipient,
         uint256 _nonce,
         uint256 _amount,
-        string memory _unlock_recipient
+        string calldata _unlock_recipient,
+        uint _valid_till_block_height
     ) external payable whenNotPaused isWhitelisted(_token) {
+        require(_valid_till_block_height < block.number, "Invalid block number");
         require(_recipient != address(0) && _recipient != msg.sender, "Wrong recipient provided");
         require(_amount != 0, "Wrong amount provided");
 

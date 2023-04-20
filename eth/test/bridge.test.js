@@ -11,6 +11,7 @@ const Uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const unlockRecipient = "near_recipient.near";
 const relayerEthAddress = ethers.constants.AddressZero;
+const defaultValidTillBlockHeight = 0;
 
 function getTransferId(token, recipient, nonce, amount) {
     return ethers.utils.solidityKeccak256(
@@ -148,7 +149,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer)
-                    .transferTokens(tokenAddress, someone.address, nonce, transferPart, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        nonce,
+                        transferPart,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -169,7 +177,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer)
-                    .transferTokens(tokenAddress, someone.address, 11231232, relayerBalanceAfter, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        11231232,
+                        relayerBalanceAfter,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             ).to.be.revertedWith("Pausable: paused");
 
             await proxy.connect(unpausableAdmin).unPause();
@@ -179,7 +194,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer)
-                    .transferTokens(tokenAddress, someone.address, anotherNonce, amount, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        anotherNonce,
+                        amount,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -211,7 +233,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(anotherRelayer)
-                    .transferTokens(tokenAddress, someone.address, nonce, balanceRelayer, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        nonce,
+                        balanceRelayer,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -229,7 +258,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(anotherRelayer)
-                    .transferTokens(tokenAddress, someone.address, nonce, balanceRelayer, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        nonce,
+                        balanceRelayer,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             ).to.be.revertedWith("This transaction has already been processed!");
 
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(balanceRelayer);
@@ -250,7 +286,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer)
-                    .transferTokens(tokenAddress, someone.address, nonce, balanceRelayer, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        nonce,
+                        balanceRelayer,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -268,7 +311,14 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(anotherRelayer)
-                    .transferTokens(tokenAddress, someone.address, anotherNonce, balanceRelayer, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        anotherNonce,
+                        balanceRelayer,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -292,11 +342,27 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer)
-                    .transferTokens(tokenAddress, ethers.constants.AddressZero, 1, 10000000000, unlockRecipient)
+                    .transferTokens(
+                        tokenAddress,
+                        ethers.constants.AddressZero,
+                        1,
+                        10000000000,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             ).to.be.revertedWith("Wrong recipient provided");
 
             await expect(
-                proxy.connect(relayer).transferTokens(tokenAddress, relayer.address, 1, 10000000000, unlockRecipient)
+                proxy
+                    .connect(relayer)
+                    .transferTokens(
+                        tokenAddress,
+                        relayer.address,
+                        1,
+                        10000000000,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight
+                    )
             ).to.be.revertedWith("Wrong recipient provided");
         });
 
@@ -306,7 +372,9 @@ describe("Fast Bridge", () => {
                 .withArgs([tokenAddress], [true]);
 
             await expect(
-                proxy.connect(relayer).transferTokens(tokenAddress, someone.address, 1, 0, unlockRecipient)
+                proxy
+                    .connect(relayer)
+                    .transferTokens(tokenAddress, someone.address, 1, 0, unlockRecipient, defaultValidTillBlockHeight)
             ).to.be.revertedWith("Wrong amount provided");
         });
 
@@ -321,9 +389,17 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer2)
-                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
-                        value: ethAmount
-                    })
+                    .transferTokens(
+                        relayerEthAddress,
+                        user.address,
+                        nonce,
+                        ethAmount,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight,
+                        {
+                            value: ethAmount
+                        }
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -347,9 +423,17 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer3)
-                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
-                        value: ethAmount
-                    })
+                    .transferTokens(
+                        relayerEthAddress,
+                        user.address,
+                        nonce,
+                        ethAmount,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight,
+                        {
+                            value: ethAmount
+                        }
+                    )
             )
                 .to.emit(proxy, "TransferTokens")
                 .withArgs(
@@ -365,9 +449,17 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer3)
-                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmount, unlockRecipient, {
-                        value: ethAmount
-                    })
+                    .transferTokens(
+                        relayerEthAddress,
+                        user.address,
+                        nonce,
+                        ethAmount,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight,
+                        {
+                            value: ethAmount
+                        }
+                    )
             ).to.be.revertedWith("This transaction has already been processed!");
         });
 
@@ -381,9 +473,17 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer3)
-                    .transferTokens(relayerEthAddress, user.address, nonce, ethAmountExpected, unlockRecipient, {
-                        value: ethAmountActual
-                    })
+                    .transferTokens(
+                        relayerEthAddress,
+                        user.address,
+                        nonce,
+                        ethAmountExpected,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight,
+                        {
+                            value: ethAmountActual
+                        }
+                    )
             ).to.be.revertedWith("Wrong ethers amount provided");
         });
 
@@ -401,9 +501,17 @@ describe("Fast Bridge", () => {
             await expect(
                 proxy
                     .connect(relayer)
-                    .transferTokens(tokenAddress, someone.address, nonce, transferPart, unlockRecipient, {
-                        value: ethAmount
-                    })
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        nonce,
+                        transferPart,
+                        unlockRecipient,
+                        defaultValidTillBlockHeight,
+                        {
+                            value: ethAmount
+                        }
+                    )
             ).to.be.revertedWith("Ethers not accepted for ERC-20 transfers");
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(0);
             expect(await tokenInstance.balanceOf(relayer.address)).to.be.equal(transferPart + 100);
