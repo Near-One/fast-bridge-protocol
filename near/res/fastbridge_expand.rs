@@ -3490,8 +3490,6 @@ trait FastBridgeInterface {
         verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
-        transfer_data: TransferMessage,
-        recipient_id: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
@@ -3661,21 +3659,15 @@ pub mod ext_self {
             self,
             nonce: U128,
             sender_id: AccountId,
-            transfer_data: TransferMessage,
-            recipient_id: AccountId,
         ) -> near_sdk::Promise {
             let __args = {
                 struct Input<'nearinput> {
                     nonce: &'nearinput U128,
                     sender_id: &'nearinput AccountId,
-                    transfer_data: &'nearinput TransferMessage,
-                    recipient_id: &'nearinput AccountId,
                 }
                 impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
                 where
                     &'nearinput U128: borsh::ser::BorshSerialize,
-                    &'nearinput AccountId: borsh::ser::BorshSerialize,
-                    &'nearinput TransferMessage: borsh::ser::BorshSerialize,
                     &'nearinput AccountId: borsh::ser::BorshSerialize,
                 {
                     fn serialize<W: borsh::maybestd::io::Write>(
@@ -3684,16 +3676,12 @@ pub mod ext_self {
                     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                         borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
-                        borsh::BorshSerialize::serialize(&self.transfer_data, writer)?;
-                        borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
                         Ok(())
                     }
                 }
                 let __args = Input {
                     nonce: &nonce,
                     sender_id: &sender_id,
-                    transfer_data: &transfer_data,
-                    recipient_id: &recipient_id,
                 };
                 near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                     .expect("Failed to serialize the cross contract args using Borsh.")
@@ -13147,21 +13135,15 @@ impl FastBridgeExt {
         self,
         nonce: U128,
         sender_id: AccountId,
-        transfer_data: TransferMessage,
-        recipient_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
                 sender_id: &'nearinput AccountId,
-                transfer_data: &'nearinput TransferMessage,
-                recipient_id: &'nearinput AccountId,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
                 &'nearinput U128: borsh::ser::BorshSerialize,
-                &'nearinput AccountId: borsh::ser::BorshSerialize,
-                &'nearinput TransferMessage: borsh::ser::BorshSerialize,
                 &'nearinput AccountId: borsh::ser::BorshSerialize,
             {
                 fn serialize<W: borsh::maybestd::io::Write>(
@@ -13170,16 +13152,12 @@ impl FastBridgeExt {
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                     borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
-                    borsh::BorshSerialize::serialize(&self.transfer_data, writer)?;
-                    borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
                     Ok(())
                 }
             }
             let __args = Input {
                 nonce: &nonce,
                 sender_id: &sender_id,
-                transfer_data: &transfer_data,
-                recipient_id: &recipient_id,
             };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
@@ -14175,7 +14153,7 @@ impl FastBridge {
             .unwrap_or_else(|_| env::panic_str(
                 "Invalid borsh format of the `UnlockProof`",
             ));
-        let (recipient_id, transfer_data) = self
+        let (_recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
         let storage_key_hash = utils::get_eth_storage_key_hash(
@@ -14204,12 +14182,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(
-                        nonce,
-                        env::predecessor_account_id(),
-                        transfer_data,
-                        recipient_id,
-                    ),
+                    .unlock_callback(nonce, env::predecessor_account_id()),
             )
     }
     pub fn unlock_callback(
@@ -14217,9 +14190,10 @@ impl FastBridge {
         verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
-        transfer_data: TransferMessage,
-        recipient_id: AccountId,
     ) {
+        let (recipient_id, transfer_data) = self
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
         if true {
@@ -16073,14 +16047,10 @@ pub extern "C" fn unlock_callback() {
     struct Input {
         nonce: U128,
         sender_id: AccountId,
-        transfer_data: TransferMessage,
-        recipient_id: AccountId,
     }
     impl borsh::de::BorshDeserialize for Input
     where
         U128: borsh::BorshDeserialize,
-        AccountId: borsh::BorshDeserialize,
-        TransferMessage: borsh::BorshDeserialize,
         AccountId: borsh::BorshDeserialize,
     {
         fn deserialize(
@@ -16089,12 +16059,10 @@ pub extern "C" fn unlock_callback() {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
                 sender_id: borsh::BorshDeserialize::deserialize(buf)?,
-                transfer_data: borsh::BorshDeserialize::deserialize(buf)?,
-                recipient_id: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, sender_id, transfer_data, recipient_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -16107,14 +16075,7 @@ pub extern "C" fn unlock_callback() {
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract
-        .unlock_callback(
-            verification_result,
-            nonce,
-            sender_id,
-            transfer_data,
-            recipient_id,
-        );
+    contract.unlock_callback(verification_result, nonce, sender_id);
     near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
