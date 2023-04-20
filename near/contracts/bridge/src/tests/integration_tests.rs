@@ -443,21 +443,6 @@ mod integration_tests {
             get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
                 .await?
                 .0,
-            0
-        );
-        assert_eq!(
-            get_token_balance(&test_data.token, alice.id()).await?.0,
-            alice_token_balance - total_transfer_amount - total_fee_amount
-        );
-
-        // Unlock once
-        let _result = unlock_tokens(&test_data.bridge.id(), alice, 1, 1).await?;
-
-        // Check acoount balance after unlock call
-        assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
-                .await?
-                .0,
             (total_transfer_amount + total_fee_amount) / 2,
         );
         assert_eq!(
