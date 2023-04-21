@@ -14875,6 +14875,16 @@ impl FastBridge {
             .as_nanos()
             .try_into()
             .unwrap();
+        if true {
+            let msg: &str = &"Error initialize: lock_time_min must be less than lock_time_max";
+            if !(lock_time_max > lock_time_min) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(lock_time_max > lock_time_min) {
+            ::near_sdk::env::panic_str(
+                &"Error initialize: lock_time_min must be less than lock_time_max",
+            )
+        }
         self
             .lock_duration = LockDuration {
             lock_time_min,

@@ -717,6 +717,11 @@ impl FastBridge {
             .try_into()
             .unwrap();
 
+        require!(
+            lock_time_max > lock_time_min,
+            "Error initialize: lock_time_min must be less than lock_time_max"
+        );
+
         self.lock_duration = LockDuration {
             lock_time_min,
             lock_time_max,
