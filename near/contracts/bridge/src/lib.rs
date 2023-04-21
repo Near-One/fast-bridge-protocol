@@ -178,8 +178,6 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
     ) -> Self {
-        require!(!env::state_exists(), "Already initialized");
-
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
             .as_nanos()

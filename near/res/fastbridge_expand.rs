@@ -13895,14 +13895,6 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
     ) -> Self {
-        if true {
-            let msg: &str = &"Already initialized";
-            if !!env::state_exists() {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !!env::state_exists() {
-            ::near_sdk::env::panic_str(&"Already initialized")
-        }
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
             .as_nanos()
