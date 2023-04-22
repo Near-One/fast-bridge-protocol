@@ -13,6 +13,7 @@ mod integration_tests {
 
     use crate::UnlockProof;
 
+    const ETH_BRIDGE_ADDRESS: &str = "6b175474e89094c44da98b954eedeac495271d0f";
     const BRIDGE_WASM_FILEPATH: &str = "../target/wasm32-unknown-unknown/release/fastbridge.wasm";
     const MOCK_PROVER_WASM_FILEPATH: &str =
         "../target/wasm32-unknown-unknown/release/mock_eth_prover.wasm";
@@ -219,7 +220,7 @@ mod integration_tests {
     async fn test_multi_withdraw() -> anyhow::Result<()> {
         let test_data = deploy_bridge(
             InitArgs {
-                eth_bridge_contract: "6b175474e89094c44da98b954eedeac495271d0f".to_owned(),
+                eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
                 prover_account: None,
                 eth_client_account: None,
                 lock_time_min: "1ms".to_owned(),
@@ -369,7 +370,7 @@ mod integration_tests {
     async fn test_multi_unlock() -> anyhow::Result<()> {
         let test_data = deploy_bridge(
             InitArgs {
-                eth_bridge_contract: "6b175474e89094c44da98b954eedeac495271d0f".to_owned(),
+                eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
                 prover_account: None,
                 eth_client_account: None,
                 lock_time_min: "1ms".to_owned(),
