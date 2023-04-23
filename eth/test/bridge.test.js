@@ -11,7 +11,7 @@ const Uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const unlockRecipient = "near_recipient.near";
 const relayerEthAddress = ethers.constants.AddressZero;
-const defaultValidTillBlockHeight = 0;
+const defaultValidTillBlockHeight = 9007199254740991n;
 
 function getTransferId(token, recipient, nonce, amount) {
     return ethers.utils.solidityKeccak256(
