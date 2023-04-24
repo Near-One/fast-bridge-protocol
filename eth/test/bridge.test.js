@@ -218,6 +218,41 @@ describe("Fast Bridge", () => {
             expect(await tokenInstance.balanceOf(someone.address)).to.be.equal(transferPart2);
         });
 
+        it("Shouldn't transfer token with invalid block", async () => {
+            await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([tokenAddress], [true]))
+                .to.emit(proxy, "SetTokens")
+                .withArgs([tokenAddress], [true]);
+
+            let relayerBalance = await tokenInstance.balanceOf(relayer.address);
+            await tokenInstance.connect(relayer).approve(proxy.address, relayerBalance);
+
+            const amount = 10;
+            const latestBlockNumber = (await ethers.provider.getBlock("latest")).number;
+
+            await expect(
+                proxy.connect(relayer).transferTokens(tokenAddress, someone.address, nonce, amount, unlockRecipient, 0)
+            ).to.be.revertedWith("Invalid block number");
+
+            await expect(
+                proxy
+                    .connect(relayer)
+                    .transferTokens(tokenAddress, someone.address, nonce, amount, unlockRecipient, latestBlockNumber)
+            ).to.be.revertedWith("Invalid block number");
+
+            await expect(
+                proxy
+                    .connect(relayer)
+                    .transferTokens(
+                        tokenAddress,
+                        someone.address,
+                        nonce,
+                        amount,
+                        unlockRecipient,
+                        latestBlockNumber - 1
+                    )
+            ).to.be.revertedWith("Invalid block number");
+        });
+
         it("Shouldn't process the same transfer twice", async () => {
             await expect(proxy.connect(whitelistingAdmin).setWhitelistedTokens([tokenAddress], [true]))
                 .to.emit(proxy, "SetTokens")
