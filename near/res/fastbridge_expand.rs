@@ -13887,14 +13887,6 @@ impl FastBridge {
         eth_block_time: Duration,
         whitelist_mode: bool,
     ) -> Self {
-        if true {
-            let msg: &str = &"Already initialized";
-            if !!env::state_exists() {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !!env::state_exists() {
-            ::near_sdk::env::panic_str(&"Already initialized")
-        }
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
             .as_nanos()
@@ -14865,6 +14857,16 @@ impl FastBridge {
             .as_nanos()
             .try_into()
             .unwrap();
+        if true {
+            let msg: &str = &"Error initialize: lock_time_min must be less than lock_time_max";
+            if !(lock_time_max > lock_time_min) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(lock_time_max > lock_time_min) {
+            ::near_sdk::env::panic_str(
+                &"Error initialize: lock_time_min must be less than lock_time_max",
+            )
+        }
         self
             .lock_duration = LockDuration {
             lock_time_min,
