@@ -266,6 +266,11 @@ impl FastBridge {
             "The fee token does not match the transfer token"
         );
 
+        require!(
+            transfer_message.transfer.token_eth != transfer_message.recipient,
+            "The eth token address and recipient address can't be the same"
+        );
+
         if let Some(update_balance) = update_balance.as_ref() {
             self.increase_balance(
                 &update_balance.sender_id,
@@ -872,7 +877,15 @@ mod unit_tests {
     }
 
     fn eth_bridge_address() -> String {
-        "6b175474e89094c44da98b954eedeac495271d0f".to_string()
+        "6b175474e89094c44da98b954eedeac495271d0f".to_owned()
+    }
+
+    fn eth_token_address() -> String {
+        "71c7656ec7ab88b098defb751b7401b5f6d8976f".to_owned()
+    }
+
+    fn eth_recipient_address() -> String {
+        "8ba1f109551bd432803012645ac136ddd64dba72".to_owned()
     }
 
     fn prover() -> AccountId {
@@ -961,14 +974,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
 
         contract.ft_on_transfer(
@@ -1051,14 +1064,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+            "recipient": eth_recipient_address()
         });
 
         let transfer_message = serde_json::from_value(msg).unwrap();
@@ -1068,16 +1081,14 @@ mod unit_tests {
             valid_till: current_timestamp,
             transfer: TransferDataEthereum {
                 token_near: AccountId::try_from("alice_near".to_string()).unwrap(),
-                token_eth: get_eth_address("71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string()),
+                token_eth: get_eth_address(eth_token_address()),
                 amount: U128(100),
             },
             fee: TransferDataNear {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
                 amount: U128(100),
             },
-            recipient: fast_bridge_common::get_eth_address(
-                "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
-            ),
+            recipient: fast_bridge_common::get_eth_address(eth_recipient_address()),
             valid_till_block_height: None,
         };
         assert_eq!(
@@ -1098,14 +1109,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+            "recipient": eth_recipient_address()
         });
 
         contract.validate_transfer_message(
@@ -1126,14 +1137,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+            "recipient": eth_recipient_address()
         });
 
         contract.validate_transfer_message(
@@ -1199,14 +1210,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "100"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
 
         contract.init_transfer_callback(
@@ -1246,14 +1257,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "100"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
 
         contract.init_transfer_callback(
@@ -1285,14 +1296,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1335,14 +1346,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "200"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "200"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1378,14 +1389,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1411,14 +1422,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near299",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1449,14 +1460,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near299",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1489,14 +1500,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1568,14 +1579,14 @@ mod unit_tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
