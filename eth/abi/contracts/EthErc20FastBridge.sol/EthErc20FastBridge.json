@@ -31,7 +31,7 @@
   "function revokeRole(bytes32,address)",
   "function setWhitelistedTokens(address[],bool[])",
   "function supportsInterface(bytes4) view returns (bool)",
-  "function transferTokens(address,address,uint256,uint256,string) payable",
+  "function transferTokens(address,address,uint256,uint256,string,uint256) payable",
   "function unPause()",
   "function upgradeTo(address)",
   "function upgradeToAndCall(address,bytes) payable",
