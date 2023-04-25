@@ -14,7 +14,7 @@ impl EthClient {
         self.last_block_number
     }
 
-    pub fn set_last_block_number(&mut self, #[serializer(borsh)] block_number: u64) {
+    pub fn set_last_block_number(&mut self, block_number: u64) {
         self.last_block_number = block_number
     }
 }

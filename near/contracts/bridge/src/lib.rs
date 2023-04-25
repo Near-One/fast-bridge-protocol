@@ -23,6 +23,9 @@ mod lp_relayer;
 mod utils;
 mod whitelist;
 
+#[cfg(test)]
+mod tests;
+
 pub const NO_DEPOSIT: u128 = 0;
 
 #[ext_contract(ext_prover)]
@@ -83,8 +86,6 @@ trait FastBridgeInterface {
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-        #[serializer(borsh)] transfer_data: TransferMessage,
-        #[serializer(borsh)] recipient_id: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
@@ -177,6 +178,7 @@ impl FastBridge {
         lock_time_min: String,
         lock_time_max: String,
         eth_block_time: Duration,
+        whitelist_mode: bool,
     ) -> Self {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
@@ -209,7 +211,7 @@ impl FastBridge {
             eth_block_time,
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
-            is_whitelist_mode_enabled: true,
+            is_whitelist_mode_enabled: whitelist_mode,
             __acl: Default::default(),
         };
 
@@ -296,14 +298,14 @@ impl FastBridge {
             });
 
         require!(
-            token_transfer_balance >= u128::from(transfer_message.transfer.amount),
+            token_transfer_balance >= transfer_message.transfer.amount.0,
             "Not enough transfer token balance."
         );
 
         self.decrease_balance(
             &sender_id,
             &transfer_message.transfer.token_near,
-            &u128::from(transfer_message.transfer.amount),
+            &transfer_message.transfer.amount.0,
         );
 
         let token_fee_balance = user_token_balance
@@ -316,14 +318,14 @@ impl FastBridge {
             });
 
         require!(
-            token_fee_balance >= u128::from(transfer_message.fee.amount),
+            token_fee_balance >= transfer_message.fee.amount.0,
             "Not enough fee token balance."
         );
 
         self.decrease_balance(
             &sender_id,
             &transfer_message.fee.token,
-            &u128::from(transfer_message.fee.amount),
+            &transfer_message.fee.amount.0,
         );
 
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
@@ -352,7 +354,7 @@ impl FastBridge {
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `UnlockProof`"));
 
-        let (recipient_id, transfer_data) = self
+        let (_recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
 
@@ -384,12 +386,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(
-                        nonce,
-                        env::predecessor_account_id(),
-                        transfer_data,
-                        recipient_id,
-                    ),
+                    .unlock_callback(nonce, env::predecessor_account_id()),
             )
     }
 
@@ -401,9 +398,11 @@ impl FastBridge {
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-        #[serializer(borsh)] transfer_data: TransferMessage,
-        #[serializer(borsh)] recipient_id: AccountId,
     ) {
+        let (recipient_id, transfer_data) = self
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
 
@@ -424,12 +423,12 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
         self.remove_transfer(&nonce.0.to_string(), &transfer_data);
 
@@ -518,12 +517,12 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
         self.remove_transfer(&nonce_str, &transfer_data);
 
@@ -535,7 +534,7 @@ impl FastBridge {
         .emit();
     }
 
-    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> u128 {
+    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
         let user_balance = self
             .user_balances
             .get(account_id)
@@ -544,6 +543,7 @@ impl FastBridge {
         user_balance
             .get(token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
+            .into()
     }
 
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
@@ -630,17 +630,20 @@ impl FastBridge {
 
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
-        let receiver_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&receiver_id, &token_id);
+    pub fn withdraw(&mut self, token_id: AccountId, amount: Option<U128>) -> PromiseOrValue<U128> {
+        let recipient_id = env::predecessor_account_id();
+        let user_balance = self.get_user_balance(&recipient_id, &token_id);
+        let amount = amount.unwrap_or(user_balance);
 
-        require!(balance >= amount.into(), "Not enough token balance");
+        require!(amount.0 > 0, "The amount should be a positive number");
+        require!(amount <= user_balance, "Insufficient user balance");
+        self.decrease_balance(&recipient_id, &token_id, &amount.0);
 
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                receiver_id.clone(),
+                recipient_id.clone(),
                 amount,
                 Some(format!(
                     "Withdraw from: {} amount: {}",
@@ -652,22 +655,30 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, receiver_id),
+                    .withdraw_callback(token_id, amount, recipient_id),
             )
+            .into()
     }
 
     #[private]
-    pub fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId) {
-        require!(is_promise_success(), "Error transfer");
-
-        self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
-
-        Event::FastBridgeWithdrawEvent {
-            recipient_id: sender_id,
-            token: token_id,
-            amount,
+    pub fn withdraw_callback(
+        &mut self,
+        token_id: AccountId,
+        amount: U128,
+        recipient_id: AccountId,
+    ) -> U128 {
+        if is_promise_success() {
+            Event::FastBridgeWithdrawEvent {
+                recipient_id,
+                token: token_id,
+                amount,
+            }
+            .emit();
+            amount
+        } else {
+            self.increase_balance(&recipient_id, &token_id, &amount.0);
+            U128(0)
         }
-        .emit();
     }
 
     #[access_control_any(roles(Role::ConfigManager))]
@@ -730,7 +741,7 @@ impl FastBridge {
 }
 
 #[cfg(test)]
-mod tests {
+mod unit_tests {
     use super::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
     use near_sdk::env::{sha256, signer_account_id};
@@ -899,6 +910,7 @@ mod tests {
             config.lock_time_min.unwrap_or("1h".to_string()),
             config.lock_time_max.unwrap_or("24h".to_string()),
             12_000_000_000,
+            true,
         );
 
         contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
@@ -1296,18 +1308,7 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        let nonce_str = nonce.0.to_string();
-        let (recipient_id, transfer_data) = contract
-            .pending_transfers
-            .get(&nonce_str)
-            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
-        contract.unlock_callback(
-            true,
-            nonce,
-            signer_account_id(),
-            transfer_data,
-            recipient_id,
-        );
+        contract.unlock_callback(true, nonce, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1358,19 +1359,7 @@ mod tests {
         testing_env!(context);
 
         let nonce = U128(1);
-        let nonce_str = nonce.0.to_string();
-        let (recipient_id, transfer_data) = contract
-            .pending_transfers
-            .get(&nonce_str)
-            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
-
-        contract.unlock_callback(
-            true,
-            nonce,
-            signer_account_id(),
-            transfer_data,
-            recipient_id,
-        );
+        contract.unlock_callback(true, nonce, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(400, transfer_token_amount); //user get the all 400 tokens back after successfull valid proof submition
@@ -1478,7 +1467,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Transaction with id:"#)]
+    #[should_panic(expected = r#"Transfer not found"#)]
     fn test_unlock_transaction_not_found() {
         let context = get_context(false);
         testing_env!(context);
@@ -1524,19 +1513,7 @@ mod tests {
         testing_env!(context);
 
         let nonce = U128(9);
-        let nonce_str = nonce.0.to_string();
-        let (recipient_id, transfer_data) = contract
-            .pending_transfers
-            .get(&nonce_str)
-            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str.to_string()));
-
-        contract.unlock_callback(
-            true,
-            nonce,
-            signer_account_id(),
-            transfer_data,
-            recipient_id,
-        );
+        contract.unlock_callback(true, nonce, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1615,19 +1592,7 @@ mod tests {
         testing_env!(context);
 
         let nonce = U128(1);
-        let nonce_str = nonce.0.to_string();
-        let (recipient_id, transfer_data) = contract
-            .pending_transfers
-            .get(&nonce_str)
-            .unwrap_or_else(|| panic!("Transfer with nonce: {} not found", &nonce_str));
-
-        contract.unlock_callback(
-            true,
-            nonce,
-            signer_account_id(),
-            transfer_data,
-            recipient_id,
-        );
+        contract.unlock_callback(true, nonce, signer_account_id());
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1641,7 +1606,7 @@ mod tests {
         let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, Some(U128(amount)));
     }
 
     #[test]
@@ -1657,12 +1622,12 @@ mod tests {
         contract.ft_on_transfer(transfer_token.clone(), U128(amount), "".to_string());
         let context = get_context_custom_predecessor(false, String::from("token_near"));
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, Some(U128(amount)));
     }
 
     #[test]
-    #[should_panic(expected = r#"Not enough token balance"#)]
-    fn test_withdraw_not_enough_balance() {
+    #[should_panic(expected = r#"Insufficient user balance"#)]
+    fn test_withdraw_not_enough_user_balance() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
@@ -1674,7 +1639,7 @@ mod tests {
 
         let context = get_context(false);
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount + 1));
+        contract.withdraw(transfer_token, Some(U128(amount + 1)));
     }
 
     #[test]
@@ -1760,7 +1725,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    assert_eq!(contract.get_user_balance(user, token), 30);
+                    assert_eq!(contract.get_user_balance(user, token).0, 30);
                 }
             }
         }
