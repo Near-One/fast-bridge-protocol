@@ -11,7 +11,7 @@ const Uniswap = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const unlockRecipient = "near_recipient.near";
 const relayerEthAddress = ethers.constants.AddressZero;
-const defaultValidTillBlockHeight = 9007199254740991n;
+const defaultValidTillBlockHeight = 9007199254740991n; // Max safe integer
 
 function getTransferId(token, recipient, nonce, amount) {
     return ethers.utils.solidityKeccak256(
@@ -180,7 +180,7 @@ describe("Fast Bridge", () => {
                     .transferTokens(
                         tokenAddress,
                         someone.address,
-                        11231232,
+                        nonce,
                         relayerBalanceAfter,
                         unlockRecipient,
                         defaultValidTillBlockHeight
@@ -231,13 +231,13 @@ describe("Fast Bridge", () => {
 
             await expect(
                 proxy.connect(relayer).transferTokens(tokenAddress, someone.address, nonce, amount, unlockRecipient, 0)
-            ).to.be.revertedWith("Invalid block number");
+            ).to.be.revertedWith("Transfer expired");
 
             await expect(
                 proxy
                     .connect(relayer)
                     .transferTokens(tokenAddress, someone.address, nonce, amount, unlockRecipient, latestBlockNumber)
-            ).to.be.revertedWith("Invalid block number");
+            ).to.be.revertedWith("Transfer expired");
 
             await expect(
                 proxy
@@ -250,7 +250,7 @@ describe("Fast Bridge", () => {
                         unlockRecipient,
                         latestBlockNumber - 1
                     )
-            ).to.be.revertedWith("Invalid block number");
+            ).to.be.revertedWith("Transfer expired");
         });
 
         it("Shouldn't process the same transfer twice", async () => {
