@@ -630,10 +630,14 @@ impl FastBridge {
 
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
+    pub fn withdraw(&mut self, token_id: AccountId, amount: Option<U128>) -> PromiseOrValue<U128> {
         let recipient_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&recipient_id, &token_id);
-        require!(balance >= amount, "Not enough token balance");
+        let user_balance = self.get_user_balance(&recipient_id, &token_id);
+        let amount = amount.unwrap_or(user_balance);
+        if amount > user_balance {
+            env::log_str("Insufficient user balance");
+            return PromiseOrValue::Value(U128(0));
+        }
         self.decrease_balance(&recipient_id, &token_id, &amount.0);
 
         ext_token::ext(token_id.clone())
@@ -654,6 +658,7 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, recipient_id),
             )
+            .into()
     }
 
     #[private]
@@ -662,7 +667,7 @@ impl FastBridge {
         token_id: AccountId,
         amount: U128,
         recipient_id: AccountId,
-    ) {
+    ) -> U128 {
         if is_promise_success() {
             Event::FastBridgeWithdrawEvent {
                 recipient_id,
@@ -670,8 +675,10 @@ impl FastBridge {
                 amount,
             }
             .emit();
+            amount
         } else {
             self.increase_balance(&recipient_id, &token_id, &amount.0);
+            U128(0)
         }
     }
 
@@ -1600,7 +1607,7 @@ mod unit_tests {
         let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, Some(U128(amount)));
     }
 
     #[test]
@@ -1616,12 +1623,11 @@ mod unit_tests {
         contract.ft_on_transfer(transfer_token.clone(), U128(amount), "".to_string());
         let context = get_context_custom_predecessor(false, String::from("token_near"));
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, Some(U128(amount)));
     }
 
     #[test]
-    #[should_panic(expected = r#"Not enough token balance"#)]
-    fn test_withdraw_not_enough_balance() {
+    fn test_withdraw_not_enough_user_balance() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
@@ -1633,7 +1639,10 @@ mod unit_tests {
 
         let context = get_context(false);
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount + 1));
+        assert!(matches!(
+            contract.withdraw(transfer_token, Some(U128(amount + 1))),
+            PromiseOrValue::Value(U128(0))
+        ));
     }
 
     #[test]
