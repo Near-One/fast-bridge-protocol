@@ -14694,11 +14694,19 @@ impl FastBridge {
         let user_balance = self.get_user_balance(&recipient_id, &token_id);
         let amount = amount.unwrap_or(user_balance);
         if true {
-            let msg: &str = &"Insufficient user balance";
-            if !(user_balance >= amount) {
+            let msg: &str = &"The amount should be a positive number";
+            if !(amount > 0) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(user_balance >= amount) {
+        } else if !(amount > 0) {
+            ::near_sdk::env::panic_str(&"The amount should be a positive number")
+        }
+        if true {
+            let msg: &str = &"Insufficient user balance";
+            if !(amount <= user_balance) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(amount <= user_balance) {
             ::near_sdk::env::panic_str(&"Insufficient user balance")
         }
         self.decrease_balance(&recipient_id, &token_id, &amount.0);
