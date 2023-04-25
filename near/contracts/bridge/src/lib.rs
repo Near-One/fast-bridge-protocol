@@ -634,10 +634,8 @@ impl FastBridge {
         let recipient_id = env::predecessor_account_id();
         let user_balance = self.get_user_balance(&recipient_id, &token_id);
         let amount = amount.unwrap_or(user_balance);
-        if amount > user_balance {
-            env::log_str("Insufficient user balance");
-            return PromiseOrValue::Value(U128(0));
-        }
+
+        require!(user_balance >= amount, "Insufficient user balance");
         self.decrease_balance(&recipient_id, &token_id, &amount.0);
 
         ext_token::ext(token_id.clone())
@@ -1627,6 +1625,7 @@ mod unit_tests {
     }
 
     #[test]
+    #[should_panic(expected = r#"Insufficient user balance"#)]
     fn test_withdraw_not_enough_user_balance() {
         let context = get_context(false);
         testing_env!(context);
@@ -1639,10 +1638,7 @@ mod unit_tests {
 
         let context = get_context(false);
         testing_env!(context);
-        assert!(matches!(
-            contract.withdraw(transfer_token, Some(U128(amount + 1))),
-            PromiseOrValue::Value(U128(0))
-        ));
+        contract.withdraw(transfer_token, Some(U128(amount + 1)));
     }
 
     #[test]

@@ -14693,9 +14693,13 @@ impl FastBridge {
         let recipient_id = env::predecessor_account_id();
         let user_balance = self.get_user_balance(&recipient_id, &token_id);
         let amount = amount.unwrap_or(user_balance);
-        if amount > user_balance {
-            env::log_str("Insufficient user balance");
-            return PromiseOrValue::Value(U128(0));
+        if true {
+            let msg: &str = &"Insufficient user balance";
+            if !(user_balance >= amount) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(user_balance >= amount) {
+            ::near_sdk::env::panic_str(&"Insufficient user balance")
         }
         self.decrease_balance(&recipient_id, &token_id, &amount.0);
         ext_token::ext(token_id.clone())

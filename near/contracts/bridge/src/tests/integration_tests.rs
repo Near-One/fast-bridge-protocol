@@ -292,12 +292,12 @@ mod integration_tests {
             get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
                 .await?
                 .0,
-            0
+            transfer_amount
         );
 
         assert_eq!(
             get_token_balance(&test_data.token, alice.id()).await?.0,
-            alice_token_balance
+            alice_token_balance - transfer_amount
         );
 
         // Withdraw once
