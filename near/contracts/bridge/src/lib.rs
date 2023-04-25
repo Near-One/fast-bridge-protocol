@@ -635,7 +635,7 @@ impl FastBridge {
         let user_balance = self.get_user_balance(&recipient_id, &token_id);
         let amount = amount.unwrap_or(user_balance);
 
-        require!(amount > 0, "The amount should be a positive number");
+        require!(amount.0 > 0, "The amount should be a positive number");
         require!(amount <= user_balance, "Insufficient user balance");
         self.decrease_balance(&recipient_id, &token_id, &amount.0);
 

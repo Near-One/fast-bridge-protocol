@@ -14695,10 +14695,10 @@ impl FastBridge {
         let amount = amount.unwrap_or(user_balance);
         if true {
             let msg: &str = &"The amount should be a positive number";
-            if !(amount > 0) {
+            if !(amount.0 > 0) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(amount > 0) {
+        } else if !(amount.0 > 0) {
             ::near_sdk::env::panic_str(&"The amount should be a positive number")
         }
         if true {
