@@ -13334,12 +13334,16 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn withdraw(self, token_id: AccountId, amount: U128) -> near_sdk::Promise {
+    pub fn withdraw(
+        self,
+        token_id: AccountId,
+        amount: Option<U128>,
+    ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 token_id: &'nearinput AccountId,
-                amount: &'nearinput U128,
+                amount: &'nearinput Option<U128>,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -14657,7 +14661,11 @@ impl FastBridge {
             .insert(&transfer_message.transfer.token_near, &new_balance);
         self.pending_transfers.remove(transfer_id);
     }
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
+    pub fn withdraw(
+        &mut self,
+        token_id: AccountId,
+        amount: Option<U128>,
+    ) -> PromiseOrValue<U128> {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14683,14 +14691,11 @@ impl FastBridge {
             }
         }
         let recipient_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&recipient_id, &token_id);
-        if true {
-            let msg: &str = &"Not enough token balance";
-            if !(balance >= amount) {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !(balance >= amount) {
-            ::near_sdk::env::panic_str(&"Not enough token balance")
+        let user_balance = self.get_user_balance(&recipient_id, &token_id);
+        let amount = amount.unwrap_or(user_balance);
+        if amount > user_balance {
+            env::log_str("Insufficient user balance");
+            return PromiseOrValue::Value(U128(0));
         }
         self.decrease_balance(&recipient_id, &token_id, &amount.0);
         ext_token::ext(token_id.clone())
@@ -14720,13 +14725,14 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, recipient_id),
             )
+            .into()
     }
     pub fn withdraw_callback(
         &mut self,
         token_id: AccountId,
         amount: U128,
         recipient_id: AccountId,
-    ) {
+    ) -> U128 {
         if is_promise_success() {
             Event::FastBridgeWithdrawEvent {
                 recipient_id,
@@ -14734,8 +14740,10 @@ impl FastBridge {
                 amount,
             }
                 .emit();
+            amount
         } else {
             self.increase_balance(&recipient_id, &token_id, &amount.0);
+            U128(0)
         }
     }
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
@@ -16628,7 +16636,7 @@ pub extern "C" fn withdraw() {
     #[serde(crate = "near_sdk::serde")]
     struct Input {
         token_id: AccountId,
-        amount: U128,
+        amount: Option<U128>,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -16756,7 +16764,7 @@ pub extern "C" fn withdraw() {
                             }
                         };
                         let __field1 = match match _serde::de::SeqAccess::next_element::<
-                            U128,
+                            Option<U128>,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -16787,7 +16795,7 @@ pub extern "C" fn withdraw() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<Option<U128>> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -16825,7 +16833,7 @@ pub extern "C" fn withdraw() {
                                     }
                                     __field1 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            U128,
+                                            Option<U128>,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -17235,7 +17243,10 @@ pub extern "C" fn withdraw_callback() {
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.withdraw_callback(token_id, amount, recipient_id);
+    let result = contract.withdraw_callback(token_id, amount, recipient_id);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
