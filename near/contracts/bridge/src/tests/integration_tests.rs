@@ -277,12 +277,13 @@ mod integration_tests {
         );
 
         // Call withdraw multiple time with batch transaction
+        let withdrawals_batch_size = 3u32;
         let _result = withdraw_tokens(
             &test_data.bridge.id(),
             alice,
             &test_data.token.id(),
             transfer_amount,
-            3,
+            withdrawals_batch_size,
         )
         .await?;
 
@@ -291,7 +292,7 @@ mod integration_tests {
             get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
                 .await?
                 .0,
-            10
+            transfer_amount
         );
 
         assert_eq!(
@@ -300,12 +301,13 @@ mod integration_tests {
         );
 
         // Withdraw once
+        let withdrawals_batch_size = 1u32;
         let _result = withdraw_tokens(
             &test_data.bridge.id(),
             alice,
             &test_data.token.id(),
             transfer_amount,
-            1,
+            withdrawals_batch_size,
         )
         .await?;
 
@@ -437,7 +439,8 @@ mod integration_tests {
         );
 
         // Call unlock multiple time with batch transaction
-        let _result = unlock_tokens(&test_data.bridge.id(), alice, 1, 2).await?;
+        let unlock_tokens_batch_size = 2u32;
+        let _result = unlock_tokens(&test_data.bridge.id(), alice, 1, unlock_tokens_batch_size).await?;
 
         // Check account balance after unlock batch calls
         assert_eq!(
