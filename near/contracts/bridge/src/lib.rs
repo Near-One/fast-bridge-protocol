@@ -178,8 +178,6 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
     ) -> Self {
-        require!(!env::state_exists(), "Already initialized");
-
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
             .as_nanos()
@@ -718,6 +716,11 @@ impl FastBridge {
             .as_nanos()
             .try_into()
             .unwrap();
+
+        require!(
+            lock_time_max > lock_time_min,
+            "Error initialize: lock_time_min must be less than lock_time_max"
+        );
 
         self.lock_duration = LockDuration {
             lock_time_min,
@@ -1714,19 +1717,19 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
-        let lock_time_min = "420h".to_string();
-        let lock_time_max = "42h".to_string();
+        let lock_time_min = "42h".to_string();
+        let lock_time_max = "420h".to_string();
         let convert_nano = 36 * u64::pow(10, 11);
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_lock_time(lock_time_min, lock_time_max);
 
         assert_eq!(
             contract.lock_duration.lock_time_min as u64 / convert_nano,
-            420
+            42
         );
         assert_eq!(
             contract.lock_duration.lock_time_max as u64 / convert_nano,
-            42
+            420
         );
     }
 
