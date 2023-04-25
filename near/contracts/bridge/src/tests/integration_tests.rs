@@ -1,11 +1,19 @@
 #[cfg(test)]
 mod integration_tests {
+    use std::ops::Add;
+    use std::time::SystemTime;
+
+    use fast_bridge_common::{TransferDataEthereum, TransferDataNear, TransferMessage};
+    use near_sdk::borsh::BorshSerialize;
     use near_sdk::json_types::U128;
     use near_sdk::serde_json::json;
-    use near_sdk::{Duration, ONE_NEAR, ONE_YOCTO};
+    use near_sdk::{ONE_NEAR, ONE_YOCTO};
     use workspaces::operations::Function;
     use workspaces::{Account, AccountId, Contract};
 
+    use crate::UnlockProof;
+
+    const ETH_BRIDGE_ADDRESS: &str = "6b175474e89094c44da98b954eedeac495271d0f";
     const BRIDGE_WASM_FILEPATH: &str = "../target/wasm32-unknown-unknown/release/fastbridge.wasm";
     const MOCK_PROVER_WASM_FILEPATH: &str =
         "../target/wasm32-unknown-unknown/release/mock_eth_prover.wasm";
@@ -21,7 +29,7 @@ mod integration_tests {
         eth_client_account: Option<String>,
         lock_time_min: String,
         lock_time_max: String,
-        eth_block_time: Duration,
+        eth_block_time: near_sdk::Duration,
         whitelist_mode: bool,
     }
 
@@ -106,6 +114,26 @@ mod integration_tests {
             .await?;
         assert!(result.is_success());
 
+        let result = client
+            .call("set_last_block_number")
+            .args_json(json!({
+                "block_number": 0,
+            }))
+            .max_gas()
+            .transact()
+            .await?;
+        assert!(result.is_success());
+
+        let result = prover
+            .call("set_log_entry_verification_status")
+            .args_json(json!({
+                "verification_status": true,
+            }))
+            .max_gas()
+            .transact()
+            .await?;
+        assert!(result.is_success());
+
         Ok(TestData {
             bridge,
             token,
@@ -160,11 +188,39 @@ mod integration_tests {
         transaction.transact().await
     }
 
+    async fn unlock_tokens(
+        bridge_id: &AccountId,
+        account: &Account,
+        nonce: u128,
+        batch_size: u32,
+    ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
+        let proof = UnlockProof {
+            header_data: vec![],
+            account_proof: vec![],
+            account_data: vec![],
+            storage_proof: vec![],
+        };
+        let proof = near_sdk::base64::encode(proof.try_to_vec().unwrap());
+        let mut transaction = account.batch(bridge_id);
+        for _i in 0..batch_size {
+            transaction = transaction.call(
+                Function::new("unlock")
+                    .args_json(json!({
+                        "nonce": nonce.to_string(),
+                        "proof": proof,
+                    }))
+                    .gas(150 * near_sdk::Gas::ONE_TERA.0),
+            );
+        }
+
+        transaction.transact().await
+    }
+
     #[tokio::test]
     async fn test_multi_withdraw() -> anyhow::Result<()> {
         let test_data = deploy_bridge(
             InitArgs {
-                eth_bridge_contract: "6b175474e89094c44da98b954eedeac495271d0f".to_owned(),
+                eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
                 prover_account: None,
                 eth_client_account: None,
                 lock_time_min: "1ms".to_owned(),
@@ -265,6 +321,136 @@ mod integration_tests {
             get_token_balance(&test_data.token, alice.id()).await?.0,
             alice_token_balance
         );
+        Ok(())
+    }
+
+    async fn transfer_tokens(
+        bridge: &Account,
+        account: &Account,
+        token: &Account,
+        transfer_amount: u128,
+        fee_amount: u128,
+    ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
+        let valid_till = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .add(std::time::Duration::from_secs(10))
+            .as_nanos() as u64;
+        let msg: TransferMessage = TransferMessage {
+            valid_till,
+            transfer: TransferDataEthereum {
+                token_near: token.id().to_string().parse().unwrap(),
+                token_eth: [0; 20],
+                amount: transfer_amount.into(),
+            },
+            fee: TransferDataNear {
+                token: token.id().to_string().parse().unwrap(),
+                amount: fee_amount.into(),
+            },
+            recipient: [0; 20],
+            valid_till_block_height: None,
+        };
+        let msg = near_sdk::base64::encode(msg.try_to_vec().unwrap());
+
+        let result = account
+            .call(token.id(), "ft_transfer_call")
+            .args_json(json!({
+                "receiver_id": bridge.id(),
+                "amount": (transfer_amount + fee_amount).to_string(),
+                "msg": msg,
+            }))
+            .max_gas()
+            .deposit(ONE_YOCTO)
+            .transact()
+            .await?;
+        Ok(result)
+    }
+
+    #[tokio::test]
+    async fn test_multi_unlock() -> anyhow::Result<()> {
+        let test_data = deploy_bridge(
+            InitArgs {
+                eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
+                prover_account: None,
+                eth_client_account: None,
+                lock_time_min: "1ms".to_owned(),
+                lock_time_max: "10h".to_owned(),
+                eth_block_time: 12000000000,
+                whitelist_mode: false,
+            },
+            BRIDGE_WASM_FILEPATH,
+        )
+        .await?;
+
+        // Check init balances
+        let alice = &test_data.accounts[0];
+        let alice_token_balance = get_token_balance(&test_data.token, alice.id()).await?.0;
+        let bridge_balance = get_token_balance(&test_data.token, test_data.bridge.id())
+            .await?
+            .0;
+        assert_eq!(bridge_balance, 1000);
+        assert_eq!(alice_token_balance, 1000);
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+                .await
+                .unwrap_or(U128(0))
+                .0,
+            0
+        );
+
+        // Init token transfer twice
+        let total_transfer_amount: u128 = 10;
+        let total_fee_amount: u128 = 10;
+        let result = transfer_tokens(
+            &test_data.bridge.as_account(),
+            &alice,
+            &test_data.token.as_account(),
+            total_transfer_amount / 2,
+            total_fee_amount / 2,
+        )
+        .await?;
+        let result: U128 = result.json()?;
+
+        assert_eq!(result.0, (total_transfer_amount + total_fee_amount) / 2);
+
+        let result = transfer_tokens(
+            &test_data.bridge.as_account(),
+            &alice,
+            &test_data.token.as_account(),
+            total_transfer_amount / 2,
+            total_fee_amount / 2,
+        )
+        .await?;
+        let result: U128 = result.json()?;
+        assert_eq!(result.0, (total_transfer_amount + total_fee_amount) / 2);
+
+        // Check account balance after the transfer
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+                .await?
+                .0,
+            0
+        );
+        assert_eq!(
+            get_token_balance(&test_data.token, alice.id()).await?.0,
+            alice_token_balance - total_transfer_amount - total_fee_amount
+        );
+
+        // Call unlock multiple time with batch transaction
+        let _result = unlock_tokens(&test_data.bridge.id(), alice, 1, 2).await?;
+
+        // Check account balance after unlock batch calls
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+                .await?
+                .0,
+            (total_transfer_amount + total_fee_amount) / 2,
+        );
+        assert_eq!(
+            get_token_balance(&test_data.token, alice.id()).await?.0,
+            alice_token_balance - total_transfer_amount - total_fee_amount
+        );
+
         Ok(())
     }
 }
