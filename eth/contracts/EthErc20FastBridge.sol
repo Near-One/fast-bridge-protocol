@@ -48,18 +48,22 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         setWhitelistedTokens(_tokens, _states);
     }
 
+    /// Check if token allowed to transfer in Fast Bridge
     function isTokenInWhitelist(address _token) external view returns (bool) {
         return whitelistedTokens[_token];
     }
 
+    /// Pause Fast Bridge
     function pause() external onlyRole(PAUSABLE_ADMIN_ROLE) {
         _pause();
     }
 
+    /// Unpause Fast Bridge
     function unPause() external onlyRole(UNPAUSABLE_ADMIN_ROLE) {
         _unpause();
     }
 
+    /// Change the set of whitelisted tokens
     function setWhitelistedTokens(address[] memory _tokens, bool[] memory _states) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
@@ -70,18 +74,21 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         emit SetTokens(_tokens, _states);
     }
 
+    /// Add token to whitelist
     function addTokenToWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(!whitelistedTokens[_token], "Token already whitelisted!");
         whitelistedTokens[_token] = true;
         emit AddTokenToWhitelist(_token);
     }
 
+    /// Remove token from whitelist
     function removeTokenFromWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(whitelistedTokens[_token], "Token not whitelisted!");
         whitelistedTokens[_token] = false;
         emit RemoveTokenFromWhitelist(_token);
     }
 
+    /// Transfer tokens on Ethereum side
     function transferTokens(
         address _token,
         address payable _recipient,
@@ -111,6 +118,7 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
     }
 
+    /// Withdraw tokens accidentally transferred to this contract
     function withdrawStuckTokens(address _token) external onlyRole(DEFAULT_ADMIN_ROLE) {
         IERC20 token = IERC20(_token);
         token.safeTransfer(msg.sender, token.balanceOf(address(this)));
