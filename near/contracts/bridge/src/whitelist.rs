@@ -71,7 +71,7 @@ impl FastBridge {
                     ),
                 );
             }
-            // No action needed for CheckToken, as the token is already checked in whitelist_tokens
+            // No action is needed for CheckToken, as the token is already checked in whitelist_tokens
             WhitelistMode::CheckToken => {}
             WhitelistMode::Blocked => {
                 env::panic_str(format!("The token `{}` is blocked", token).as_str())
