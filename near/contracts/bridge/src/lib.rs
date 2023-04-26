@@ -1239,10 +1239,10 @@ mod unit_tests {
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
 
-        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
+        let valid_till_timestamp = block_timestamp() + contract.lock_duration.lock_time_max;
         let token = "alice_near";
         let msg = json!({
-            "valid_till": current_timestamp,
+            "valid_till": valid_till_timestamp,
             "transfer": {
                 "token_near": token,
                 "token_eth": eth_token_address(),
