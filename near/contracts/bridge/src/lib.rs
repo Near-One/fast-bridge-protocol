@@ -1233,6 +1233,38 @@ mod unit_tests {
     }
 
     #[test]
+    #[should_panic(expected = "The eth token address and recipient address can't be the same")]
+    fn same_token_and_recipient_addresses() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
+        let token = "alice_near";
+        let msg = json!({
+            "valid_till": current_timestamp,
+            "transfer": {
+                "token_near": token,
+                "token_eth": eth_token_address(),
+                "amount": "100"
+            },
+            "fee": {
+                "token": token,
+                "amount": "100"
+            },
+            "recipient": eth_token_address()
+        });
+
+        let last_block_height = 10;
+        contract.init_transfer_callback(
+            last_block_height,
+            serde_json::from_value(msg).unwrap(),
+            signer_account_id(),
+            None,
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "Not enough fee token balance")]
     fn test_init_transfer_on_not_enough_fee_token_balance() {
         let context = get_context(false);
