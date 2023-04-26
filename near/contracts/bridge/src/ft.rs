@@ -5,6 +5,9 @@ use near_sdk::{base64, AccountId};
 
 #[near_bindgen]
 impl FungibleTokenReceiver for FastBridge {
+    /// Transfer tokens to the Fast Bridge contract and
+    /// if the msg not empty initiate tokens transfer to Ethereum
+    /// msg if present is the TransferMessage in borsh Base64 format
     #[pause]
     fn ft_on_transfer(
         &mut self,

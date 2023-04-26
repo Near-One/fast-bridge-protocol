@@ -222,6 +222,7 @@ impl FastBridge {
         contract
     }
 
+    /// Initiate tokens transfer from Near to Ethereum
     #[pause]
     pub fn init_transfer(
         &mut self,
@@ -250,6 +251,7 @@ impl FastBridge {
             )
     }
 
+    /// Finishing tokens transfer initiation from Near to Ethereum
     #[private]
     pub fn init_transfer_callback(
         &mut self,
@@ -354,6 +356,7 @@ impl FastBridge {
         U128::from(0)
     }
 
+    /// Unlock in case the tokens were not transferred on time to Ethereum
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8) -> Promise {
         let proof = UnlockProof::try_from_slice(&proof.0)
@@ -395,6 +398,7 @@ impl FastBridge {
             )
     }
 
+    /// Finishing unlock for not transferred tokens
     #[private]
     pub fn unlock_callback(
         &mut self,
@@ -445,6 +449,7 @@ impl FastBridge {
         .emit();
     }
 
+    /// Unlock for tokens which were transferred to Ethereum
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
@@ -476,6 +481,7 @@ impl FastBridge {
             )
     }
 
+    /// Verify the log correctness and finish unlock for transferred tokens
     #[private]
     pub fn verify_log_entry_callback(
         &mut self,
@@ -539,6 +545,7 @@ impl FastBridge {
         .emit();
     }
 
+    /// Get the user balance for specific token in this contract. This tokens can be withdraw.
     pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
         let user_balance = self
             .user_balances
@@ -633,6 +640,8 @@ impl FastBridge {
         self.pending_transfers.remove(transfer_id);
     }
 
+    /// Withdraw the specific amount of the specific tokens.
+    /// If amount is not provided the maximum available for user amount will be withdraws
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
     pub fn withdraw(&mut self, token_id: AccountId, amount: Option<U128>) -> PromiseOrValue<U128> {
@@ -665,6 +674,7 @@ impl FastBridge {
             .into()
     }
 
+    /// Finishing tokens withdraw
     #[private]
     pub fn withdraw_callback(
         &mut self,
@@ -686,24 +696,29 @@ impl FastBridge {
         }
     }
 
+    /// Set the prover account. Prover is a contract which checks the Ethereum logs correctness
     #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
     }
 
+    /// Set the ethereum fast bridge contract address
     #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
 
+    /// Get the minimum and maximum possible time for tokens lock
     pub fn get_lock_duration(self) -> LockDuration {
         self.lock_duration
     }
 
+    /// The amount of currently locked tokens. The fee not counted.
     pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
         self.pending_transfers_balances.get(&token_id).unwrap_or(0)
     }
 
+    /// Get currently pending transactions for debugging purpose.
     pub fn get_pending_transfers(
         &self,
         from_index: usize,
@@ -716,10 +731,12 @@ impl FastBridge {
             .collect::<Vec<_>>()
     }
 
+    /// Get information about pending transaction by nonce
     pub fn get_pending_transfer(&self, id: String) -> Option<(AccountId, TransferMessage)> {
         self.pending_transfers.get(&id)
     }
 
+    /// Set the minimum and maximum possible time for tokens lock
     #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
