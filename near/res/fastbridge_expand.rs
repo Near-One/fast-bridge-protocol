@@ -14013,6 +14013,16 @@ impl FastBridge {
                 &"The fee token does not match the transfer token",
             )
         }
+        if true {
+            let msg: &str = &"The eth token address and recipient address can't be the same";
+            if !(transfer_message.transfer.token_eth != transfer_message.recipient) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(transfer_message.transfer.token_eth != transfer_message.recipient) {
+            ::near_sdk::env::panic_str(
+                &"The eth token address and recipient address can't be the same",
+            )
+        }
         if let Some(update_balance) = update_balance.as_ref() {
             self.increase_balance(
                 &update_balance.sender_id,

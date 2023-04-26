@@ -349,7 +349,7 @@ mod integration_tests {
                 token: token.id().to_string().parse().unwrap(),
                 amount: fee_amount.into(),
             },
-            recipient: [0; 20],
+            recipient: [1; 20],
             valid_till_block_height: None,
         };
         let msg = near_sdk::base64::encode(msg.try_to_vec().unwrap());
