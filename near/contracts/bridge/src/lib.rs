@@ -223,6 +223,10 @@ impl FastBridge {
     }
 
     /// Initiate tokens transfer from Near to Ethereum
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` -- the details about transaction(tokens, amount, recipient e.t.c) in borsh Base64 format
     #[pause]
     pub fn init_transfer(
         &mut self,
@@ -252,6 +256,13 @@ impl FastBridge {
     }
 
     /// Finishing tokens transfer initiation from Near to Ethereum
+    ///
+    /// # Arguments
+    ///
+    /// * `last_block_height` -- the last ethereum block height in LightClient on Near
+    /// * `transfer_message` -- the details about transaction: tokens, amount, recipient e.t.c
+    /// * `sender_id` -- the account which initiate this transfer
+    /// * `update_balance` -- balance update in case if we transfer tokens and init transfer in one transaction
     #[private]
     pub fn init_transfer_callback(
         &mut self,
@@ -357,6 +368,11 @@ impl FastBridge {
     }
 
     /// Unlock in case the tokens were not transferred on time to Ethereum
+    ///
+    /// # Arguments
+    ///
+    /// `nonce` -- the transaction id
+    /// `proof` -- the proof that in time after `valid_till` the transaction is not take a place
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8) -> Promise {
         let proof = UnlockProof::try_from_slice(&proof.0)
@@ -399,6 +415,12 @@ impl FastBridge {
     }
 
     /// Finishing unlock for not transferred tokens
+    ///
+    /// # Arguments
+    ///
+    /// `verification_result` -- the result of the proof validation
+    /// `nonce` -- the transfer id
+    /// `sender_id` -- the account which initiate this transaction
     #[private]
     pub fn unlock_callback(
         &mut self,
@@ -450,6 +472,10 @@ impl FastBridge {
     }
 
     /// Unlock for tokens which were transferred to Ethereum
+    ///
+    /// # Arguments
+    ///
+    /// `proof` -- the proof that tokens were transferred on Ethereum side
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
@@ -482,6 +508,11 @@ impl FastBridge {
     }
 
     /// Verify the log correctness and finish unlock for transferred tokens
+    ///
+    /// # Arguments
+    ///
+    /// `verification_success` -- the result of the proof validation
+    /// `proof` -- the proof that tokens were transferred on Ethereum side
     #[private]
     pub fn verify_log_entry_callback(
         &mut self,
