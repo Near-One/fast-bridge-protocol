@@ -115,7 +115,7 @@ mod tests {
                 inputs: params
                     .into_iter()
                     .map(|(name, kind, indexed)| EventParam {
-                        name: name.to_string(),
+                        name,
                         kind,
                         indexed,
                     })
@@ -123,7 +123,7 @@ mod tests {
                 anonymous: false,
             };
             let params: Vec<ParamType> = event.inputs.iter().map(|p| p.kind.clone()).collect();
-            let topics = indexes.into_iter().map(|value| H256::from(value)).collect();
+            let topics = indexes.into_iter().map(H256::from).collect();
             let log_entry = LogEntry {
                 address: locker_address.into(),
                 topics: vec![vec![long_signature(&event.name, &params).0.into()], topics].concat(),
@@ -165,9 +165,9 @@ mod tests {
             vec![
                 Token::Address(event.relayer.into()),
                 Token::Address(event.token.into()),
-                Token::Address(event.recipient.clone().into()),
+                Token::Address(event.recipient.into()),
                 Token::Uint(event.amount.into()),
-                Token::String(event.unlock_recipient.clone().into()),
+                Token::String(event.unlock_recipient.clone()),
             ],
         )
     }
@@ -175,7 +175,7 @@ mod tests {
     fn create_proof(transfer_event: &EthTransferEvent) -> Proof {
         Proof {
             log_index: 0,
-            log_entry_data: to_log_entry_data(&transfer_event),
+            log_entry_data: to_log_entry_data(transfer_event),
             receipt_index: 0,
             receipt_data: vec![],
             header_data: vec![],

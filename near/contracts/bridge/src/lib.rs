@@ -917,11 +917,13 @@ mod unit_tests {
         });
 
         let mut contract = FastBridge::new(
-            config.eth_bridge_contract.unwrap_or(eth_bridge_address()),
-            config.prover_account.unwrap_or(prover()),
-            config.eth_client_account.unwrap_or(eth_client()),
-            config.lock_time_min.unwrap_or("1h".to_string()),
-            config.lock_time_max.unwrap_or("24h".to_string()),
+            config
+                .eth_bridge_contract
+                .unwrap_or_else(eth_bridge_address),
+            config.prover_account.unwrap_or_else(prover),
+            config.eth_client_account.unwrap_or_else(eth_client),
+            config.lock_time_min.unwrap_or_else(|| "1h".to_string()),
+            config.lock_time_max.unwrap_or_else(|| "24h".to_string()),
             12_000_000_000,
             true,
         );
@@ -931,7 +933,7 @@ mod unit_tests {
             "WhitelistManager".to_string(),
             "token_near".parse().unwrap(),
         );
-        for token in config.whitelisted_tokens.unwrap_or(vec![]) {
+        for token in config.whitelisted_tokens.unwrap_or_default() {
             contract.set_token_whitelist_mode(token.parse().unwrap(), WhitelistMode::CheckToken);
         }
 
@@ -1731,14 +1733,8 @@ mod unit_tests {
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_lock_time(lock_time_min, lock_time_max);
 
-        assert_eq!(
-            contract.lock_duration.lock_time_min as u64 / convert_nano,
-            42
-        );
-        assert_eq!(
-            contract.lock_duration.lock_time_max as u64 / convert_nano,
-            420
-        );
+        assert_eq!(contract.lock_duration.lock_time_min / convert_nano, 42);
+        assert_eq!(contract.lock_duration.lock_time_max / convert_nano, 420);
     }
 
     #[test]
@@ -1760,7 +1756,7 @@ mod unit_tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    contract.increase_balance(&user, &token, &10);
+                    contract.increase_balance(user, token, &10);
                 }
             }
         }
@@ -1850,8 +1846,8 @@ mod unit_tests {
             sender_account.clone(),
         );
 
-        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(sender_account.clone(), U128(1_000_000), "".to_string());
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+        contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
     }
 
     #[test]

@@ -55,10 +55,13 @@ mod integration_tests {
         init_input.eth_client_account = Some(
             init_input
                 .eth_client_account
-                .unwrap_or(client.id().to_string()),
+                .unwrap_or_else(|| client.id().to_string()),
         );
-        init_input.prover_account =
-            Some(init_input.prover_account.unwrap_or(prover.id().to_string()));
+        init_input.prover_account = Some(
+            init_input
+                .prover_account
+                .unwrap_or_else(|| prover.id().to_string()),
+        );
         let result = bridge
             .call("new")
             .args_json(init_input)
@@ -241,7 +244,7 @@ mod integration_tests {
         assert_eq!(bridge_balance, 1000);
         assert_eq!(alice_token_balance, 1000);
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await
                 .unwrap_or(U128(0))
                 .0,
@@ -270,7 +273,7 @@ mod integration_tests {
             alice_token_balance - transfer_amount
         );
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await?
                 .0,
             transfer_amount
@@ -279,9 +282,9 @@ mod integration_tests {
         // Call withdraw multiple time with batch transaction
         let withdrawals_batch_size = 3u32;
         let _result = withdraw_tokens(
-            &test_data.bridge.id(),
+            test_data.bridge.id(),
             alice,
-            &test_data.token.id(),
+            test_data.token.id(),
             transfer_amount,
             withdrawals_batch_size,
         )
@@ -289,7 +292,7 @@ mod integration_tests {
 
         // Check account balance after withdraw batch calls
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await?
                 .0,
             transfer_amount
@@ -303,9 +306,9 @@ mod integration_tests {
         // Withdraw once
         let withdrawals_batch_size = 1u32;
         let _result = withdraw_tokens(
-            &test_data.bridge.id(),
+            test_data.bridge.id(),
             alice,
-            &test_data.token.id(),
+            test_data.token.id(),
             transfer_amount,
             withdrawals_batch_size,
         )
@@ -313,7 +316,7 @@ mod integration_tests {
 
         // Check acoount balance after withdraw call
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await?
                 .0,
             0
@@ -337,7 +340,9 @@ mod integration_tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
             .add(std::time::Duration::from_secs(10))
-            .as_nanos() as u64;
+            .as_nanos()
+            .try_into()
+            .expect("Can't convert Duration to u64");
         let msg: TransferMessage = TransferMessage {
             valid_till,
             transfer: TransferDataEthereum {
@@ -393,7 +398,7 @@ mod integration_tests {
         assert_eq!(bridge_balance, 1000);
         assert_eq!(alice_token_balance, 1000);
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await
                 .unwrap_or(U128(0))
                 .0,
@@ -404,9 +409,9 @@ mod integration_tests {
         let total_transfer_amount: u128 = 10;
         let total_fee_amount: u128 = 10;
         let result = transfer_tokens(
-            &test_data.bridge.as_account(),
-            &alice,
-            &test_data.token.as_account(),
+            test_data.bridge.as_account(),
+            alice,
+            test_data.token.as_account(),
             total_transfer_amount / 2,
             total_fee_amount / 2,
         )
@@ -416,9 +421,9 @@ mod integration_tests {
         assert_eq!(result.0, (total_transfer_amount + total_fee_amount) / 2);
 
         let result = transfer_tokens(
-            &test_data.bridge.as_account(),
-            &alice,
-            &test_data.token.as_account(),
+            test_data.bridge.as_account(),
+            alice,
+            test_data.token.as_account(),
             total_transfer_amount / 2,
             total_fee_amount / 2,
         )
@@ -428,7 +433,7 @@ mod integration_tests {
 
         // Check account balance after the transfer
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await?
                 .0,
             0
@@ -441,11 +446,11 @@ mod integration_tests {
         // Call unlock multiple time with batch transaction
         let unlock_tokens_batch_size = 2u32;
         let _result =
-            unlock_tokens(&test_data.bridge.id(), alice, 1, unlock_tokens_batch_size).await?;
+            unlock_tokens(test_data.bridge.id(), alice, 1, unlock_tokens_batch_size).await?;
 
         // Check account balance after unlock batch calls
         assert_eq!(
-            get_bridge_balance(&test_data.bridge, alice.id(), &test_data.token.id())
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await?
                 .0,
             (total_transfer_amount + total_fee_amount) / 2,
