@@ -257,7 +257,8 @@ impl FastBridge {
             )
     }
 
-    /// Handles the callback from the Fast Bridge contract. 
+    /// This function finalizes the execution flow of the `init_transfer()` function. This function
+    /// is called from the `Eth2Client` contract after extracting the last Ethereum block number on Near.
     /// This function validates the transfer message and decreases the token transfer balance and fee
     /// balance for the sender. If an `update_balance` is provided, it increases the sender's balance
     /// accordingly and emits a `FastBridgeDepositEvent`. It then stores the transfer and emits a
@@ -432,7 +433,8 @@ impl FastBridge {
             )
     }
 
-    /// This function is called as a callback from the `EthProver` contract after the `proof` of the non-existence
+    /// This function finalizes the execution flow of the `unlock()` function. This function
+    /// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
     /// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate 
     /// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
     /// with the details of the unlocked transfer.
@@ -897,7 +899,7 @@ impl FastBridge {
     ///
     /// # Arguments
     ///
-    /// * `id` - A string representing the transfer ID.
+    /// * `id` - A string representing the transfer ID (none).
     ///
     /// # Returns
     ///
