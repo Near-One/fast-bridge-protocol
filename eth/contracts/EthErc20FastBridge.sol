@@ -48,11 +48,11 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         setWhitelistedTokens(_tokens, _states);
     }
 
-/**
- * @dev Checks whether a token is whitelisted in Fast Bridge.
- * @param _token The address of the token to check.
- * @return A boolean indicating whether the token is whitelisted (`true`) or not (`false`).
- */
+    /**
+      * @dev Checks whether a token is whitelisted in Fast Bridge.
+      * @param _token The address of the token to check.
+      * @return A boolean indicating whether the token is whitelisted (`true`) or not (`false`).
+    */
     function isTokenInWhitelist(address _token) external view returns (bool) {
         return whitelistedTokens[_token];
     }
@@ -67,17 +67,17 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         _unpause();
     }
 
-/**
- * @dev Allows the whitelisting tokens admin to set the state of multiple tokens in the whitelistedTokens mapping.
- * @param _tokens An array of token addresses to be whitelisted or blacklisted.
- * @param _states An array of boolean values representing the desired state of each token (`true` for whitelisted, `false` for blacklisted).
- * Requirements:
- * - Arrays must have equal length.
- * - Caller must have the `WHITELISTING_TOKENS_ADMIN_ROLE`.
- * Effects:
- * - Updates the `whitelistedTokens` mapping to reflect the new token states.
- * - Emits a `SetTokens` event with the updated token addresses and states.
- */
+    /**
+      * @dev Allows the whitelisting tokens admin to set the state of multiple tokens in the whitelistedTokens mapping.
+      * @param _tokens An array of token addresses to be whitelisted or blacklisted.
+      * @param _states An array of boolean values representing the desired state of each token (`true` for whitelisted, `false` for blacklisted).
+      * Requirements:
+      * - Arrays must have equal length.
+      * - Caller must have the `WHITELISTING_TOKENS_ADMIN_ROLE`.
+      * Effects:
+      * - Updates the `whitelistedTokens` mapping to reflect the new token states.
+      * - Emits a `SetTokens` event with the updated token addresses and states.
+    */
     function setWhitelistedTokens(address[] memory _tokens, bool[] memory _states) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(_tokens.length == _states.length, "Arrays must be equal");
 
