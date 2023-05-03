@@ -15048,7 +15048,7 @@ impl FastBridge {
     ///
     /// # Arguments
     ///
-    /// * `id` - A string representing the transfer ID (none).
+    /// * `id` - A string representing the transfer ID (nonce).
     ///
     /// # Returns
     ///
@@ -18624,7 +18624,7 @@ pub extern "C" fn get_pending_transfers() {
 ///
 /// # Arguments
 ///
-/// * `id` - A string representing the transfer ID (none).
+/// * `id` - A string representing the transfer ID (nonce).
 ///
 /// # Returns
 ///
