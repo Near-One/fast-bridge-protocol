@@ -48,17 +48,21 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         setWhitelistedTokens(_tokens, _states);
     }
 
-    // Check if token allowed to transfer in Fast Bridge
+/**
+ * @dev Checks whether a token is whitelisted in Fast Bridge.
+ * @param _token The address of the token to check.
+ * @return A boolean indicating whether the token is whitelisted (`true`) or not (`false`).
+ */
     function isTokenInWhitelist(address _token) external view returns (bool) {
         return whitelistedTokens[_token];
     }
 
-    // Pause Fast Bridge
+    /// Pauses all the operations in Fast Bridge. It affects only user-accessible operations.
     function pause() external onlyRole(PAUSABLE_ADMIN_ROLE) {
         _pause();
     }
 
-    // Unpause Fast Bridge
+    /// Unpauses all the operations in Fast Bridge. It affects only user-accessible operations.
     function unPause() external onlyRole(UNPAUSABLE_ADMIN_ROLE) {
         _unpause();
     }
@@ -74,21 +78,57 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         emit SetTokens(_tokens, _states);
     }
 
-    // Add token to whitelist
+/**
+ * @dev Adds a token to the `whitelistedTokens` mapping.
+ * @param _token The address of the token to be added to the whitelist.
+ * Requirements:
+ * - Caller must have the `WHITELISTING_TOKENS_ADMIN_ROLE`.
+ * - Token must not already be whitelisted.
+ * Effects:
+ * - Updates the `whitelistedTokens` mapping to include the new token.
+ * - Emits an `AddTokenToWhitelist` event with the address of the added token.
+ */
     function addTokenToWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(!whitelistedTokens[_token], "Token already whitelisted!");
         whitelistedTokens[_token] = true;
         emit AddTokenToWhitelist(_token);
     }
 
-    // Remove token from whitelist
+/**
+ * @dev Removes a token from the `whitelistedTokens` mapping.
+ * @param _token The address of the token to be removed from the whitelist.
+ * Requirements:
+ * - Caller must have the `WHITELISTING_TOKENS_ADMIN_ROLE`.
+ * - Token must already be whitelisted.
+ * Effects:
+ * - Updates the `whitelistedTokens` mapping to remove the specified token.
+ * - Emits a `RemoveTokenFromWhitelist` event with the address of the removed token.
+ */
     function removeTokenFromWhitelist(address _token) public onlyRole(WHITELISTING_TOKENS_ADMIN_ROLE) {
         require(whitelistedTokens[_token], "Token not whitelisted!");
         whitelistedTokens[_token] = false;
         emit RemoveTokenFromWhitelist(_token);
     }
 
-    // Transfer tokens on Ethereum side
+/**
+ * @dev Transfers ERC20 tokens or Ether to a specified recipient. This is a second step for the Fast Bridge transfer from the NEAR side. The relayer, that provides the liquidity using the function, may later claim it back on the NEAR side.
+ * @param _token The address of the token to be transferred. Use `address(0)` for Ether transfers.
+ * @param _recipient The address of the recipient to receive the tokens or Ether.
+ * @param _nonce A unique number, an identifier of the NEAR transfer, to ensure the transaction is not processed more than once.
+ * @param _amount The amount of tokens or Ether to be transferred.
+ * @param _unlock_recipient The address of the unlock recipient, the one who will be able to claim the transaction and get tokens on the NEAR side. Usually, it represents the NEAR address of the relayer.
+ * @param _valid_till_block_height The block height until which the transaction can be processed.
+ * Requirements:
+ * - Contract must not be paused.
+ * - Token must be whitelisted.
+ * - The transaction must not have already been processed.
+ * - The recipient address must not be 0 and must not be the same as the sender.
+ * - The amount must not be 0.
+ * - The transaction must not have expired.
+ * Effects:
+ * - Transfers the specified amount of tokens or Ether to the recipient.
+ * - Emits a `TransferTokens` event with the information about the transfer. After that, the `unlock_recipient` can use proof for this event to claim tokens on the NEAR side.
+ */
     function transferTokens(
         address _token,
         address payable _recipient,
@@ -118,7 +158,12 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         emit TransferTokens(_nonce, msg.sender, _token, _recipient, _amount, _unlock_recipient, processedHash);
     }
 
-    // Withdraw tokens accidentally transferred to this contract
+/**
+* @dev Allows the contract owner to withdraw tokens accidentally transferred to this contract.
+* @param _token The address of the token to be withdrawn.
+* Requirements:
+* - The caller must have the `DEFAULT_ADMIN_ROLE`.
+*/
     function withdrawStuckTokens(address _token) external onlyRole(DEFAULT_ADMIN_ROLE) {
         IERC20 token = IERC20(_token);
         token.safeTransfer(msg.sender, token.balanceOf(address(this)));
