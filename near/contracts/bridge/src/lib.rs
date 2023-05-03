@@ -899,7 +899,7 @@ impl FastBridge {
     ///
     /// # Arguments
     ///
-    /// * `id` - A string representing the transfer ID (none).
+    /// * `id` - A string representing the transfer ID (nonce).
     ///
     /// # Returns
     ///
