@@ -268,10 +268,10 @@ impl FastBridge {
     ///
     /// * `last_block_height` -- the last Ethereum block height in LightClient on Near.
     ///
-    /// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc. 
+    /// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc.
     ///    The `TransferMessage` is deserialized from a Borsh-encoded string.
     ///
-    /// * `sender_id` -- the account which initiates this transfer. 
+    /// * `sender_id` -- the account which initiates this transfer.
     ///    The `AccountId` is deserialized from a Borsh-encoded string.
     ///
     /// * `update_balance` -- balance update in case the transfer of tokens and initialization of the transfer
@@ -380,7 +380,7 @@ impl FastBridge {
         U128::from(0)
     }
 
-    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence 
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
     /// The function could be executed successfully only if called either by the original creator of the transfer
@@ -435,11 +435,11 @@ impl FastBridge {
 
     /// This function finalizes the execution flow of the `unlock()` function. This function
     /// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
-    /// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate 
+    /// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate
     /// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
     /// with the details of the unlocked transfer.
     ///
-    /// This function is only intended for internal use and should not be called directly by external accounts. 
+    /// This function is only intended for internal use and should not be called directly by external accounts.
     ///
     /// # Arguments
     ///
@@ -506,15 +506,15 @@ impl FastBridge {
     /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
     /// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
     /// from the proof of the transfer event.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `proof` - A `Proof` for the event of the successful transfer on the Ethereum side.
-    /// 
+    ///
     /// # Returns
     ///
     /// A promise that resolves when the proof has been successfully verified.
-    /// 
+    ///
     /// # Panics
     ///
     /// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
@@ -552,12 +552,12 @@ impl FastBridge {
 
     /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
     ///
-    /// This function is called from the `EthProver` contract after the proof verification. 
+    /// This function is called from the `EthProver` contract after the proof verification.
     /// If the verification is successful, the function checks if the transfer is valid and if so, executes
-    /// the transfer on NEAR by increasing the balance of the recipient's account. 
+    /// the transfer on NEAR by increasing the balance of the recipient's account.
     /// It also emits a `FastBridgeLpUnlockEvent` event to signal that a transfer was successfully executed.
     ///
-    /// This function is only intended for internal use and should not be called directly by external accounts. 
+    /// This function is only intended for internal use and should not be called directly by external accounts.
     ///
     /// # Arguments
     ///
@@ -793,7 +793,7 @@ impl FastBridge {
     /// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
     /// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
     /// to the user's balance. This function is only intended for internal use and should not be called directly by
-    /// external accounts. 
+    /// external accounts.
     ///
     /// # Arguments
     ///
@@ -835,7 +835,7 @@ impl FastBridge {
         self.prover_account = prover_account;
     }
 
-    /// Sets the Ethereum Fast Bridge contract address. 
+    /// Sets the Ethereum Fast Bridge contract address.
     ///
     /// Note, This address is further used for the verification of operations that utilize the Ethereum proofs.
     /// This is needed so the contract is able to check that proofs originate from the specified address.
@@ -868,8 +868,8 @@ impl FastBridge {
     }
 
     /// Returns a vector of pending transfers with their associated IDs.
-    /// 
-    /// The vector contains a tuple for each pending transfer, where the first element is the 
+    ///
+    /// The vector contains a tuple for each pending transfer, where the first element is the
     /// transfer ID as a string, and the second element is another tuple containing the recipient's
     /// account ID and the transfer message. The function starts at the specified `from_index` and
     /// returns a maximum of `limit` transfers.
