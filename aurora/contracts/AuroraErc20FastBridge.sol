@@ -29,9 +29,11 @@ contract AuroraErc20FastBridge is AccessControl {
 
     //The Whitelisted Aurora users which allowed use fast bridge.
     mapping(address => bool) whitelisted_users;
+
     //By the token address on near returns correspondent ERC20 Aurora token.
     //[token_address_on_near] => aurora_erc20_token
     mapping(string => EvmErc20) registered_tokens;
+
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_address_on_near][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
     mapping(string => mapping(address => uint128)) balance;
@@ -311,6 +313,14 @@ contract AuroraErc20FastBridge is AccessControl {
     function get_near_address() public view returns (string memory) {
         string memory aurora_address = address_to_string(address(this));
         return string.concat(aurora_address, ".aurora");
+    }
+
+    function get_token_aurora_address(string memory near_token_address) public view returns (address) {
+        return address(registered_tokens[near_token_address]);
+    }
+
+    function get_user_balance(string memory near_token_address, address user_address) public view returns (uint128) {
+        return balance[near_token_address][user_address];
     }
 
     function address_to_string(address aurora_address) private pure returns (string memory) {
