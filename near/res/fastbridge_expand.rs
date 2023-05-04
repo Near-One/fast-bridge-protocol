@@ -119,6 +119,17 @@ mod ft {
         }
     }
     impl FungibleTokenReceiver for FastBridge {
+        /// Transfers tokens to the Fast Bridge contract and initiates a transfer to Ethereum if the `msg` parameter is not empty.
+        ///
+        /// This function is called when the smart contract receives tokens from a sender. If `msg` is not empty, the function decodes the `msg` parameter, which is a `TransferMessage` in borsh Base64 format, and uses it to initiate a token transfer to Ethereum. Otherwise, the function treats it as a deposit action, increases the balance of the sender, and emits a `FastBridgeDepositEvent`.
+        ///
+        /// Note that this function overrides a standard NEP-141 implementation of `ft_on_transfer()` so the arguments of the function are the same.
+        ///
+        /// # Arguments
+        ///
+        /// * `sender_id` - The account ID of the sender.
+        /// * `amount` - The amount of tokens being transferred.
+        /// * `msg` - The transfer message in borsh Base64 format.
         fn ft_on_transfer(
             &mut self,
             sender_id: AccountId,
@@ -181,6 +192,17 @@ mod ft {
             }
         }
     }
+    /// Transfers tokens to the Fast Bridge contract and initiates a transfer to Ethereum if the `msg` parameter is not empty.
+    ///
+    /// This function is called when the smart contract receives tokens from a sender. If `msg` is not empty, the function decodes the `msg` parameter, which is a `TransferMessage` in borsh Base64 format, and uses it to initiate a token transfer to Ethereum. Otherwise, the function treats it as a deposit action, increases the balance of the sender, and emits a `FastBridgeDepositEvent`.
+    ///
+    /// Note that this function overrides a standard NEP-141 implementation of `ft_on_transfer()` so the arguments of the function are the same.
+    ///
+    /// # Arguments
+    ///
+    /// * `sender_id` - The account ID of the sender.
+    /// * `amount` - The amount of tokens being transferred.
+    /// * `msg` - The transfer message in borsh Base64 format.
     #[cfg(target_arch = "wasm32")]
     #[no_mangle]
     pub extern "C" fn ft_on_transfer() {
@@ -13942,6 +13964,13 @@ impl FastBridge {
         }
         contract
     }
+    /// Initializes a token transfer from NEAR to Ethereum using the provided `TransferMessage`.
+    ///
+    /// This function is called by the NEAR Fast Bridge contract to initiate a token transfer to Ethereum. The `msg` parameter is a `Base64VecU8` containing the encoded `TransferMessage`. The function decodes the `msg` parameter, checks its validity, and then calls `init_transfer_internal` to initiate the token transfer.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` -- the encoded `TransferMessage` in borsh Base64 format. It contains details about the transaction - `token`, `fee_token`, `amount`, `recipient`, etc.
     pub fn init_transfer(
         &mut self,
         msg: near_sdk::json_types::Base64VecU8,
@@ -13996,6 +14025,25 @@ impl FastBridge {
                     .init_transfer_callback(transfer_message, sender_id, update_balance),
             )
     }
+    /// This function finalizes the execution flow of the `init_transfer()` function. This function
+    /// is called from the `Eth2Client` contract after extracting the last Ethereum block number on Near.
+    /// This function validates the transfer message and decreases the token transfer balance and fee
+    /// balance for the sender. If an `update_balance` is provided, it increases the sender's balance
+    /// accordingly and emits a `FastBridgeDepositEvent`. It then stores the transfer and emits a
+    /// `FastBridgeInitTransferEvent` with the `nonce`, `sender_id`, and `transfer_message`.
+    ///
+    /// # Arguments
+    ///
+    /// * `last_block_height` -- the last Ethereum block height in LightClient on Near.
+    ///
+    /// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc.
+    ///    The `TransferMessage` is deserialized from a Borsh-encoded string.
+    ///
+    /// * `sender_id` -- the account which initiates this transfer.
+    ///    The `AccountId` is deserialized from a Borsh-encoded string.
+    ///
+    /// * `update_balance` -- balance update in case the transfer of tokens and initialization of the transfer
+    ///    happen in one transaction. The `UpdateBalance` is deserialized from a Borsh-encoded string.
     pub fn init_transfer_callback(
         &mut self,
         last_block_height: u64,
@@ -14126,6 +14174,18 @@ impl FastBridge {
             .emit();
         U128::from(0)
     }
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function could be executed successfully only if called either by the original creator of the transfer
+    /// or by the account that has the `UnrestrictedUnlock` role.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
     pub fn unlock(
         &self,
         nonce: U128,
@@ -14191,6 +14251,26 @@ impl FastBridge {
                     .unlock_callback(nonce, env::predecessor_account_id()),
             )
     }
+    /// This function finalizes the execution flow of the `unlock()` function. This function
+    /// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
+    /// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate
+    /// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
+    /// with the details of the unlocked transfer.
+    ///
+    /// This function is only intended for internal use and should not be called directly by external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification_result` - A boolean value indicating whether the proof verification was
+    ///   successful.
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `sender_id` - The account ID of the sender that initiated the unlock request.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
+    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
+    /// or if the verification of the unlock proof fails.
     pub fn unlock_callback(
         &mut self,
         verification_result: bool,
@@ -14280,6 +14360,22 @@ impl FastBridge {
         }
             .emit();
     }
+    /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
+    /// from the proof of the transfer event.
+    ///
+    /// # Arguments
+    ///
+    /// * `proof` - A `Proof` for the event of the successful transfer on the Ethereum side.
+    ///
+    /// # Returns
+    ///
+    /// A promise that resolves when the proof has been successfully verified.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
+    /// match the expected Fast Bridge contract's address stored in the contract state.
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
@@ -14353,6 +14449,24 @@ impl FastBridge {
                     .verify_log_entry_callback(parsed_proof),
             )
     }
+    /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
+    ///
+    /// This function is called from the `EthProver` contract after the proof verification.
+    /// If the verification is successful, the function checks if the transfer is valid and if so, executes
+    /// the transfer on NEAR by increasing the balance of the recipient's account.
+    /// It also emits a `FastBridgeLpUnlockEvent` event to signal that a transfer was successfully executed.
+    ///
+    /// This function is only intended for internal use and should not be called directly by external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification_success`: a boolean value indicating whether the verification of the event log entry was successful.
+    /// * `proof`: an `EthTransferEvent` object containing the data of the transfer.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if it cannot find a pending transfer with the given nonce or if any of the checks
+    /// on the transfer data fail.
     pub fn verify_log_entry_callback(
         &mut self,
         verification_success: bool,
@@ -14500,6 +14614,19 @@ impl FastBridge {
         }
             .emit();
     }
+    /// Gets the user balance of the specified token in this contract. These tokens can be immediately withdrawn.
+    /// # Arguments
+    ///
+    /// * `account_id` - The account ID for which to retrieve the balance.
+    /// * `token_id` - The token ID for which to retrieve the balance.
+    ///
+    /// # Panics
+    ///
+    /// If the user does not have any balance for the specified token, or if the specified user account does not exist.
+    ///
+    /// # Returns
+    ///
+    /// The balance of the specified token for the specified account.
     pub fn get_user_balance(
         &self,
         account_id: &AccountId,
@@ -14671,6 +14798,25 @@ impl FastBridge {
             .insert(&transfer_message.transfer.token_near, &new_balance);
         self.pending_transfers.remove(transfer_id);
     }
+    /// Withdraws the specified `amount` of tokens from the provided token account ID from the balance of the caller.
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// * `token_id` - an `AccountId` representing the token ID to withdraw from.
+    /// * `amount` - an optional `U128` representing the amount to withdraw. If `None` is provided, the entire balance of the caller will be withdrawn.
+    ///
+    /// # Returns
+    ///
+    /// A `PromiseOrValue<U128>` indicating the result of the withdrawal operation.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if:
+    ///
+    /// * The specified `amount` is not a positive number.
+    /// * The balance of the caller is insufficient.
+    /// * The caller does not have any balance.
     pub fn withdraw(
         &mut self,
         token_id: AccountId,
@@ -14749,6 +14895,22 @@ impl FastBridge {
             )
             .into()
     }
+    /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
+    /// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
+    /// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
+    /// to the user's balance. This function is only intended for internal use and should not be called directly by
+    /// external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id`: An `AccountId` representing the token being withdrawn.
+    /// * `amount`: A `U128` value representing the amount being withdrawn.
+    /// * `recipient_id`: An `AccountId` representing the account that will receive the withdrawn funds.
+    ///
+    /// # Returns
+    ///
+    /// * A `U128` value representing the amount that was withdrawn, or `0` if the promise was not
+    ///   successful and the funds were returned to the user's balance.
     pub fn withdraw_callback(
         &mut self,
         token_id: AccountId,
@@ -14768,6 +14930,10 @@ impl FastBridge {
             U128(0)
         }
     }
+    /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// # Arguments
+    /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14798,6 +14964,14 @@ impl FastBridge {
         }
         self.prover_account = prover_account;
     }
+    /// Sets the Ethereum Fast Bridge contract address.
+    ///
+    /// Note, This address is further used for the verification of operations that utilize the Ethereum proofs.
+    /// This is needed so the contract is able to check that proofs originate from the specified address.
+    ///
+    /// # Arguments
+    ///
+    /// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14830,12 +15004,39 @@ impl FastBridge {
         }
         self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
+    /// Gets the minimum and maximum possible time for the tokens lock period.
     pub fn get_lock_duration(self) -> LockDuration {
         self.lock_duration
     }
+    /// Gets the amount of currently locked tokens in the contract for the specified `token_id`.
+    /// If the account has no pending balance, 0 is returned. The fee is not counted.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id` - An account identifier for a token contract.
+    ///
+    /// # Returns
+    ///
+    /// The pending balance for the specified token account, or 0 if there is no pending balance.
     pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
         self.pending_transfers_balances.get(&token_id).unwrap_or(0)
     }
+    /// Returns a vector of pending transfers with their associated IDs.
+    ///
+    /// The vector contains a tuple for each pending transfer, where the first element is the
+    /// transfer ID as a string, and the second element is another tuple containing the recipient's
+    /// account ID and the transfer message. The function starts at the specified `from_index` and
+    /// returns a maximum of `limit` transfers.
+    ///
+    /// # Arguments
+    ///
+    /// * `from_index` - The index at which to start retrieving the pending transfers.
+    /// * `limit` - The maximum number of transfers to retrieve.
+    ///
+    /// # Returns
+    ///
+    /// A vector of tuples, where the first element is a transfer ID and the second element is a tuple
+    /// containing the recipient's account ID and the transfer message.
     pub fn get_pending_transfers(
         &self,
         from_index: usize,
@@ -14843,12 +15044,35 @@ impl FastBridge {
     ) -> Vec<(String, (AccountId, TransferMessage))> {
         self.pending_transfers.iter().skip(from_index).take(limit).collect::<Vec<_>>()
     }
+    /// Gets the pending transfer details for the given transfer ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string representing the transfer ID (nonce).
+    ///
+    /// # Returns
+    ///
+    /// Returns an `Option` containing the account ID and transfer message if the transfer ID exists in
+    /// the pending transfers list, or `None` otherwise.
     pub fn get_pending_transfer(
         &self,
         id: String,
     ) -> Option<(AccountId, TransferMessage)> {
         self.pending_transfers.get(&id)
     }
+    /// Sets the lock time for the contract.
+    ///
+    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    /// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
+    ///
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -15514,6 +15738,13 @@ pub extern "C" fn new() {
     );
     near_sdk::env::state_write(&contract);
 }
+/// Initializes a token transfer from NEAR to Ethereum using the provided `TransferMessage`.
+///
+/// This function is called by the NEAR Fast Bridge contract to initiate a token transfer to Ethereum. The `msg` parameter is a `Base64VecU8` containing the encoded `TransferMessage`. The function decodes the `msg` parameter, checks its validity, and then calls `init_transfer_internal` to initiate the token transfer.
+///
+/// # Arguments
+///
+/// * `msg` -- the encoded `TransferMessage` in borsh Base64 format. It contains details about the transaction - `token`, `fee_token`, `amount`, `recipient`, etc.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn init_transfer() {
@@ -15736,6 +15967,25 @@ pub extern "C" fn init_transfer() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// This function finalizes the execution flow of the `init_transfer()` function. This function
+/// is called from the `Eth2Client` contract after extracting the last Ethereum block number on Near.
+/// This function validates the transfer message and decreases the token transfer balance and fee
+/// balance for the sender. If an `update_balance` is provided, it increases the sender's balance
+/// accordingly and emits a `FastBridgeDepositEvent`. It then stores the transfer and emits a
+/// `FastBridgeInitTransferEvent` with the `nonce`, `sender_id`, and `transfer_message`.
+///
+/// # Arguments
+///
+/// * `last_block_height` -- the last Ethereum block height in LightClient on Near.
+///
+/// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc.
+///    The `TransferMessage` is deserialized from a Borsh-encoded string.
+///
+/// * `sender_id` -- the account which initiates this transfer.
+///    The `AccountId` is deserialized from a Borsh-encoded string.
+///
+/// * `update_balance` -- balance update in case the transfer of tokens and initialization of the transfer
+///    happen in one transaction. The `UpdateBalance` is deserialized from a Borsh-encoded string.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn init_transfer_callback() {
@@ -15790,6 +16040,18 @@ pub extern "C" fn init_transfer_callback() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+/// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
+/// didn't happen and its validity time is already expired.
+/// The function could be executed successfully only if called either by the original creator of the transfer
+/// or by the account that has the `UnrestrictedUnlock` role.
+///
+/// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
+///
+/// # Arguments
+///
+/// * `nonce` - A unique identifier of the transfer.
+/// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock() {
@@ -16066,6 +16328,26 @@ pub extern "C" fn unlock() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// This function finalizes the execution flow of the `unlock()` function. This function
+/// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
+/// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate
+/// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
+/// with the details of the unlocked transfer.
+///
+/// This function is only intended for internal use and should not be called directly by external accounts.
+///
+/// # Arguments
+///
+/// * `verification_result` - A boolean value indicating whether the proof verification was
+///   successful.
+/// * `nonce` - The nonce of the transfer to be unlocked.
+/// * `sender_id` - The account ID of the sender that initiated the unlock request.
+///
+/// # Panics
+///
+/// This function panics if the transfer specified by the nonce is not found; if the sender ID
+/// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
+/// or if the verification of the unlock proof fails.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock_callback() {
@@ -16110,6 +16392,22 @@ pub extern "C" fn unlock_callback() {
     contract.unlock_callback(verification_result, nonce, sender_id);
     near_sdk::env::state_write(&contract);
 }
+/// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
+/// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
+/// from the proof of the transfer event.
+///
+/// # Arguments
+///
+/// * `proof` - A `Proof` for the event of the successful transfer on the Ethereum side.
+///
+/// # Returns
+///
+/// A promise that resolves when the proof has been successfully verified.
+///
+/// # Panics
+///
+/// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
+/// match the expected Fast Bridge contract's address stored in the contract state.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn lp_unlock() {
@@ -16330,6 +16628,24 @@ pub extern "C" fn lp_unlock() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
+///
+/// This function is called from the `EthProver` contract after the proof verification.
+/// If the verification is successful, the function checks if the transfer is valid and if so, executes
+/// the transfer on NEAR by increasing the balance of the recipient's account.
+/// It also emits a `FastBridgeLpUnlockEvent` event to signal that a transfer was successfully executed.
+///
+/// This function is only intended for internal use and should not be called directly by external accounts.
+///
+/// # Arguments
+///
+/// * `verification_success`: a boolean value indicating whether the verification of the event log entry was successful.
+/// * `proof`: an `EthTransferEvent` object containing the data of the transfer.
+///
+/// # Panics
+///
+/// This function will panic if it cannot find a pending transfer with the given nonce or if any of the checks
+/// on the transfer data fail.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn verify_log_entry_callback() {
@@ -16373,6 +16689,19 @@ pub extern "C" fn verify_log_entry_callback() {
     contract.verify_log_entry_callback(verification_success, proof);
     near_sdk::env::state_write(&contract);
 }
+/// Gets the user balance of the specified token in this contract. These tokens can be immediately withdrawn.
+/// # Arguments
+///
+/// * `account_id` - The account ID for which to retrieve the balance.
+/// * `token_id` - The token ID for which to retrieve the balance.
+///
+/// # Panics
+///
+/// If the user does not have any balance for the specified token, or if the specified user account does not exist.
+///
+/// # Returns
+///
+/// The balance of the specified token for the specified account.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_user_balance() {
@@ -16651,6 +16980,25 @@ pub extern "C" fn get_user_balance() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Withdraws the specified `amount` of tokens from the provided token account ID from the balance of the caller.
+///
+/// # Arguments
+///
+///
+/// * `token_id` - an `AccountId` representing the token ID to withdraw from.
+/// * `amount` - an optional `U128` representing the amount to withdraw. If `None` is provided, the entire balance of the caller will be withdrawn.
+///
+/// # Returns
+///
+/// A `PromiseOrValue<U128>` indicating the result of the withdrawal operation.
+///
+/// # Panics
+///
+/// The function will panic if:
+///
+/// * The specified `amount` is not a positive number.
+/// * The balance of the caller is insufficient.
+/// * The caller does not have any balance.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn withdraw() {
@@ -16928,6 +17276,22 @@ pub extern "C" fn withdraw() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
+/// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
+/// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
+/// to the user's balance. This function is only intended for internal use and should not be called directly by
+/// external accounts.
+///
+/// # Arguments
+///
+/// * `token_id`: An `AccountId` representing the token being withdrawn.
+/// * `amount`: A `U128` value representing the amount being withdrawn.
+/// * `recipient_id`: An `AccountId` representing the account that will receive the withdrawn funds.
+///
+/// # Returns
+///
+/// * A `U128` value representing the amount that was withdrawn, or `0` if the promise was not
+///   successful and the funds were returned to the user's balance.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn withdraw_callback() {
@@ -17271,6 +17635,10 @@ pub extern "C" fn withdraw_callback() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
+/// The function is allowed to be called only by accounts that have `ConfigManager` role.
+/// # Arguments
+/// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn set_prover_account() {
@@ -17492,6 +17860,14 @@ pub extern "C" fn set_prover_account() {
     contract.set_prover_account(prover_account);
     near_sdk::env::state_write(&contract);
 }
+/// Sets the Ethereum Fast Bridge contract address.
+///
+/// Note, This address is further used for the verification of operations that utilize the Ethereum proofs.
+/// This is needed so the contract is able to check that proofs originate from the specified address.
+///
+/// # Arguments
+///
+/// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn set_eth_bridge_contract_address() {
@@ -17713,6 +18089,7 @@ pub extern "C" fn set_eth_bridge_contract_address() {
     contract.set_eth_bridge_contract_address(address);
     near_sdk::env::state_write(&contract);
 }
+/// Gets the minimum and maximum possible time for the tokens lock period.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_lock_duration() {
@@ -17723,6 +18100,16 @@ pub extern "C" fn get_lock_duration() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Gets the amount of currently locked tokens in the contract for the specified `token_id`.
+/// If the account has no pending balance, 0 is returned. The fee is not counted.
+///
+/// # Arguments
+///
+/// * `token_id` - An account identifier for a token contract.
+///
+/// # Returns
+///
+/// The pending balance for the specified token account, or 0 if there is no pending balance.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_pending_balance() {
@@ -17941,6 +18328,22 @@ pub extern "C" fn get_pending_balance() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Returns a vector of pending transfers with their associated IDs.
+///
+/// The vector contains a tuple for each pending transfer, where the first element is the
+/// transfer ID as a string, and the second element is another tuple containing the recipient's
+/// account ID and the transfer message. The function starts at the specified `from_index` and
+/// returns a maximum of `limit` transfers.
+///
+/// # Arguments
+///
+/// * `from_index` - The index at which to start retrieving the pending transfers.
+/// * `limit` - The maximum number of transfers to retrieve.
+///
+/// # Returns
+///
+/// A vector of tuples, where the first element is a transfer ID and the second element is a tuple
+/// containing the recipient's account ID and the transfer message.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_pending_transfers() {
@@ -18217,6 +18620,16 @@ pub extern "C" fn get_pending_transfers() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Gets the pending transfer details for the given transfer ID.
+///
+/// # Arguments
+///
+/// * `id` - A string representing the transfer ID (nonce).
+///
+/// # Returns
+///
+/// Returns an `Option` containing the account ID and transfer message if the transfer ID exists in
+/// the pending transfers list, or `None` otherwise.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_pending_transfer() {
@@ -18433,6 +18846,19 @@ pub extern "C" fn get_pending_transfer() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Sets the lock time for the contract.
+///
+/// The function is allowed to be called only by accounts that have `ConfigManager` role.
+///
+/// # Arguments
+///
+/// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+/// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+///
+/// # Panics
+///
+/// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
+///
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn set_lock_time() {

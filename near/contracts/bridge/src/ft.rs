@@ -5,6 +5,17 @@ use near_sdk::{base64, AccountId};
 
 #[near_bindgen]
 impl FungibleTokenReceiver for FastBridge {
+    /// Transfers tokens to the Fast Bridge contract and initiates a transfer to Ethereum if the `msg` parameter is not empty.
+    ///
+    /// This function is called when the smart contract receives tokens from a sender. If `msg` is not empty, the function decodes the `msg` parameter, which is a `TransferMessage` in borsh Base64 format, and uses it to initiate a token transfer to Ethereum. Otherwise, the function treats it as a deposit action, increases the balance of the sender, and emits a `FastBridgeDepositEvent`.
+    ///
+    /// Note that this function overrides a standard NEP-141 implementation of `ft_on_transfer()` so the arguments of the function are the same.
+    ///
+    /// # Arguments
+    ///
+    /// * `sender_id` - The account ID of the sender.
+    /// * `amount` - The amount of tokens being transferred.
+    /// * `msg` - The transfer message in borsh Base64 format.
     #[pause]
     fn ft_on_transfer(
         &mut self,
