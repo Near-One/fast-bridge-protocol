@@ -4,8 +4,8 @@
 # build & test
 ./build.sh && ./test.sh
 
-MASTER_ACCOUNT="olga24912_3.testnet"
-BRIDGE_ACCOUNT=fb.$MASTER_ACCOUNT
+MASTER_ACCOUNT="<YOUR_ACCOUNT>"
+BRIDGE_ACCOUNT=fast-bridge.$MASTER_ACCOUNT
 TOKEN_ACCOUNT=token.$MASTER_ACCOUNT
 MIN_TIME_LOCK_NS=3600000000000
 export NEAR_ENV=testnet
@@ -19,7 +19,7 @@ near create-account $BRIDGE_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBal
 near create-account $TOKEN_ACCOUNT --masterAccount $MASTER_ACCOUNT --initialBalance 10
 
 # redeploy contracts
-near deploy $BRIDGE_ACCOUNT --wasmFile ./res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": "23244a6c91e66526e4a0959B2457a702aE661Acf", "prover_account": "prover.goerli.testnet", "eth_client_account": "client-eth2.goerli.testnet", "lock_time_min": "1m", "lock_time_max": "24h", "eth_block_time": 12000000000}'
+near deploy $BRIDGE_ACCOUNT --wasmFile ./res/fastbridge.wasm --initGas   300000000000000 --initFunction 'new' --initArgs '{"eth_bridge_contract": "23244a6c91e66526e4a0959B2457a702aE661Acf", "prover_account": "prover.goerli.testnet", "eth_client_account": "client-eth2.goerli.testnet", "lock_time_min": "1h", "lock_time_max": "24h", "eth_block_time": 12000000000}'
 near deploy $TOKEN_ACCOUNT --wasmFile ./res/mock_token.wasm --initFunction 'new_default_meta' --initArgs '{"owner_id": "'"$MASTER_ACCOUNT"'", "name": "Wrapped Near", "symbol": "WNEAR", "total_supply": "1"}'
 
 # grant roles
