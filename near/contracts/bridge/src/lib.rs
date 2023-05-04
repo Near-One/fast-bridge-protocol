@@ -64,8 +64,8 @@ trait FastBridgeInterface {
     fn unlock_callback(
         &self,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
         #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
     );
     fn init_transfer_callback(
         &mut self,
@@ -333,7 +333,7 @@ impl FastBridge {
             .then(
                 ext_self::ext(env::current_account_id())
                     .with_static_gas(utils::tera_gas(50))
-                    .unlock_callback(nonce, aurora_sender, env::predecessor_account_id()),
+                    .unlock_callback(nonce, env::predecessor_account_id(), aurora_sender),
             )
     }
 
@@ -345,8 +345,8 @@ impl FastBridge {
         #[serializer(borsh)]
         last_block_height: u64,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
         #[serializer(borsh)] sender_id: AccountId,
+        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
     ) -> TransferMessage {
         let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let (recipient_id, transfer_data) = self
@@ -1266,7 +1266,7 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock_callback(312, nonce, None, signer_account_id());
+        contract.unlock_callback(312, nonce, signer_account_id(), None);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1418,7 +1418,7 @@ mod tests {
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(10, U128(9), None, signer_account_id());
+        contract.unlock_callback(10, U128(9), signer_account_id(), None);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1495,7 +1495,7 @@ mod tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(1000, U128(1), None, signer_account_id());
+        contract.unlock_callback(1000, U128(1), signer_account_id(), None);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
