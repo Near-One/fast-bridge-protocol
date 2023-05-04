@@ -360,7 +360,8 @@ impl FastBridge {
             });
 
         require!(aurora_sender == transfer_data.aurora_sender,
-                 "Aurora sender in unlock arg unequal to the aurora sender in transfer data");
+                 format!("Aurora sender({:?}) in unlock arg is unequal to the aurora sender({:?}) in transfer data.",
+                 aurora_sender, transfer_data.aurora_sender));
 
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());

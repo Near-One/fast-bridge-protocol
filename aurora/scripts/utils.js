@@ -16,7 +16,8 @@ async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferA
 
     const fast_bridge = await before_work_with_fast_bridge(provider, fastBridgeAddress);
 
-    let tx = await fast_bridge.init_token_transfer(initTokenTransferArg);
+    const options = { gasLimit: 5000000 };
+    let tx = await fast_bridge.init_token_transfer(initTokenTransferArg, options);
     let receipt = await tx.wait();
     console.log(receipt.events[0].args);
 }

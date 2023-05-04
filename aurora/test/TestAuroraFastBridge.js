@@ -32,6 +32,7 @@ describe("Aurora Fast Bridge", function () {
         const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
             .deploy(WNEAR_AURORA_ADDRESS, near_fast_bridge_account, options);
         await fastbridge.deployed();
+        await sleep(15000);
 
         const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
         await wnear.approve(fastbridge.address, "4012500000000000000000000");
@@ -44,22 +45,23 @@ describe("Aurora Fast Bridge", function () {
         await usdc.approve(fastbridge.address, "2000000000000000000000000");
 
         const valid_till = Date.now() * 1000000 + 120000000000;
-        const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"" + NEAR_TOKEN_ADDRESS + "\",\"token_eth\":\"" + ETH_TOKEN_ADDRESS + "\",\"amount\":\"100000\"},\"fee\":{\"token\":\"" + NEAR_TOKEN_ADDRESS + "\",\"amount\":\"100000\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
+        const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"" + NEAR_TOKEN_ADDRESS + "\",\"token_eth\":\"" + ETH_TOKEN_ADDRESS + "\",\"amount\":\"10000\"},\"fee\":{\"token\":\"" + NEAR_TOKEN_ADDRESS + "\",\"amount\":\"10000\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
         const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
+        await sleep(15000);
         const balance_before = await usdc.balanceOf(deployerWallet.address);
         const transfer_msg_hex = "0x" + output.split(/\r?\n/)[1].slice(1, -1);
         await fastbridge.init_token_transfer(transfer_msg_hex, options);
 
         await sleep(20000);
         const balance_after_init_transfer = await usdc.balanceOf(deployerWallet.address);
-        expect(balance_before - balance_after_init_transfer).to.equals(200000);
+        expect(balance_before - balance_after_init_transfer).to.equals(20000);
 
         await sleep(500000);
 
         await fastbridge.unlock(1, options);
         await sleep(15000);
-        await fastbridge.withdraw_from_near(NEAR_TOKEN_ADDRESS, 200000, options);
+        await fastbridge.withdraw_from_near(NEAR_TOKEN_ADDRESS, 20000, options);
         await sleep(15000);
         await fastbridge.withdraw(NEAR_TOKEN_ADDRESS, options);
         await sleep(150000);

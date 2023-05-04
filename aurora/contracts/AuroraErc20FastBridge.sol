@@ -23,7 +23,6 @@ contract AuroraErc20FastBridge is AccessControl {
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
-    address creator;
     NEAR public near;
     string bridge_address_on_near;
 
@@ -73,7 +72,6 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     constructor(address wnear_address, string memory bridge_address) {
-        creator = msg.sender;
         near = AuroraSdk.initNear(IERC20_NEAR(wnear_address));
         bridge_address_on_near = bridge_address;
 
@@ -100,7 +98,7 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(
-            string.concat('{"account_id": "', get_near_address(), '", "registration_only": true }')
+            string.concat('{"account_id": "', string(get_near_address()), '", "registration_only": true }')
         );
 
         PromiseCreateArgs memory callInc = near.call(
@@ -135,6 +133,8 @@ contract AuroraErc20FastBridge is AccessControl {
         );
 
         EvmErc20 token = registered_tokens[transfer_message.transfer_token_address_on_near];
+        require(address(token) != address(0), "The token is not registered!");
+
         token.transferFrom(msg.sender, address(this), total_token_amount);
         token.withdrawToNear(bytes(get_near_address()), total_token_amount);
 
@@ -336,10 +336,5 @@ contract AuroraErc20FastBridge is AccessControl {
             }
         }
         return result;
-    }
-
-    function destruct() public {
-        // Destroys this contract and sends remaining funds back to creator
-        if (msg.sender == creator) selfdestruct(payable(creator));
     }
 }
