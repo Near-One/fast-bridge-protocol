@@ -1,5 +1,11 @@
 # Aurora Erc20 Fast Bridge
 ## Setup
+Fetch git submodules
+```bash
+$ git submodule init
+$ git submodule update
+```
+
 Install hardhat
 ```bash
 $ yarn add hardhat
