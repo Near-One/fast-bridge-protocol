@@ -24,8 +24,8 @@ describe("Aurora Fast Bridge", function () {
         const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
         const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
             libraries: {
-                "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
-                "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
+                "AuroraSdk": process.env.AURORA_SDK_ADDRESS,
+                "Utils": process.env.AURORA_UTILS_ADDRESS
             },
         });
         const options = { gasLimit: 6000000 };

@@ -55,8 +55,8 @@ async function before_work_with_fast_bridge(provider, fastBridgeAddress) {
 
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
-            "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
-            "Utils": "0xc129336a6995F3b70A7139585403B82098260172"
+            "AuroraSdk": process.env.AURORA_SDK_ADDRESS,
+            "Utils": process.env.AURORA_UTILS_ADDRESS
         },
     });
     const fast_bridge = await FastBridge
