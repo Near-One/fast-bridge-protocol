@@ -27,6 +27,7 @@
         "dev:prettier": "npx prettier --check \"**/*.{json,sol,md,js,yaml,yml}\"",
         "dev:prettier-fix": "npx prettier --write \"**/*.{json,sol,md,js,yaml,yml}\"",
         "flatten": "npx hardhat flatten contracts/EthErc20FastBridge.sol > res/EthErc20FastBridge_flat.sol && npx hardhat flatten contracts/TestToken.sol > res/TestToken_flat.sol",
+        "storage-layout": "npx hardhat check 2>&1 | sed -r \"s/\\x1B\\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g\" | tee  res/storage_layout.txt",
         "dev:slither": "npm run compile && slither .",
         "postinstall": "npm run compile && npm run dev:abi",
         "clean": "npx shx rm -rf artifacts cache coverage coverage.json .openzeppelin && npx shx echo Cleaned",
@@ -73,7 +74,8 @@
         "solhint": "^3.3.7",
         "solhint-plugin-prettier": "^0.0.5",
         "solidity-docgen": "0.5.17",
-        "web3": "^1.8.1"
+        "web3": "^1.8.1",
+        "hardhat-storage-layout": "^0.1.7"
     },
     "engines": {
         "node": ">= 16.0.0",

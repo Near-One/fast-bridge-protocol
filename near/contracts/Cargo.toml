@@ -10,5 +10,7 @@ overflow-checks = true
 [workspace]
 members = [
     "bridge",
-    "mock_token"
+    "mock_token",
+    "mock_eth_client",
+    "mock_eth_prover"
 ]
