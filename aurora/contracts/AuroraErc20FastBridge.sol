@@ -98,17 +98,17 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(
-            string.concat('{"account_id": "', string(get_near_address()), '", "registration_only": true }')
+            string.concat('{"account_id": "', get_near_address(), '", "registration_only": true }')
         );
 
-        PromiseCreateArgs memory callInc = near.call(
+        PromiseCreateArgs memory callTr = near.call(
             near_token_address,
             "storage_deposit",
             args,
             deposit,
             BASE_NEAR_GAS
         );
-        callInc.transact();
+        callTr.transact();
 
         registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
         emit TokenRegistered(aurora_token_address, near_token_address);
