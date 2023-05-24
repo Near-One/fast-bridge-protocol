@@ -521,14 +521,28 @@ impl FastBridge {
     /// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
     /// match the expected Fast Bridge contract's address stored in the contract state.
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
-    pub fn lp_unlock(&mut self, nonce: U128, proof: near_sdk::json_types::Base64VecU8, _unlock_recipient: AccountId) -> Promise {
+    pub fn lp_unlock(
+        &mut self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        _unlock_recipient: AccountId,
+    ) -> Promise {
         let parsed_proof = StateProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `LPUnlockProof`"));
 
         let is_lp_unlock_allowed = _unlock_recipient == env::predecessor_account_id()
-            || self.acl_has_role("UnrestrictedLpUnlock".to_string(), env::predecessor_account_id());
-        
-        require!(is_lp_unlock_allowed, format!("Permission denied for account: {}", env::predecessor_account_id()));
+            || self.acl_has_role(
+                "UnrestrictedLpUnlock".to_string(),
+                env::predecessor_account_id(),
+            );
+
+        require!(
+            is_lp_unlock_allowed,
+            format!(
+                "Permission denied for account: {}",
+                env::predecessor_account_id()
+            )
+        );
 
         let (_recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
@@ -541,7 +555,9 @@ impl FastBridge {
             eth_types::U256(transfer_data.transfer.amount.0.into()),
         );
 
-        let expected_storage_value = _unlock_recipient.try_to_vec().expect("failed to unwrap unlock_recipient");
+        let expected_storage_value = _unlock_recipient
+            .try_to_vec()
+            .expect("failed to unwrap unlock_recipient");
 
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
@@ -591,32 +607,28 @@ impl FastBridge {
         #[serializer(borsh)]
         verification_success: bool,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] _unlock_recipient: AccountId
-        
+        #[serializer(borsh)] _unlock_recipient: AccountId,
     ) {
         require!(verification_success, "Failed to verify the proof");
 
         let nonce_str = nonce.0.to_string();
-        let (recipient_id, transfer_data) = self
+        let (_, transfer_data) = self
             .pending_transfers
             .get(&nonce_str)
             .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str));
-
 
         require!(
             block_timestamp() < transfer_data.valid_till,
             "Valid time is not correct."
         );
 
-        //below recipient_id must be the relayer-account who did the txn on near side
-        let recipient_id = _unlock_recipient;
         self.increase_balance(
-            &recipient_id,
+            &_unlock_recipient,
             &transfer_data.transfer.token_near,
             &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
-            &recipient_id,
+            &_unlock_recipient,
             &transfer_data.fee.token,
             &transfer_data.fee.amount.0,
         );
@@ -624,7 +636,7 @@ impl FastBridge {
 
         Event::FastBridgeLpUnlockEvent {
             nonce,
-            recipient_id,
+            recipient_id: _unlock_recipient,
             transfer_message: transfer_data,
         }
         .emit();
