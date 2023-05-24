@@ -119,7 +119,7 @@ describe("Aurora Fast Bridge", function () {
         const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
         await usdc.approve(fastbridge.address, "2000000000000000000000000");
 
-        const valid_till = Date.now() * 1000000 + 120000000000;
+        const valid_till = Date.now() * 1000000 + 10000000000;
         const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"" + NEAR_TOKEN_ADDRESS + "\",\"token_eth\":\"" + ETH_TOKEN_ADDRESS + "\",\"amount\":\"100\"},\"fee\":{\"token\":\"" + NEAR_TOKEN_ADDRESS + "\",\"amount\":\"100\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
         const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
@@ -132,7 +132,7 @@ describe("Aurora Fast Bridge", function () {
         const balance_after_init_transfer = await usdc.balanceOf(deployerWallet.address);
         expect(balance_before - balance_after_init_transfer).to.equals(200);
 
-        await sleep(500000);
+        await sleep(100000);
 
         await fastbridge.unlock(1, options);
         await sleep(15000);
