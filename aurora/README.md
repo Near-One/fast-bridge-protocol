@@ -66,3 +66,15 @@ $ make withdraw
 ```
 
 The tokens unlock is complete!
+
+# Tests
+For running tests you will need
+* set up env variable `MASTER_ACCOUNT` with your near account on testnet. You should have a private key saved locally in `~/.near-credentials/testnet/`
+* set up env variable `AURORA_PRIVATE_KEY` with your aurora private key for testnet.
+* `MASTER_ACCOUNT` should have at least 4.25 NEAR tokens.
+* Your aurora account should have at least 2.125 wNEAR and 1 USDC
+
+Command for running test: 
+```bash
+yarn hardhat test --network testnet_aurora
+```

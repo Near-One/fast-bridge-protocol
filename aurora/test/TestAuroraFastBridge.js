@@ -25,7 +25,7 @@ const connectionConfig = {
 };
 
 const master_account_str = process.env.MASTER_ACCOUNT;
-const near_fast_bridge_account_str = "fb-test8." + master_account_str;
+const near_fast_bridge_account_str = "fb-aurora-to-eth-test." + master_account_str;
 
 describe("Aurora Fast Bridge", function () {
     it("The Basic Aurora->Eth transfer with unlock", async function () {
