@@ -2,4 +2,7 @@
 set -e
 
 cd contracts
-cargo test -- --nocapture
+rustup target add wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown --release
+
+RUST_BACKTRACE=1 cargo test --jobs 8

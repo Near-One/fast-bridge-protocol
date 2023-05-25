@@ -10,6 +10,8 @@ const { ethers } = require("ethers");
 const { task } = require("hardhat/config");
 const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
 const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
+require('hardhat-storage-layout');
+
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
@@ -52,17 +54,19 @@ task("method", "Execute Fastbridge methods")
 
 module.exports = {
     solidity: {
-        compilers: [
-            {
-                version: "0.8.11",
-                settings: {
-                    optimizer: {
-                        enabled: ENABLED_OPTIMIZER,
-                        runs: OPTIMIZER_RUNS
-                    }
-                }
+        version: "0.8.11",
+        settings: {
+            optimizer: {
+                enabled: ENABLED_OPTIMIZER,
+                runs: OPTIMIZER_RUNS
+            },
+            metadata: {
+                // do not include the metadata hash, since this is machine dependent
+                // and we want all generated code to be deterministic
+                // https://docs.soliditylang.org/en/v0.8.11/metadata.html
+                bytecodeHash: "none"
             }
-        ]
+        }
     },
     networks: {
         hardhat: {
@@ -93,7 +97,7 @@ module.exports = {
                 ? `https://goerli.infura.io/v3/${INFURA_API_KEY}`
                 : `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
             accounts: [`${PRIVATE_KEY}`]
-        },
+        }
     },
     gasReporter: {
         enabled: process.env.REPORT_GAS !== undefined,

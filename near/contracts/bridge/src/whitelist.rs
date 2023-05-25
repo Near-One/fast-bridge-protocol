@@ -21,7 +21,7 @@ fn get_token_account_key(token: Option<&AccountId>, account: &AccountId) -> Stri
 }
 
 #[near_bindgen]
-impl SpectreBridge {
+impl FastBridge {
     #[access_control_any(roles(Role::WhitelistManager))]
     pub fn set_token_whitelist_mode(&mut self, token: AccountId, mode: WhitelistMode) {
         self.whitelist_tokens.insert(&token, &mode);
@@ -71,6 +71,7 @@ impl SpectreBridge {
                     ),
                 );
             }
+            // No action is needed for CheckToken, as the token is already checked in whitelist_tokens
             WhitelistMode::CheckToken => {}
             WhitelistMode::Blocked => {
                 env::panic_str(format!("The token `{}` is blocked", token).as_str())

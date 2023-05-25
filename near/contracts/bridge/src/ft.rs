@@ -1,10 +1,21 @@
 use crate::*;
 
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
-use near_sdk::{serde_json, AccountId};
+use near_sdk::{base64, AccountId};
 
 #[near_bindgen]
-impl FungibleTokenReceiver for SpectreBridge {
+impl FungibleTokenReceiver for FastBridge {
+    /// Transfers tokens to the Fast Bridge contract and initiates a transfer to Ethereum if the `msg` parameter is not empty.
+    ///
+    /// This function is called when the smart contract receives tokens from a sender. If `msg` is not empty, the function decodes the `msg` parameter, which is a `TransferMessage` in borsh Base64 format, and uses it to initiate a token transfer to Ethereum. Otherwise, the function treats it as a deposit action, increases the balance of the sender, and emits a `FastBridgeDepositEvent`.
+    ///
+    /// Note that this function overrides a standard NEP-141 implementation of `ft_on_transfer()` so the arguments of the function are the same.
+    ///
+    /// # Arguments
+    ///
+    /// * `sender_id` - The account ID of the sender.
+    /// * `amount` - The amount of tokens being transferred.
+    /// * `msg` - The transfer message in borsh Base64 format.
     #[pause]
     fn ft_on_transfer(
         &mut self,
@@ -12,17 +23,16 @@ impl FungibleTokenReceiver for SpectreBridge {
         amount: U128,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        require!(
-            sender_id == env::signer_account_id(),
-            "Sender is not the same as the signer"
-        );
-
         let token_account_id = env::predecessor_account_id();
         self.check_whitelist_token_and_account(&token_account_id, &sender_id);
 
         if !msg.is_empty() {
-            let transfer_message: TransferMessage = serde_json::from_str(&msg)
-                .unwrap_or_else(|_| env::panic_str("Invalid json format of the `TransferMessage`"));
+            let decoded_base64 =
+                base64::decode(&msg).unwrap_or_else(|_| env::panic_str("Invalid base64 message"));
+            let transfer_message =
+                TransferMessage::try_from_slice(&decoded_base64).unwrap_or_else(|_| {
+                    env::panic_str("Invalid borsh format of the `TransferMessage`")
+                });
 
             let update_balance = UpdateBalance {
                 sender_id: sender_id.clone(),
@@ -35,7 +45,7 @@ impl FungibleTokenReceiver for SpectreBridge {
         } else {
             self.increase_balance(&sender_id, &token_account_id, &amount.0);
 
-            Event::SpectreBridgeDepositEvent {
+            Event::FastBridgeDepositEvent {
                 sender_id,
                 token: token_account_id,
                 amount,

@@ -19,8 +19,23 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       - run: cargo fmt --manifest-path ./near/contracts/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path ./near/contracts/Cargo.toml -- -A clippy::too-many-arguments -D warnings
-      - run: cd near; mkdir res; ./build.sh
+      - run: cd near; mkdir -p res; ./build.sh
       - run: cd near; ./test.sh
+
+  diff-near-contracts:
+    runs-on: [self-hosted, light]
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup override set nightly-2023-01-10; cargo install cargo-expand; rustup target add wasm32-unknown-unknown --toolchain nightly-2023-01-10
+      - run: cd near; cargo expand --manifest-path ./contracts/bridge/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
+      - run: |
+          git diff
+          git status
+          changed_files=$(git status --porcelain --untracked-files=no | wc -l)
+          if [ $changed_files -gt 0 ]; then
+            echo 'Near contracts changed'
+            exit 1
+          fi
 
   test-npm:
     runs-on: [self-hosted, light]
@@ -31,3 +46,23 @@ jobs:
           node-version: 16
       - run: cd eth; npm install; npm install -g ganache-cli
       - run: cd eth; INFURA_API_KEY=${{secrets.WEB3_INFURA_PROJECT_ID}} npm run test:mainnet-fork
+
+  diff-eth-contracts:
+    runs-on: [self-hosted, light]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: | 
+          cd eth
+          npm install
+          npm run flatten
+          npm run storage-layout
+          git diff
+          git status
+          changed_files=$(git status --porcelain --untracked-files=no | wc -l)
+          if [ $changed_files -gt 0 ]; then
+            echo 'Eth contract changed'
+            exit 1
+          fi
