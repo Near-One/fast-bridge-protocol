@@ -27,6 +27,7 @@ mod whitelist;
 mod tests;
 
 pub const NO_DEPOSIT: u128 = 0;
+pub const DURATION_ALLOWED_TO_FORCE_UNLOCK: u64 = 604800000000000; // 7 days
 
 #[ext_contract(ext_prover)]
 pub trait Prover {
@@ -143,6 +144,7 @@ pub enum Role {
     UnrestrictedWithdraw,
     WhitelistManager,
     ConfigManager,
+    ForceUnlock,
 }
 
 #[access_control(role_type(Role))]
@@ -548,6 +550,58 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
             )
+    }
+
+    /// Force unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side.
+    ///
+    /// The function is allowed to be called only by accounts that have `ForceUnlock` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `recipient_id` - The account ID that receive the unlocked tokens.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
+    ///
+    #[access_control_any(roles(Role::ForceUnlock))]
+    pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
+        let nonce_str = nonce.0.to_string();
+
+        let (_, transfer_data) = self
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| env::panic_str("Transaction not found"));
+
+        let over_timeout_duration = env::block_timestamp()
+            .checked_sub(transfer_data.valid_till)
+            .unwrap_or_else(|| env::panic_str("Can't unlock active transfer"));
+
+        require!(
+            over_timeout_duration >= DURATION_ALLOWED_TO_FORCE_UNLOCK,
+            "Force unlock isn't allowed yet"
+        );
+
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.transfer.token_near,
+            &transfer_data.transfer.amount.0,
+        );
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.fee.token,
+            &transfer_data.fee.amount.0,
+        );
+        self.remove_transfer(&nonce_str, &transfer_data);
+
+        Event::FastBridgeLpUnlockEvent {
+            nonce,
+            recipient_id,
+            transfer_message: transfer_data,
+        }
+        .emit();
     }
 
     /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
