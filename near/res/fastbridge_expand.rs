@@ -119,6 +119,17 @@ mod ft {
         }
     }
     impl FungibleTokenReceiver for FastBridge {
+        /// Transfers tokens to the Fast Bridge contract and initiates a transfer to Ethereum if the `msg` parameter is not empty.
+        ///
+        /// This function is called when the smart contract receives tokens from a sender. If `msg` is not empty, the function decodes the `msg` parameter, which is a `TransferMessage` in borsh Base64 format, and uses it to initiate a token transfer to Ethereum. Otherwise, the function treats it as a deposit action, increases the balance of the sender, and emits a `FastBridgeDepositEvent`.
+        ///
+        /// Note that this function overrides a standard NEP-141 implementation of `ft_on_transfer()` so the arguments of the function are the same.
+        ///
+        /// # Arguments
+        ///
+        /// * `sender_id` - The account ID of the sender.
+        /// * `amount` - The amount of tokens being transferred.
+        /// * `msg` - The transfer message in borsh Base64 format.
         fn ft_on_transfer(
             &mut self,
             sender_id: AccountId,
@@ -148,14 +159,6 @@ mod ft {
                 } else if !!self.pa_is_paused("ft_on_transfer".to_string()) {
                     ::near_sdk::env::panic_str(&"Pausable: Method is paused")
                 }
-            }
-            if true {
-                let msg: &str = &"Sender is not the same as the signer";
-                if !(sender_id == env::signer_account_id()) {
-                    ::core::panicking::panic_display(&msg)
-                }
-            } else if !(sender_id == env::signer_account_id()) {
-                ::near_sdk::env::panic_str(&"Sender is not the same as the signer")
             }
             let token_account_id = env::predecessor_account_id();
             self.check_whitelist_token_and_account(&token_account_id, &sender_id);
@@ -189,6 +192,17 @@ mod ft {
             }
         }
     }
+    /// Transfers tokens to the Fast Bridge contract and initiates a transfer to Ethereum if the `msg` parameter is not empty.
+    ///
+    /// This function is called when the smart contract receives tokens from a sender. If `msg` is not empty, the function decodes the `msg` parameter, which is a `TransferMessage` in borsh Base64 format, and uses it to initiate a token transfer to Ethereum. Otherwise, the function treats it as a deposit action, increases the balance of the sender, and emits a `FastBridgeDepositEvent`.
+    ///
+    /// Note that this function overrides a standard NEP-141 implementation of `ft_on_transfer()` so the arguments of the function are the same.
+    ///
+    /// # Arguments
+    ///
+    /// * `sender_id` - The account ID of the sender.
+    /// * `amount` - The amount of tokens being transferred.
+    /// * `msg` - The transfer message in borsh Base64 format.
     #[cfg(target_arch = "wasm32")]
     #[no_mangle]
     pub extern "C" fn ft_on_transfer() {
@@ -699,19 +713,26 @@ mod lp_relayer {
 mod utils {
     pub const TGAS: near_sdk::Gas = near_sdk::Gas::ONE_TERA;
     pub const NO_DEPOSIT: u128 = 0;
+    const STORAGE_KEY_SLOT: u32 = 302;
     pub fn tera_gas(gas: u64) -> near_sdk::Gas {
         TGAS * gas
     }
-    pub fn get_transaction_id(id: u128) -> String {
-        id.to_string()
+    pub fn get_eth_storage_key_hash(
+        token: fast_bridge_common::EthAddress,
+        recipient: fast_bridge_common::EthAddress,
+        nonce: eth_types::U256,
+        amount: eth_types::U256,
+    ) -> Vec<u8> {
+        let slot = eth_types::U256(STORAGE_KEY_SLOT.into());
+        let mut be_slot = [0u8; 32];
+        slot.0.to_big_endian(&mut be_slot);
+        let encoded_slot_key = [
+            get_transfer_id(token, recipient, nonce, amount).as_slice(),
+            be_slot.as_slice(),
+        ]
+            .concat();
+        near_sdk::env::keccak256(&near_sdk::env::keccak256(&encoded_slot_key))
     }
-    pub fn is_valid_eth_address(address: String) -> bool {
-        if hex::decode(address.clone()).is_err() {
-            return false;
-        }
-        hex::decode(address).unwrap().len() == 20
-    }
-    #[allow(dead_code)]
     pub fn get_transfer_id(
         token: fast_bridge_common::EthAddress,
         recipient: fast_bridge_common::EthAddress,
@@ -3079,6 +3100,19 @@ pub trait Prover {
         proof: Vec<Vec<u8>>,
         skip_bridge_call: bool,
     ) -> bool;
+    fn verify_storage_proof(
+        &self,
+        header_data: Vec<u8>,
+        account_proof: Vec<Vec<u8>>,
+        contract_address: Vec<u8>,
+        account_state: Vec<u8>,
+        storage_key_hash: Vec<u8>,
+        storage_proof: Vec<Vec<u8>>,
+        value: Vec<u8>,
+        min_header_height: Option<u64>,
+        max_header_height: Option<u64>,
+        skip_bridge_call: bool,
+    ) -> PromiseOrValue<bool>;
 }
 pub mod ext_prover {
     use super::*;
@@ -3175,6 +3209,101 @@ pub mod ext_prover {
             near_sdk::Promise::new(self.account_id)
                 .function_call_weight(
                     "verify_log_entry".to_string(),
+                    __args,
+                    self.deposit,
+                    self.static_gas,
+                    self.gas_weight,
+                )
+        }
+        pub fn verify_storage_proof(
+            self,
+            header_data: Vec<u8>,
+            account_proof: Vec<Vec<u8>>,
+            contract_address: Vec<u8>,
+            account_state: Vec<u8>,
+            storage_key_hash: Vec<u8>,
+            storage_proof: Vec<Vec<u8>>,
+            value: Vec<u8>,
+            min_header_height: Option<u64>,
+            max_header_height: Option<u64>,
+            skip_bridge_call: bool,
+        ) -> near_sdk::Promise {
+            let __args = {
+                struct Input<'nearinput> {
+                    header_data: &'nearinput Vec<u8>,
+                    account_proof: &'nearinput Vec<Vec<u8>>,
+                    contract_address: &'nearinput Vec<u8>,
+                    account_state: &'nearinput Vec<u8>,
+                    storage_key_hash: &'nearinput Vec<u8>,
+                    storage_proof: &'nearinput Vec<Vec<u8>>,
+                    value: &'nearinput Vec<u8>,
+                    min_header_height: &'nearinput Option<u64>,
+                    max_header_height: &'nearinput Option<u64>,
+                    skip_bridge_call: &'nearinput bool,
+                }
+                impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
+                where
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+                    &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+                    &'nearinput Option<u64>: borsh::ser::BorshSerialize,
+                    &'nearinput Option<u64>: borsh::ser::BorshSerialize,
+                    &'nearinput bool: borsh::ser::BorshSerialize,
+                {
+                    fn serialize<W: borsh::maybestd::io::Write>(
+                        &self,
+                        writer: &mut W,
+                    ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+                        borsh::BorshSerialize::serialize(&self.header_data, writer)?;
+                        borsh::BorshSerialize::serialize(&self.account_proof, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.contract_address,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(&self.account_state, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.storage_key_hash,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(&self.storage_proof, writer)?;
+                        borsh::BorshSerialize::serialize(&self.value, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.min_header_height,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(
+                            &self.max_header_height,
+                            writer,
+                        )?;
+                        borsh::BorshSerialize::serialize(
+                            &self.skip_bridge_call,
+                            writer,
+                        )?;
+                        Ok(())
+                    }
+                }
+                let __args = Input {
+                    header_data: &header_data,
+                    account_proof: &account_proof,
+                    contract_address: &contract_address,
+                    account_state: &account_state,
+                    storage_key_hash: &storage_key_hash,
+                    storage_proof: &storage_proof,
+                    value: &value,
+                    min_header_height: &min_header_height,
+                    max_header_height: &max_header_height,
+                    skip_bridge_call: &skip_bridge_call,
+                };
+                near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
+                    .expect("Failed to serialize the cross contract args using Borsh.")
+            };
+            near_sdk::Promise::new(self.account_id)
+                .function_call_weight(
+                    "verify_storage_proof".to_string(),
                     __args,
                     self.deposit,
                     self.static_gas,
@@ -3378,7 +3507,12 @@ trait FastBridgeInterface {
         verification_success: bool,
         proof: EthTransferEvent,
     ) -> Promise;
-    fn unlock_callback(&self, nonce: U128, recipient_id: AccountId);
+    fn unlock_callback(
+        &mut self,
+        verification_result: bool,
+        nonce: U128,
+        sender_id: AccountId,
+    );
     fn init_transfer_callback(
         &mut self,
         transfer_message: TransferMessage,
@@ -3546,12 +3680,12 @@ pub mod ext_self {
         pub fn unlock_callback(
             self,
             nonce: U128,
-            recipient_id: AccountId,
+            sender_id: AccountId,
         ) -> near_sdk::Promise {
             let __args = {
                 struct Input<'nearinput> {
                     nonce: &'nearinput U128,
-                    recipient_id: &'nearinput AccountId,
+                    sender_id: &'nearinput AccountId,
                 }
                 impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
                 where
@@ -3563,13 +3697,13 @@ pub mod ext_self {
                         writer: &mut W,
                     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
-                        borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
+                        borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
                         Ok(())
                     }
                 }
                 let __args = Input {
                     nonce: &nonce,
-                    recipient_id: &recipient_id,
+                    sender_id: &sender_id,
                 };
                 near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                     .expect("Failed to serialize the cross contract args using Borsh.")
@@ -3631,6 +3765,542 @@ pub mod ext_self {
                     self.gas_weight,
                 )
         }
+    }
+}
+pub struct UnlockProof {
+    header_data: Vec<u8>,
+    account_proof: Vec<Vec<u8>>,
+    account_data: Vec<u8>,
+    storage_proof: Vec<Vec<u8>>,
+}
+#[automatically_derived]
+impl ::core::default::Default for UnlockProof {
+    #[inline]
+    fn default() -> UnlockProof {
+        UnlockProof {
+            header_data: ::core::default::Default::default(),
+            account_proof: ::core::default::Default::default(),
+            account_data: ::core::default::Default::default(),
+            storage_proof: ::core::default::Default::default(),
+        }
+    }
+}
+impl borsh::de::BorshDeserialize for UnlockProof
+where
+    Vec<u8>: borsh::BorshDeserialize,
+    Vec<Vec<u8>>: borsh::BorshDeserialize,
+    Vec<u8>: borsh::BorshDeserialize,
+    Vec<Vec<u8>>: borsh::BorshDeserialize,
+{
+    fn deserialize(
+        buf: &mut &[u8],
+    ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
+        Ok(Self {
+            header_data: borsh::BorshDeserialize::deserialize(buf)?,
+            account_proof: borsh::BorshDeserialize::deserialize(buf)?,
+            account_data: borsh::BorshDeserialize::deserialize(buf)?,
+            storage_proof: borsh::BorshDeserialize::deserialize(buf)?,
+        })
+    }
+}
+impl borsh::ser::BorshSerialize for UnlockProof
+where
+    Vec<u8>: borsh::ser::BorshSerialize,
+    Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+    Vec<u8>: borsh::ser::BorshSerialize,
+    Vec<Vec<u8>>: borsh::ser::BorshSerialize,
+{
+    fn serialize<W: borsh::maybestd::io::Write>(
+        &self,
+        writer: &mut W,
+    ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+        borsh::BorshSerialize::serialize(&self.header_data, writer)?;
+        borsh::BorshSerialize::serialize(&self.account_proof, writer)?;
+        borsh::BorshSerialize::serialize(&self.account_data, writer)?;
+        borsh::BorshSerialize::serialize(&self.storage_proof, writer)?;
+        Ok(())
+    }
+}
+#[automatically_derived]
+impl ::core::fmt::Debug for UnlockProof {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        ::core::fmt::Formatter::debug_struct_field4_finish(
+            f,
+            "UnlockProof",
+            "header_data",
+            &&self.header_data,
+            "account_proof",
+            &&self.account_proof,
+            "account_data",
+            &&self.account_data,
+            "storage_proof",
+            &&self.storage_proof,
+        )
+    }
+}
+#[automatically_derived]
+impl ::core::clone::Clone for UnlockProof {
+    #[inline]
+    fn clone(&self) -> UnlockProof {
+        UnlockProof {
+            header_data: ::core::clone::Clone::clone(&self.header_data),
+            account_proof: ::core::clone::Clone::clone(&self.account_proof),
+            account_data: ::core::clone::Clone::clone(&self.account_data),
+            storage_proof: ::core::clone::Clone::clone(&self.storage_proof),
+        }
+    }
+}
+#[doc(hidden)]
+#[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+const _: () = {
+    #[allow(unused_extern_crates, clippy::useless_attribute)]
+    extern crate serde as _serde;
+    #[automatically_derived]
+    impl _serde::Serialize for UnlockProof {
+        fn serialize<__S>(
+            &self,
+            __serializer: __S,
+        ) -> _serde::__private::Result<__S::Ok, __S::Error>
+        where
+            __S: _serde::Serializer,
+        {
+            let mut __serde_state = match _serde::Serializer::serialize_struct(
+                __serializer,
+                "UnlockProof",
+                false as usize + 1 + 1 + 1 + 1,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "header_data",
+                &self.header_data,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "account_proof",
+                &self.account_proof,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "account_data",
+                &self.account_data,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
+                &mut __serde_state,
+                "storage_proof",
+                &self.storage_proof,
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            _serde::ser::SerializeStruct::end(__serde_state)
+        }
+    }
+};
+#[doc(hidden)]
+#[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+const _: () = {
+    #[allow(unused_extern_crates, clippy::useless_attribute)]
+    extern crate serde as _serde;
+    #[automatically_derived]
+    impl<'de> _serde::Deserialize<'de> for UnlockProof {
+        fn deserialize<__D>(
+            __deserializer: __D,
+        ) -> _serde::__private::Result<Self, __D::Error>
+        where
+            __D: _serde::Deserializer<'de>,
+        {
+            #[allow(non_camel_case_types)]
+            enum __Field {
+                __field0,
+                __field1,
+                __field2,
+                __field3,
+                __ignore,
+            }
+            struct __FieldVisitor;
+            impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                type Value = __Field;
+                fn expecting(
+                    &self,
+                    __formatter: &mut _serde::__private::Formatter,
+                ) -> _serde::__private::fmt::Result {
+                    _serde::__private::Formatter::write_str(
+                        __formatter,
+                        "field identifier",
+                    )
+                }
+                fn visit_u64<__E>(
+                    self,
+                    __value: u64,
+                ) -> _serde::__private::Result<Self::Value, __E>
+                where
+                    __E: _serde::de::Error,
+                {
+                    match __value {
+                        0u64 => _serde::__private::Ok(__Field::__field0),
+                        1u64 => _serde::__private::Ok(__Field::__field1),
+                        2u64 => _serde::__private::Ok(__Field::__field2),
+                        3u64 => _serde::__private::Ok(__Field::__field3),
+                        _ => _serde::__private::Ok(__Field::__ignore),
+                    }
+                }
+                fn visit_str<__E>(
+                    self,
+                    __value: &str,
+                ) -> _serde::__private::Result<Self::Value, __E>
+                where
+                    __E: _serde::de::Error,
+                {
+                    match __value {
+                        "header_data" => _serde::__private::Ok(__Field::__field0),
+                        "account_proof" => _serde::__private::Ok(__Field::__field1),
+                        "account_data" => _serde::__private::Ok(__Field::__field2),
+                        "storage_proof" => _serde::__private::Ok(__Field::__field3),
+                        _ => _serde::__private::Ok(__Field::__ignore),
+                    }
+                }
+                fn visit_bytes<__E>(
+                    self,
+                    __value: &[u8],
+                ) -> _serde::__private::Result<Self::Value, __E>
+                where
+                    __E: _serde::de::Error,
+                {
+                    match __value {
+                        b"header_data" => _serde::__private::Ok(__Field::__field0),
+                        b"account_proof" => _serde::__private::Ok(__Field::__field1),
+                        b"account_data" => _serde::__private::Ok(__Field::__field2),
+                        b"storage_proof" => _serde::__private::Ok(__Field::__field3),
+                        _ => _serde::__private::Ok(__Field::__ignore),
+                    }
+                }
+            }
+            impl<'de> _serde::Deserialize<'de> for __Field {
+                #[inline]
+                fn deserialize<__D>(
+                    __deserializer: __D,
+                ) -> _serde::__private::Result<Self, __D::Error>
+                where
+                    __D: _serde::Deserializer<'de>,
+                {
+                    _serde::Deserializer::deserialize_identifier(
+                        __deserializer,
+                        __FieldVisitor,
+                    )
+                }
+            }
+            struct __Visitor<'de> {
+                marker: _serde::__private::PhantomData<UnlockProof>,
+                lifetime: _serde::__private::PhantomData<&'de ()>,
+            }
+            impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                type Value = UnlockProof;
+                fn expecting(
+                    &self,
+                    __formatter: &mut _serde::__private::Formatter,
+                ) -> _serde::__private::fmt::Result {
+                    _serde::__private::Formatter::write_str(
+                        __formatter,
+                        "struct UnlockProof",
+                    )
+                }
+                #[inline]
+                fn visit_seq<__A>(
+                    self,
+                    mut __seq: __A,
+                ) -> _serde::__private::Result<Self::Value, __A::Error>
+                where
+                    __A: _serde::de::SeqAccess<'de>,
+                {
+                    let __field0 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<u8>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    0usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    let __field1 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<Vec<u8>>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    1usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    let __field2 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<u8>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    2usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    let __field3 = match match _serde::de::SeqAccess::next_element::<
+                        Vec<Vec<u8>>,
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
+                        _serde::__private::Some(__value) => __value,
+                        _serde::__private::None => {
+                            return _serde::__private::Err(
+                                _serde::de::Error::invalid_length(
+                                    3usize,
+                                    &"struct UnlockProof with 4 elements",
+                                ),
+                            );
+                        }
+                    };
+                    _serde::__private::Ok(UnlockProof {
+                        header_data: __field0,
+                        account_proof: __field1,
+                        account_data: __field2,
+                        storage_proof: __field3,
+                    })
+                }
+                #[inline]
+                fn visit_map<__A>(
+                    self,
+                    mut __map: __A,
+                ) -> _serde::__private::Result<Self::Value, __A::Error>
+                where
+                    __A: _serde::de::MapAccess<'de>,
+                {
+                    let mut __field0: _serde::__private::Option<Vec<u8>> = _serde::__private::None;
+                    let mut __field1: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
+                    let mut __field2: _serde::__private::Option<Vec<u8>> = _serde::__private::None;
+                    let mut __field3: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
+                    while let _serde::__private::Some(__key)
+                        = match _serde::de::MapAccess::next_key::<__Field>(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                        match __key {
+                            __Field::__field0 => {
+                                if _serde::__private::Option::is_some(&__field0) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "header_data",
+                                        ),
+                                    );
+                                }
+                                __field0 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<u8>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            __Field::__field1 => {
+                                if _serde::__private::Option::is_some(&__field1) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "account_proof",
+                                        ),
+                                    );
+                                }
+                                __field1 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<Vec<u8>>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            __Field::__field2 => {
+                                if _serde::__private::Option::is_some(&__field2) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "account_data",
+                                        ),
+                                    );
+                                }
+                                __field2 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<u8>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            __Field::__field3 => {
+                                if _serde::__private::Option::is_some(&__field3) {
+                                    return _serde::__private::Err(
+                                        <__A::Error as _serde::de::Error>::duplicate_field(
+                                            "storage_proof",
+                                        ),
+                                    );
+                                }
+                                __field3 = _serde::__private::Some(
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<Vec<u8>>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
+                                );
+                            }
+                            _ => {
+                                let _ = match _serde::de::MapAccess::next_value::<
+                                    _serde::de::IgnoredAny,
+                                >(&mut __map) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
+                            }
+                        }
+                    }
+                    let __field0 = match __field0 {
+                        _serde::__private::Some(__field0) => __field0,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("header_data") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    let __field1 = match __field1 {
+                        _serde::__private::Some(__field1) => __field1,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("account_proof") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    let __field2 = match __field2 {
+                        _serde::__private::Some(__field2) => __field2,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("account_data") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    let __field3 = match __field3 {
+                        _serde::__private::Some(__field3) => __field3,
+                        _serde::__private::None => {
+                            match _serde::__private::de::missing_field("storage_proof") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
+                        }
+                    };
+                    _serde::__private::Ok(UnlockProof {
+                        header_data: __field0,
+                        account_proof: __field1,
+                        account_data: __field2,
+                        storage_proof: __field3,
+                    })
+                }
+            }
+            const FIELDS: &'static [&'static str] = &[
+                "header_data",
+                "account_proof",
+                "account_data",
+                "storage_proof",
+            ];
+            _serde::Deserializer::deserialize_struct(
+                __deserializer,
+                "UnlockProof",
+                FIELDS,
+                __Visitor {
+                    marker: _serde::__private::PhantomData::<UnlockProof>,
+                    lifetime: _serde::__private::PhantomData,
+                },
+            )
+        }
+    }
+};
+#[automatically_derived]
+impl ::core::marker::StructuralPartialEq for UnlockProof {}
+#[automatically_derived]
+impl ::core::cmp::PartialEq for UnlockProof {
+    #[inline]
+    fn eq(&self, other: &UnlockProof) -> bool {
+        self.header_data == other.header_data
+            && self.account_proof == other.account_proof
+            && self.account_data == other.account_data
+            && self.storage_proof == other.storage_proof
     }
 }
 #[serde(crate = "near_sdk::serde")]
@@ -12174,6 +12844,7 @@ impl FastBridgeExt {
         lock_time_min: String,
         lock_time_max: String,
         eth_block_time: Duration,
+        whitelist_mode: bool,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
@@ -12184,6 +12855,7 @@ impl FastBridgeExt {
                 lock_time_min: &'nearinput String,
                 lock_time_max: &'nearinput String,
                 eth_block_time: &'nearinput Duration,
+                whitelist_mode: &'nearinput bool,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12201,7 +12873,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1 + 1 + 1 + 1 + 1 + 1,
+                            false as usize + 1 + 1 + 1 + 1 + 1 + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -12268,6 +12940,16 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "whitelist_mode",
+                            &self.whitelist_mode,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -12279,6 +12961,7 @@ impl FastBridgeExt {
                 lock_time_min: &lock_time_min,
                 lock_time_max: &lock_time_max,
                 eth_block_time: &eth_block_time,
+                whitelist_mode: &whitelist_mode,
             };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
@@ -12396,11 +13079,16 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn unlock(self, nonce: U128) -> near_sdk::Promise {
+    pub fn unlock(
+        self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+    ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
+                proof: &'nearinput near_sdk::json_types::Base64VecU8,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12418,7 +13106,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1,
+                            false as usize + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -12435,11 +13123,24 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "proof",
+                            &self.proof,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
             };
-            let __args = Input { nonce: &nonce };
+            let __args = Input {
+                nonce: &nonce,
+                proof: &proof,
+            };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
         };
@@ -12655,12 +13356,16 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn withdraw(self, token_id: AccountId, amount: U128) -> near_sdk::Promise {
+    pub fn withdraw(
+        self,
+        token_id: AccountId,
+        amount: Option<U128>,
+    ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 token_id: &'nearinput AccountId,
-                amount: &'nearinput U128,
+                amount: &'nearinput Option<U128>,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12729,14 +13434,14 @@ impl FastBridgeExt {
         self,
         token_id: AccountId,
         amount: U128,
-        sender_id: AccountId,
+        recipient_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 token_id: &'nearinput AccountId,
                 amount: &'nearinput U128,
-                sender_id: &'nearinput AccountId,
+                recipient_id: &'nearinput AccountId,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12783,8 +13488,8 @@ impl FastBridgeExt {
                         };
                         match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
-                            "sender_id",
-                            &self.sender_id,
+                            "recipient_id",
+                            &self.recipient_id,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -12798,7 +13503,7 @@ impl FastBridgeExt {
             let __args = Input {
                 token_id: &token_id,
                 amount: &amount,
-                sender_id: &sender_id,
+                recipient_id: &recipient_id,
             };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
@@ -12870,11 +13575,11 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn set_enear_address(self, near_address: String) -> near_sdk::Promise {
+    pub fn set_eth_bridge_contract_address(self, address: String) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
-                near_address: &'nearinput String,
+                address: &'nearinput String,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -12901,8 +13606,8 @@ impl FastBridgeExt {
                         };
                         match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
-                            "near_address",
-                            &self.near_address,
+                            "address",
+                            &self.address,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -12913,15 +13618,13 @@ impl FastBridgeExt {
                     }
                 }
             };
-            let __args = Input {
-                near_address: &near_address,
-            };
+            let __args = Input { address: &address };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
         };
         near_sdk::Promise::new(self.account_id)
             .function_call_weight(
-                "set_enear_address".to_string(),
+                "set_eth_bridge_contract_address".to_string(),
                 __args,
                 self.deposit,
                 self.static_gas,
@@ -13208,15 +13911,8 @@ impl FastBridge {
         lock_time_min: String,
         lock_time_max: String,
         eth_block_time: Duration,
+        whitelist_mode: bool,
     ) -> Self {
-        if true {
-            let msg: &str = &"Already initialized";
-            if !!env::state_exists() {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !!env::state_exists() {
-            ::near_sdk::env::panic_str(&"Already initialized")
-        }
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
             .as_nanos()
@@ -13254,7 +13950,7 @@ impl FastBridge {
             eth_block_time,
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
-            is_whitelist_mode_enabled: true,
+            is_whitelist_mode_enabled: whitelist_mode,
             __acl: Default::default(),
         };
         if true {
@@ -13268,6 +13964,13 @@ impl FastBridge {
         }
         contract
     }
+    /// Initializes a token transfer from NEAR to Ethereum using the provided `TransferMessage`.
+    ///
+    /// This function is called by the NEAR Fast Bridge contract to initiate a token transfer to Ethereum. The `msg` parameter is a `Base64VecU8` containing the encoded `TransferMessage`. The function decodes the `msg` parameter, checks its validity, and then calls `init_transfer_internal` to initiate the token transfer.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` -- the encoded `TransferMessage` in borsh Base64 format. It contains details about the transaction - `token`, `fee_token`, `amount`, `recipient`, etc.
     pub fn init_transfer(
         &mut self,
         msg: near_sdk::json_types::Base64VecU8,
@@ -13318,10 +14021,29 @@ impl FastBridge {
             .last_block_number()
             .then(
                 ext_self::ext(env::current_account_id())
-                    .with_static_gas(utils::tera_gas(200))
+                    .with_static_gas(utils::tera_gas(50))
                     .init_transfer_callback(transfer_message, sender_id, update_balance),
             )
     }
+    /// This function finalizes the execution flow of the `init_transfer()` function. This function
+    /// is called from the `Eth2Client` contract after extracting the last Ethereum block number on Near.
+    /// This function validates the transfer message and decreases the token transfer balance and fee
+    /// balance for the sender. If an `update_balance` is provided, it increases the sender's balance
+    /// accordingly and emits a `FastBridgeDepositEvent`. It then stores the transfer and emits a
+    /// `FastBridgeInitTransferEvent` with the `nonce`, `sender_id`, and `transfer_message`.
+    ///
+    /// # Arguments
+    ///
+    /// * `last_block_height` -- the last Ethereum block height in LightClient on Near.
+    ///
+    /// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc.
+    ///    The `TransferMessage` is deserialized from a Borsh-encoded string.
+    ///
+    /// * `sender_id` -- the account which initiates this transfer.
+    ///    The `AccountId` is deserialized from a Borsh-encoded string.
+    ///
+    /// * `update_balance` -- balance update in case the transfer of tokens and initialization of the transfer
+    ///    happen in one transaction. The `UpdateBalance` is deserialized from a Borsh-encoded string.
     pub fn init_transfer_callback(
         &mut self,
         last_block_height: u64,
@@ -13337,6 +14059,16 @@ impl FastBridge {
         } else if !(transfer_message.fee.token == transfer_message.transfer.token_near) {
             ::near_sdk::env::panic_str(
                 &"The fee token does not match the transfer token",
+            )
+        }
+        if true {
+            let msg: &str = &"The eth token address and recipient address can't be the same";
+            if !(transfer_message.transfer.token_eth != transfer_message.recipient) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(transfer_message.transfer.token_eth != transfer_message.recipient) {
+            ::near_sdk::env::panic_str(
+                &"The eth token address and recipient address can't be the same",
             )
         }
         if let Some(update_balance) = update_balance.as_ref() {
@@ -13385,19 +14117,16 @@ impl FastBridge {
             });
         if true {
             let msg: &str = &"Not enough transfer token balance.";
-            if !(token_transfer_balance >= u128::from(transfer_message.transfer.amount))
-            {
+            if !(token_transfer_balance >= transfer_message.transfer.amount.0) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(token_transfer_balance
-            >= u128::from(transfer_message.transfer.amount))
-        {
+        } else if !(token_transfer_balance >= transfer_message.transfer.amount.0) {
             ::near_sdk::env::panic_str(&"Not enough transfer token balance.")
         }
         self.decrease_balance(
             &sender_id,
             &transfer_message.transfer.token_near,
-            &u128::from(transfer_message.transfer.amount),
+            &transfer_message.transfer.amount.0,
         );
         let token_fee_balance = user_token_balance
             .get(&transfer_message.fee.token)
@@ -13415,16 +14144,16 @@ impl FastBridge {
             });
         if true {
             let msg: &str = &"Not enough fee token balance.";
-            if !(token_fee_balance >= u128::from(transfer_message.fee.amount)) {
+            if !(token_fee_balance >= transfer_message.fee.amount.0) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(token_fee_balance >= u128::from(transfer_message.fee.amount)) {
+        } else if !(token_fee_balance >= transfer_message.fee.amount.0) {
             ::near_sdk::env::panic_str(&"Not enough fee token balance.")
         }
         self.decrease_balance(
             &sender_id,
             &transfer_message.fee.token,
-            &u128::from(transfer_message.fee.amount),
+            &transfer_message.fee.amount.0,
         );
         let nonce = U128::from(
             self.store_transfers(sender_id.clone(), transfer_message.clone()),
@@ -13445,7 +14174,23 @@ impl FastBridge {
             .emit();
         U128::from(0)
     }
-    pub fn unlock(&self, nonce: U128) -> Promise {
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function could be executed successfully only if called either by the original creator of the transfer
+    /// or by the account that has the `UnrestrictedUnlock` role.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+    pub fn unlock(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+    ) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -13470,37 +14215,71 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        ext_eth_client::ext(self.eth_client_account.clone())
-            .with_static_gas(utils::tera_gas(5))
-            .last_block_number()
+        let proof = UnlockProof::try_from_slice(&proof.0)
+            .unwrap_or_else(|_| env::panic_str(
+                "Invalid borsh format of the `UnlockProof`",
+            ));
+        let (_recipient_id, transfer_data) = self
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+        let storage_key_hash = utils::get_eth_storage_key_hash(
+            transfer_data.transfer.token_eth,
+            transfer_data.recipient,
+            eth_types::U256(nonce.0.into()),
+            eth_types::U256(transfer_data.transfer.amount.0.into()),
+        );
+        let expected_storage_value = ::alloc::vec::Vec::new();
+        ext_prover::ext(self.prover_account.clone())
+            .with_static_gas(utils::tera_gas(50))
+            .with_attached_deposit(utils::NO_DEPOSIT)
+            .verify_storage_proof(
+                proof.header_data,
+                proof.account_proof,
+                self.eth_bridge_contract.to_vec(),
+                proof.account_data,
+                storage_key_hash,
+                proof.storage_proof,
+                expected_storage_value,
+                transfer_data.valid_till_block_height,
+                None,
+                false,
+            )
             .then(
-                ext_self::ext(env::current_account_id())
+                ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_callback(nonce, env::predecessor_account_id()),
             )
     }
+    /// This function finalizes the execution flow of the `unlock()` function. This function
+    /// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
+    /// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate
+    /// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
+    /// with the details of the unlocked transfer.
+    ///
+    /// This function is only intended for internal use and should not be called directly by external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification_result` - A boolean value indicating whether the proof verification was
+    ///   successful.
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `sender_id` - The account ID of the sender that initiated the unlock request.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
+    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
+    /// or if the verification of the unlock proof fails.
     pub fn unlock_callback(
         &mut self,
-        last_block_height: u64,
+        verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
     ) {
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let (recipient_id, transfer_data) = self
-            .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Transaction with id: ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &&transaction_id.to_string(),
-                            ),
-                        ],
-                    ),
-                )
-            });
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
         let is_unlock_allowed = recipient_id == sender_id
             || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
         if true {
@@ -13541,38 +14320,22 @@ impl FastBridge {
             let msg: &str = &{
                 let res = ::alloc::fmt::format(
                     ::core::fmt::Arguments::new_v1(
-                        &[
-                            "Minimum allowed block height is ",
-                            ", but current client\'s block height is ",
-                        ],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &transfer_data.valid_till_block_height.unwrap(),
-                            ),
-                            ::core::fmt::ArgumentV1::new_display(&last_block_height),
-                        ],
+                        &["Verification failed for unlock proof"],
+                        &[],
                     ),
                 );
                 res
             };
-            if !(last_block_height > transfer_data.valid_till_block_height.unwrap()) {
+            if !verification_result {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(last_block_height > transfer_data.valid_till_block_height.unwrap()) {
+        } else if !verification_result {
             ::near_sdk::env::panic_str(
                 &{
                     let res = ::alloc::fmt::format(
                         ::core::fmt::Arguments::new_v1(
-                            &[
-                                "Minimum allowed block height is ",
-                                ", but current client\'s block height is ",
-                            ],
-                            &[
-                                ::core::fmt::ArgumentV1::new_display(
-                                    &transfer_data.valid_till_block_height.unwrap(),
-                                ),
-                                ::core::fmt::ArgumentV1::new_display(&last_block_height),
-                            ],
+                            &["Verification failed for unlock proof"],
+                            &[],
                         ),
                     );
                     res
@@ -13582,14 +14345,14 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce.0.to_string(), &transfer_data);
         Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
@@ -13597,6 +14360,22 @@ impl FastBridge {
         }
             .emit();
     }
+    /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
+    /// from the proof of the transfer event.
+    ///
+    /// # Arguments
+    ///
+    /// * `proof` - A `Proof` for the event of the successful transfer on the Ethereum side.
+    ///
+    /// # Returns
+    ///
+    /// A promise that resolves when the proof has been successfully verified.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
+    /// match the expected Fast Bridge contract's address stored in the contract state.
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
@@ -13670,6 +14449,24 @@ impl FastBridge {
                     .verify_log_entry_callback(parsed_proof),
             )
     }
+    /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
+    ///
+    /// This function is called from the `EthProver` contract after the proof verification.
+    /// If the verification is successful, the function checks if the transfer is valid and if so, executes
+    /// the transfer on NEAR by increasing the balance of the recipient's account.
+    /// It also emits a `FastBridgeLpUnlockEvent` event to signal that a transfer was successfully executed.
+    ///
+    /// This function is only intended for internal use and should not be called directly by external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification_success`: a boolean value indicating whether the verification of the event log entry was successful.
+    /// * `proof`: an `EthTransferEvent` object containing the data of the transfer.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if it cannot find a pending transfer with the given nonce or if any of the checks
+    /// on the transfer data fail.
     pub fn verify_log_entry_callback(
         &mut self,
         verification_success: bool,
@@ -13683,22 +14480,16 @@ impl FastBridge {
         } else if !verification_success {
             ::near_sdk::env::panic_str(&"Failed to verify the proof")
         }
-        let transaction_id = utils::get_transaction_id(proof.nonce);
+        let nonce_str = proof.nonce.to_string();
         let transfer = self
             .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Transaction with id: ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &&transaction_id.to_string(),
-                            ),
-                        ],
-                    ),
-                )
-            });
+            .get(&nonce_str)
+            .unwrap_or_else(|| ::core::panicking::panic_fmt(
+                ::core::fmt::Arguments::new_v1(
+                    &["Transaction with id: ", " not found"],
+                    &[::core::fmt::ArgumentV1::new_display(&&nonce_str)],
+                ),
+            ));
         let transfer_data = transfer.1;
         if true {
             let msg: &str = &{
@@ -13808,14 +14599,14 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce_str, &transfer_data);
         Event::FastBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
             recipient_id,
@@ -13823,11 +14614,24 @@ impl FastBridge {
         }
             .emit();
     }
+    /// Gets the user balance of the specified token in this contract. These tokens can be immediately withdrawn.
+    /// # Arguments
+    ///
+    /// * `account_id` - The account ID for which to retrieve the balance.
+    /// * `token_id` - The token ID for which to retrieve the balance.
+    ///
+    /// # Panics
+    ///
+    /// If the user does not have any balance for the specified token, or if the specified user account does not exist.
+    ///
+    /// # Returns
+    ///
+    /// The balance of the specified token for the specified account.
     pub fn get_user_balance(
         &self,
         account_id: &AccountId,
         token_id: &AccountId,
-    ) -> u128 {
+    ) -> U128 {
         let user_balance = self
             .user_balances
             .get(account_id)
@@ -13842,6 +14646,7 @@ impl FastBridge {
                     &[::core::fmt::ArgumentV1::new_display(&token_id)],
                 ),
             ))
+            .into()
     }
     fn decrease_balance(
         &mut self,
@@ -13975,9 +14780,8 @@ impl FastBridge {
         self.pending_transfers_balances
             .insert(&transfer_message.transfer.token_near, &new_balance);
         self.nonce += 1;
-        let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (sender_id, transfer_message);
-        self.pending_transfers.insert(&transaction_id, &account_pending);
+        self.pending_transfers.insert(&self.nonce.to_string(), &account_pending);
         self.nonce
     }
     fn remove_transfer(
@@ -13994,7 +14798,30 @@ impl FastBridge {
             .insert(&transfer_message.transfer.token_near, &new_balance);
         self.pending_transfers.remove(transfer_id);
     }
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
+    /// Withdraws the specified `amount` of tokens from the provided token account ID from the balance of the caller.
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// * `token_id` - an `AccountId` representing the token ID to withdraw from.
+    /// * `amount` - an optional `U128` representing the amount to withdraw. If `None` is provided, the entire balance of the caller will be withdrawn.
+    ///
+    /// # Returns
+    ///
+    /// A `PromiseOrValue<U128>` indicating the result of the withdrawal operation.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if:
+    ///
+    /// * The specified `amount` is not a positive number.
+    /// * The balance of the caller is insufficient.
+    /// * The caller does not have any balance.
+    pub fn withdraw(
+        &mut self,
+        token_id: AccountId,
+        amount: Option<U128>,
+    ) -> PromiseOrValue<U128> {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14019,21 +14846,31 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        let receiver_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&receiver_id, &token_id);
+        let recipient_id = env::predecessor_account_id();
+        let user_balance = self.get_user_balance(&recipient_id, &token_id);
+        let amount = amount.unwrap_or(user_balance);
         if true {
-            let msg: &str = &"Not enough token balance";
-            if !(balance >= amount.into()) {
+            let msg: &str = &"The amount should be a positive number";
+            if !(amount.0 > 0) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(balance >= amount.into()) {
-            ::near_sdk::env::panic_str(&"Not enough token balance")
+        } else if !(amount.0 > 0) {
+            ::near_sdk::env::panic_str(&"The amount should be a positive number")
         }
+        if true {
+            let msg: &str = &"Insufficient user balance";
+            if !(amount <= user_balance) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(amount <= user_balance) {
+            ::near_sdk::env::panic_str(&"Insufficient user balance")
+        }
+        self.decrease_balance(&recipient_id, &token_id, &amount.0);
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                receiver_id.clone(),
+                recipient_id.clone(),
                 amount,
                 Some({
                     let res = ::alloc::fmt::format(
@@ -14054,31 +14891,49 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, receiver_id),
+                    .withdraw_callback(token_id, amount, recipient_id),
             )
+            .into()
     }
+    /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
+    /// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
+    /// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
+    /// to the user's balance. This function is only intended for internal use and should not be called directly by
+    /// external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id`: An `AccountId` representing the token being withdrawn.
+    /// * `amount`: A `U128` value representing the amount being withdrawn.
+    /// * `recipient_id`: An `AccountId` representing the account that will receive the withdrawn funds.
+    ///
+    /// # Returns
+    ///
+    /// * A `U128` value representing the amount that was withdrawn, or `0` if the promise was not
+    ///   successful and the funds were returned to the user's balance.
     pub fn withdraw_callback(
         &mut self,
         token_id: AccountId,
         amount: U128,
-        sender_id: AccountId,
-    ) {
-        if true {
-            let msg: &str = &"Error transfer";
-            if !is_promise_success() {
-                ::core::panicking::panic_display(&msg)
+        recipient_id: AccountId,
+    ) -> U128 {
+        if is_promise_success() {
+            Event::FastBridgeWithdrawEvent {
+                recipient_id,
+                token: token_id,
+                amount,
             }
-        } else if !is_promise_success() {
-            ::near_sdk::env::panic_str(&"Error transfer")
+                .emit();
+            amount
+        } else {
+            self.increase_balance(&recipient_id, &token_id, &amount.0);
+            U128(0)
         }
-        self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
-        Event::FastBridgeWithdrawEvent {
-            recipient_id: sender_id,
-            token: token_id,
-            amount,
-        }
-            .emit();
     }
+    /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// # Arguments
+    /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14109,7 +14964,15 @@ impl FastBridge {
         }
         self.prover_account = prover_account;
     }
-    pub fn set_enear_address(&mut self, near_address: String) {
+    /// Sets the Ethereum Fast Bridge contract address.
+    ///
+    /// Note, This address is further used for the verification of operations that utilize the Ethereum proofs.
+    /// This is needed so the contract is able to check that proofs originate from the specified address.
+    ///
+    /// # Arguments
+    ///
+    /// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
+    pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
             ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
@@ -14128,7 +14991,9 @@ impl FastBridge {
                             " restricted by access control. Requires one of these roles: ",
                         ],
                         &[
-                            ::core::fmt::ArgumentV1::new_display(&"set_enear_address"),
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"set_eth_bridge_contract_address",
+                            ),
                             ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
                         ],
                     ),
@@ -14137,40 +15002,41 @@ impl FastBridge {
             };
             near_sdk::env::panic_str(&message);
         }
-        if true {
-            let msg: &str = &{
-                let res = ::alloc::fmt::format(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Ethereum address:", " not valid."],
-                        &[::core::fmt::ArgumentV1::new_display(&near_address)],
-                    ),
-                );
-                res
-            };
-            if !utils::is_valid_eth_address(near_address.clone()) {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !utils::is_valid_eth_address(near_address.clone()) {
-            ::near_sdk::env::panic_str(
-                &{
-                    let res = ::alloc::fmt::format(
-                        ::core::fmt::Arguments::new_v1(
-                            &["Ethereum address:", " not valid."],
-                            &[::core::fmt::ArgumentV1::new_display(&near_address)],
-                        ),
-                    );
-                    res
-                },
-            )
-        }
-        self.eth_bridge_contract = fast_bridge_common::get_eth_address(near_address);
+        self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
+    /// Gets the minimum and maximum possible time for the tokens lock period.
     pub fn get_lock_duration(self) -> LockDuration {
         self.lock_duration
     }
+    /// Gets the amount of currently locked tokens in the contract for the specified `token_id`.
+    /// If the account has no pending balance, 0 is returned. The fee is not counted.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id` - An account identifier for a token contract.
+    ///
+    /// # Returns
+    ///
+    /// The pending balance for the specified token account, or 0 if there is no pending balance.
     pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
         self.pending_transfers_balances.get(&token_id).unwrap_or(0)
     }
+    /// Returns a vector of pending transfers with their associated IDs.
+    ///
+    /// The vector contains a tuple for each pending transfer, where the first element is the
+    /// transfer ID as a string, and the second element is another tuple containing the recipient's
+    /// account ID and the transfer message. The function starts at the specified `from_index` and
+    /// returns a maximum of `limit` transfers.
+    ///
+    /// # Arguments
+    ///
+    /// * `from_index` - The index at which to start retrieving the pending transfers.
+    /// * `limit` - The maximum number of transfers to retrieve.
+    ///
+    /// # Returns
+    ///
+    /// A vector of tuples, where the first element is a transfer ID and the second element is a tuple
+    /// containing the recipient's account ID and the transfer message.
     pub fn get_pending_transfers(
         &self,
         from_index: usize,
@@ -14178,12 +15044,35 @@ impl FastBridge {
     ) -> Vec<(String, (AccountId, TransferMessage))> {
         self.pending_transfers.iter().skip(from_index).take(limit).collect::<Vec<_>>()
     }
+    /// Gets the pending transfer details for the given transfer ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string representing the transfer ID (nonce).
+    ///
+    /// # Returns
+    ///
+    /// Returns an `Option` containing the account ID and transfer message if the transfer ID exists in
+    /// the pending transfers list, or `None` otherwise.
     pub fn get_pending_transfer(
         &self,
         id: String,
     ) -> Option<(AccountId, TransferMessage)> {
         self.pending_transfers.get(&id)
     }
+    /// Sets the lock time for the contract.
+    ///
+    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    /// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
+    ///
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -14222,6 +15111,16 @@ impl FastBridge {
             .as_nanos()
             .try_into()
             .unwrap();
+        if true {
+            let msg: &str = &"Error initialize: lock_time_min must be less than lock_time_max";
+            if !(lock_time_max > lock_time_min) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(lock_time_max > lock_time_min) {
+            ::near_sdk::env::panic_str(
+                &"Error initialize: lock_time_min must be less than lock_time_max",
+            )
+        }
         self
             .lock_duration = LockDuration {
             lock_time_min,
@@ -14247,6 +15146,7 @@ pub extern "C" fn new() {
         lock_time_min: String,
         lock_time_max: String,
         eth_block_time: Duration,
+        whitelist_mode: bool,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -14268,6 +15168,7 @@ pub extern "C" fn new() {
                     __field3,
                     __field4,
                     __field5,
+                    __field6,
                     __ignore,
                 }
                 struct __FieldVisitor;
@@ -14296,6 +15197,7 @@ pub extern "C" fn new() {
                             3u64 => _serde::__private::Ok(__Field::__field3),
                             4u64 => _serde::__private::Ok(__Field::__field4),
                             5u64 => _serde::__private::Ok(__Field::__field5),
+                            6u64 => _serde::__private::Ok(__Field::__field6),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -14317,6 +15219,7 @@ pub extern "C" fn new() {
                             "lock_time_min" => _serde::__private::Ok(__Field::__field3),
                             "lock_time_max" => _serde::__private::Ok(__Field::__field4),
                             "eth_block_time" => _serde::__private::Ok(__Field::__field5),
+                            "whitelist_mode" => _serde::__private::Ok(__Field::__field6),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -14338,6 +15241,7 @@ pub extern "C" fn new() {
                             b"lock_time_min" => _serde::__private::Ok(__Field::__field3),
                             b"lock_time_max" => _serde::__private::Ok(__Field::__field4),
                             b"eth_block_time" => _serde::__private::Ok(__Field::__field5),
+                            b"whitelist_mode" => _serde::__private::Ok(__Field::__field6),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -14392,7 +15296,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 6 elements",
+                                        &"struct Input with 7 elements",
                                     ),
                                 );
                             }
@@ -14410,7 +15314,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         1usize,
-                                        &"struct Input with 6 elements",
+                                        &"struct Input with 7 elements",
                                     ),
                                 );
                             }
@@ -14428,7 +15332,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         2usize,
-                                        &"struct Input with 6 elements",
+                                        &"struct Input with 7 elements",
                                     ),
                                 );
                             }
@@ -14446,7 +15350,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         3usize,
-                                        &"struct Input with 6 elements",
+                                        &"struct Input with 7 elements",
                                     ),
                                 );
                             }
@@ -14464,7 +15368,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         4usize,
-                                        &"struct Input with 6 elements",
+                                        &"struct Input with 7 elements",
                                     ),
                                 );
                             }
@@ -14482,7 +15386,25 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         5usize,
-                                        &"struct Input with 6 elements",
+                                        &"struct Input with 7 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field6 = match match _serde::de::SeqAccess::next_element::<
+                            bool,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        6usize,
+                                        &"struct Input with 7 elements",
                                     ),
                                 );
                             }
@@ -14494,6 +15416,7 @@ pub extern "C" fn new() {
                             lock_time_min: __field3,
                             lock_time_max: __field4,
                             eth_block_time: __field5,
+                            whitelist_mode: __field6,
                         })
                     }
                     #[inline]
@@ -14510,6 +15433,7 @@ pub extern "C" fn new() {
                         let mut __field3: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field4: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field5: _serde::__private::Option<Duration> = _serde::__private::None;
+                        let mut __field6: _serde::__private::Option<bool> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -14634,6 +15558,25 @@ pub extern "C" fn new() {
                                         },
                                     );
                                 }
+                                __Field::__field6 => {
+                                    if _serde::__private::Option::is_some(&__field6) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "whitelist_mode",
+                                            ),
+                                        );
+                                    }
+                                    __field6 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            bool,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
                                 _ => {
                                     let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
@@ -14724,6 +15667,19 @@ pub extern "C" fn new() {
                                 }
                             }
                         };
+                        let __field6 = match __field6 {
+                            _serde::__private::Some(__field6) => __field6,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field(
+                                    "whitelist_mode",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
                         _serde::__private::Ok(Input {
                             eth_bridge_contract: __field0,
                             prover_account: __field1,
@@ -14731,6 +15687,7 @@ pub extern "C" fn new() {
                             lock_time_min: __field3,
                             lock_time_max: __field4,
                             eth_block_time: __field5,
+                            whitelist_mode: __field6,
                         })
                     }
                 }
@@ -14741,6 +15698,7 @@ pub extern "C" fn new() {
                     "lock_time_min",
                     "lock_time_max",
                     "eth_block_time",
+                    "whitelist_mode",
                 ];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -14761,6 +15719,7 @@ pub extern "C" fn new() {
         lock_time_min,
         lock_time_max,
         eth_block_time,
+        whitelist_mode,
     }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
@@ -14775,9 +15734,17 @@ pub extern "C" fn new() {
         lock_time_min,
         lock_time_max,
         eth_block_time,
+        whitelist_mode,
     );
     near_sdk::env::state_write(&contract);
 }
+/// Initializes a token transfer from NEAR to Ethereum using the provided `TransferMessage`.
+///
+/// This function is called by the NEAR Fast Bridge contract to initiate a token transfer to Ethereum. The `msg` parameter is a `Base64VecU8` containing the encoded `TransferMessage`. The function decodes the `msg` parameter, checks its validity, and then calls `init_transfer_internal` to initiate the token transfer.
+///
+/// # Arguments
+///
+/// * `msg` -- the encoded `TransferMessage` in borsh Base64 format. It contains details about the transaction - `token`, `fee_token`, `amount`, `recipient`, etc.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn init_transfer() {
@@ -15000,6 +15967,25 @@ pub extern "C" fn init_transfer() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// This function finalizes the execution flow of the `init_transfer()` function. This function
+/// is called from the `Eth2Client` contract after extracting the last Ethereum block number on Near.
+/// This function validates the transfer message and decreases the token transfer balance and fee
+/// balance for the sender. If an `update_balance` is provided, it increases the sender's balance
+/// accordingly and emits a `FastBridgeDepositEvent`. It then stores the transfer and emits a
+/// `FastBridgeInitTransferEvent` with the `nonce`, `sender_id`, and `transfer_message`.
+///
+/// # Arguments
+///
+/// * `last_block_height` -- the last Ethereum block height in LightClient on Near.
+///
+/// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc.
+///    The `TransferMessage` is deserialized from a Borsh-encoded string.
+///
+/// * `sender_id` -- the account which initiates this transfer.
+///    The `AccountId` is deserialized from a Borsh-encoded string.
+///
+/// * `update_balance` -- balance update in case the transfer of tokens and initialization of the transfer
+///    happen in one transaction. The `UpdateBalance` is deserialized from a Borsh-encoded string.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn init_transfer_callback() {
@@ -15054,6 +16040,18 @@ pub extern "C" fn init_transfer_callback() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+/// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
+/// didn't happen and its validity time is already expired.
+/// The function could be executed successfully only if called either by the original creator of the transfer
+/// or by the account that has the `UnrestrictedUnlock` role.
+///
+/// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
+///
+/// # Arguments
+///
+/// * `nonce` - A unique identifier of the transfer.
+/// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock() {
@@ -15061,6 +16059,7 @@ pub extern "C" fn unlock() {
     #[serde(crate = "near_sdk::serde")]
     struct Input {
         nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -15077,6 +16076,7 @@ pub extern "C" fn unlock() {
                 #[allow(non_camel_case_types)]
                 enum __Field {
                     __field0,
+                    __field1,
                     __ignore,
                 }
                 struct __FieldVisitor;
@@ -15100,6 +16100,7 @@ pub extern "C" fn unlock() {
                     {
                         match __value {
                             0u64 => _serde::__private::Ok(__Field::__field0),
+                            1u64 => _serde::__private::Ok(__Field::__field1),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -15112,6 +16113,7 @@ pub extern "C" fn unlock() {
                     {
                         match __value {
                             "nonce" => _serde::__private::Ok(__Field::__field0),
+                            "proof" => _serde::__private::Ok(__Field::__field1),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -15124,6 +16126,7 @@ pub extern "C" fn unlock() {
                     {
                         match __value {
                             b"nonce" => _serde::__private::Ok(__Field::__field0),
+                            b"proof" => _serde::__private::Ok(__Field::__field1),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -15178,12 +16181,33 @@ pub extern "C" fn unlock() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 1 element",
+                                        &"struct Input with 2 elements",
                                     ),
                                 );
                             }
                         };
-                        _serde::__private::Ok(Input { nonce: __field0 })
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
+                            near_sdk::json_types::Base64VecU8,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        1usize,
+                                        &"struct Input with 2 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                        })
                     }
                     #[inline]
                     fn visit_map<__A>(
@@ -15194,6 +16218,9 @@ pub extern "C" fn unlock() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<
+                            near_sdk::json_types::Base64VecU8,
+                        > = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -15213,6 +16240,23 @@ pub extern "C" fn unlock() {
                                     __field0 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
                                             U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field1 => {
+                                    if _serde::__private::Option::is_some(&__field1) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("proof"),
+                                        );
+                                    }
+                                    __field1 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            near_sdk::json_types::Base64VecU8,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -15244,10 +16288,24 @@ pub extern "C" fn unlock() {
                                 }
                             }
                         };
-                        _serde::__private::Ok(Input { nonce: __field0 })
+                        let __field1 = match __field1 {
+                            _serde::__private::Some(__field1) => __field1,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("proof") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                        })
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["nonce"];
+                const FIELDS: &'static [&'static str] = &["nonce", "proof"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -15260,16 +16318,36 @@ pub extern "C" fn unlock() {
             }
         }
     };
-    let Input { nonce }: Input = near_sdk::serde_json::from_slice(
+    let Input { nonce, proof }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.unlock(nonce);
+    let result = contract.unlock(nonce, proof);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// This function finalizes the execution flow of the `unlock()` function. This function
+/// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
+/// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate
+/// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
+/// with the details of the unlocked transfer.
+///
+/// This function is only intended for internal use and should not be called directly by external accounts.
+///
+/// # Arguments
+///
+/// * `verification_result` - A boolean value indicating whether the proof verification was
+///   successful.
+/// * `nonce` - The nonce of the transfer to be unlocked.
+/// * `sender_id` - The account ID of the sender that initiated the unlock request.
+///
+/// # Panics
+///
+/// This function panics if the transfer specified by the nonce is not found; if the sender ID
+/// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
+/// or if the verification of the unlock proof fails.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock_callback() {
@@ -15306,12 +16384,30 @@ pub extern "C" fn unlock_callback() {
         near_sdk::PromiseResult::Successful(x) => x,
         _ => near_sdk::env::panic_str("Callback computation 0 was not successful"),
     };
-    let last_block_height: u64 = near_sdk::borsh::BorshDeserialize::try_from_slice(&data)
+    let verification_result: bool = near_sdk::borsh::BorshDeserialize::try_from_slice(
+            &data,
+        )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.unlock_callback(last_block_height, nonce, sender_id);
+    contract.unlock_callback(verification_result, nonce, sender_id);
     near_sdk::env::state_write(&contract);
 }
+/// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
+/// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
+/// from the proof of the transfer event.
+///
+/// # Arguments
+///
+/// * `proof` - A `Proof` for the event of the successful transfer on the Ethereum side.
+///
+/// # Returns
+///
+/// A promise that resolves when the proof has been successfully verified.
+///
+/// # Panics
+///
+/// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
+/// match the expected Fast Bridge contract's address stored in the contract state.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn lp_unlock() {
@@ -15532,6 +16628,24 @@ pub extern "C" fn lp_unlock() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
+///
+/// This function is called from the `EthProver` contract after the proof verification.
+/// If the verification is successful, the function checks if the transfer is valid and if so, executes
+/// the transfer on NEAR by increasing the balance of the recipient's account.
+/// It also emits a `FastBridgeLpUnlockEvent` event to signal that a transfer was successfully executed.
+///
+/// This function is only intended for internal use and should not be called directly by external accounts.
+///
+/// # Arguments
+///
+/// * `verification_success`: a boolean value indicating whether the verification of the event log entry was successful.
+/// * `proof`: an `EthTransferEvent` object containing the data of the transfer.
+///
+/// # Panics
+///
+/// This function will panic if it cannot find a pending transfer with the given nonce or if any of the checks
+/// on the transfer data fail.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn verify_log_entry_callback() {
@@ -15575,6 +16689,19 @@ pub extern "C" fn verify_log_entry_callback() {
     contract.verify_log_entry_callback(verification_success, proof);
     near_sdk::env::state_write(&contract);
 }
+/// Gets the user balance of the specified token in this contract. These tokens can be immediately withdrawn.
+/// # Arguments
+///
+/// * `account_id` - The account ID for which to retrieve the balance.
+/// * `token_id` - The token ID for which to retrieve the balance.
+///
+/// # Panics
+///
+/// If the user does not have any balance for the specified token, or if the specified user account does not exist.
+///
+/// # Returns
+///
+/// The balance of the specified token for the specified account.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_user_balance() {
@@ -15853,6 +16980,25 @@ pub extern "C" fn get_user_balance() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Withdraws the specified `amount` of tokens from the provided token account ID from the balance of the caller.
+///
+/// # Arguments
+///
+///
+/// * `token_id` - an `AccountId` representing the token ID to withdraw from.
+/// * `amount` - an optional `U128` representing the amount to withdraw. If `None` is provided, the entire balance of the caller will be withdrawn.
+///
+/// # Returns
+///
+/// A `PromiseOrValue<U128>` indicating the result of the withdrawal operation.
+///
+/// # Panics
+///
+/// The function will panic if:
+///
+/// * The specified `amount` is not a positive number.
+/// * The balance of the caller is insufficient.
+/// * The caller does not have any balance.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn withdraw() {
@@ -15860,7 +17006,7 @@ pub extern "C" fn withdraw() {
     #[serde(crate = "near_sdk::serde")]
     struct Input {
         token_id: AccountId,
-        amount: U128,
+        amount: Option<U128>,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -15988,7 +17134,7 @@ pub extern "C" fn withdraw() {
                             }
                         };
                         let __field1 = match match _serde::de::SeqAccess::next_element::<
-                            U128,
+                            Option<U128>,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -16019,7 +17165,7 @@ pub extern "C" fn withdraw() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<Option<U128>> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -16057,7 +17203,7 @@ pub extern "C" fn withdraw() {
                                     }
                                     __field1 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            U128,
+                                            Option<U128>,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -16130,6 +17276,22 @@ pub extern "C" fn withdraw() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
+/// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
+/// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
+/// to the user's balance. This function is only intended for internal use and should not be called directly by
+/// external accounts.
+///
+/// # Arguments
+///
+/// * `token_id`: An `AccountId` representing the token being withdrawn.
+/// * `amount`: A `U128` value representing the amount being withdrawn.
+/// * `recipient_id`: An `AccountId` representing the account that will receive the withdrawn funds.
+///
+/// # Returns
+///
+/// * A `U128` value representing the amount that was withdrawn, or `0` if the promise was not
+///   successful and the funds were returned to the user's balance.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn withdraw_callback() {
@@ -16144,7 +17306,7 @@ pub extern "C" fn withdraw_callback() {
     struct Input {
         token_id: AccountId,
         amount: U128,
-        sender_id: AccountId,
+        recipient_id: AccountId,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -16201,7 +17363,7 @@ pub extern "C" fn withdraw_callback() {
                         match __value {
                             "token_id" => _serde::__private::Ok(__Field::__field0),
                             "amount" => _serde::__private::Ok(__Field::__field1),
-                            "sender_id" => _serde::__private::Ok(__Field::__field2),
+                            "recipient_id" => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -16215,7 +17377,7 @@ pub extern "C" fn withdraw_callback() {
                         match __value {
                             b"token_id" => _serde::__private::Ok(__Field::__field0),
                             b"amount" => _serde::__private::Ok(__Field::__field1),
-                            b"sender_id" => _serde::__private::Ok(__Field::__field2),
+                            b"recipient_id" => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -16314,7 +17476,7 @@ pub extern "C" fn withdraw_callback() {
                         _serde::__private::Ok(Input {
                             token_id: __field0,
                             amount: __field1,
-                            sender_id: __field2,
+                            recipient_id: __field2,
                         })
                     }
                     #[inline]
@@ -16378,7 +17540,7 @@ pub extern "C" fn withdraw_callback() {
                                     if _serde::__private::Option::is_some(&__field2) {
                                         return _serde::__private::Err(
                                             <__A::Error as _serde::de::Error>::duplicate_field(
-                                                "sender_id",
+                                                "recipient_id",
                                             ),
                                         );
                                     }
@@ -16430,7 +17592,7 @@ pub extern "C" fn withdraw_callback() {
                         let __field2 = match __field2 {
                             _serde::__private::Some(__field2) => __field2,
                             _serde::__private::None => {
-                                match _serde::__private::de::missing_field("sender_id") {
+                                match _serde::__private::de::missing_field("recipient_id") {
                                     _serde::__private::Ok(__val) => __val,
                                     _serde::__private::Err(__err) => {
                                         return _serde::__private::Err(__err);
@@ -16441,14 +17603,14 @@ pub extern "C" fn withdraw_callback() {
                         _serde::__private::Ok(Input {
                             token_id: __field0,
                             amount: __field1,
-                            sender_id: __field2,
+                            recipient_id: __field2,
                         })
                     }
                 }
                 const FIELDS: &'static [&'static str] = &[
                     "token_id",
                     "amount",
-                    "sender_id",
+                    "recipient_id",
                 ];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -16462,14 +17624,21 @@ pub extern "C" fn withdraw_callback() {
             }
         }
     };
-    let Input { token_id, amount, sender_id }: Input = near_sdk::serde_json::from_slice(
+    let Input { token_id, amount, recipient_id }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.withdraw_callback(token_id, amount, sender_id);
+    let result = contract.withdraw_callback(token_id, amount, recipient_id);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
+/// The function is allowed to be called only by accounts that have `ConfigManager` role.
+/// # Arguments
+/// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn set_prover_account() {
@@ -16691,16 +17860,26 @@ pub extern "C" fn set_prover_account() {
     contract.set_prover_account(prover_account);
     near_sdk::env::state_write(&contract);
 }
+/// Sets the Ethereum Fast Bridge contract address.
+///
+/// Note, This address is further used for the verification of operations that utilize the Ethereum proofs.
+/// This is needed so the contract is able to check that proofs originate from the specified address.
+///
+/// # Arguments
+///
+/// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-pub extern "C" fn set_enear_address() {
+pub extern "C" fn set_eth_bridge_contract_address() {
     near_sdk::env::setup_panic_hook();
     if near_sdk::env::attached_deposit() != 0 {
-        near_sdk::env::panic_str("Method set_enear_address doesn't accept deposit");
+        near_sdk::env::panic_str(
+            "Method set_eth_bridge_contract_address doesn't accept deposit",
+        );
     }
     #[serde(crate = "near_sdk::serde")]
     struct Input {
-        near_address: String,
+        address: String,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -16751,7 +17930,7 @@ pub extern "C" fn set_enear_address() {
                         __E: _serde::de::Error,
                     {
                         match __value {
-                            "near_address" => _serde::__private::Ok(__Field::__field0),
+                            "address" => _serde::__private::Ok(__Field::__field0),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -16763,7 +17942,7 @@ pub extern "C" fn set_enear_address() {
                         __E: _serde::de::Error,
                     {
                         match __value {
-                            b"near_address" => _serde::__private::Ok(__Field::__field0),
+                            b"address" => _serde::__private::Ok(__Field::__field0),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -16823,7 +18002,7 @@ pub extern "C" fn set_enear_address() {
                                 );
                             }
                         };
-                        _serde::__private::Ok(Input { near_address: __field0 })
+                        _serde::__private::Ok(Input { address: __field0 })
                     }
                     #[inline]
                     fn visit_map<__A>(
@@ -16848,7 +18027,7 @@ pub extern "C" fn set_enear_address() {
                                     if _serde::__private::Option::is_some(&__field0) {
                                         return _serde::__private::Err(
                                             <__A::Error as _serde::de::Error>::duplicate_field(
-                                                "near_address",
+                                                "address",
                                             ),
                                         );
                                     }
@@ -16878,7 +18057,7 @@ pub extern "C" fn set_enear_address() {
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                match _serde::__private::de::missing_field("near_address") {
+                                match _serde::__private::de::missing_field("address") {
                                     _serde::__private::Ok(__val) => __val,
                                     _serde::__private::Err(__err) => {
                                         return _serde::__private::Err(__err);
@@ -16886,10 +18065,10 @@ pub extern "C" fn set_enear_address() {
                                 }
                             }
                         };
-                        _serde::__private::Ok(Input { near_address: __field0 })
+                        _serde::__private::Ok(Input { address: __field0 })
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["near_address"];
+                const FIELDS: &'static [&'static str] = &["address"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -16902,14 +18081,15 @@ pub extern "C" fn set_enear_address() {
             }
         }
     };
-    let Input { near_address }: Input = near_sdk::serde_json::from_slice(
+    let Input { address }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.set_enear_address(near_address);
+    contract.set_eth_bridge_contract_address(address);
     near_sdk::env::state_write(&contract);
 }
+/// Gets the minimum and maximum possible time for the tokens lock period.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_lock_duration() {
@@ -16920,6 +18100,16 @@ pub extern "C" fn get_lock_duration() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Gets the amount of currently locked tokens in the contract for the specified `token_id`.
+/// If the account has no pending balance, 0 is returned. The fee is not counted.
+///
+/// # Arguments
+///
+/// * `token_id` - An account identifier for a token contract.
+///
+/// # Returns
+///
+/// The pending balance for the specified token account, or 0 if there is no pending balance.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_pending_balance() {
@@ -17138,6 +18328,22 @@ pub extern "C" fn get_pending_balance() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Returns a vector of pending transfers with their associated IDs.
+///
+/// The vector contains a tuple for each pending transfer, where the first element is the
+/// transfer ID as a string, and the second element is another tuple containing the recipient's
+/// account ID and the transfer message. The function starts at the specified `from_index` and
+/// returns a maximum of `limit` transfers.
+///
+/// # Arguments
+///
+/// * `from_index` - The index at which to start retrieving the pending transfers.
+/// * `limit` - The maximum number of transfers to retrieve.
+///
+/// # Returns
+///
+/// A vector of tuples, where the first element is a transfer ID and the second element is a tuple
+/// containing the recipient's account ID and the transfer message.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_pending_transfers() {
@@ -17414,6 +18620,16 @@ pub extern "C" fn get_pending_transfers() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Gets the pending transfer details for the given transfer ID.
+///
+/// # Arguments
+///
+/// * `id` - A string representing the transfer ID (nonce).
+///
+/// # Returns
+///
+/// Returns an `Option` containing the account ID and transfer message if the transfer ID exists in
+/// the pending transfers list, or `None` otherwise.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn get_pending_transfer() {
@@ -17630,6 +18846,19 @@ pub extern "C" fn get_pending_transfer() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Sets the lock time for the contract.
+///
+/// The function is allowed to be called only by accounts that have `ConfigManager` role.
+///
+/// # Arguments
+///
+/// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+/// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+///
+/// # Panics
+///
+/// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
+///
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn set_lock_time() {

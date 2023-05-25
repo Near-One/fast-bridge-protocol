@@ -7,17 +7,17 @@
       "inputs": [
         {
           "internalType": "uint8",
-          "name": "decimals",
+          "name": "_decimals",
           "type": "uint8"
         },
         {
           "internalType": "string",
-          "name": "name",
+          "name": "_name",
           "type": "string"
         },
         {
           "internalType": "string",
-          "name": "symbol",
+          "name": "_symbol",
           "type": "string"
         }
       ],

@@ -24,6 +24,9 @@ near-plugins-derive = { git = "https://github.com/aurora-is-near/near-plugins", 
 [dev-dependencies]
 uint = { version = "0.8.3", default-features = false }
 tiny-keccak = "1.4.0"
+workspaces = "0.7"
+anyhow = "^1.0"
+tokio = { version = "^1.19.0", features = ["full"] }
 
 [features]
 default = ["disable_different_fee_token"]

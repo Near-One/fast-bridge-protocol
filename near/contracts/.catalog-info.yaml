@@ -20,3 +20,5 @@ spec:
   type: contract
   lifecycle: production
   system: spectre-bridge
+  deployedAt:
+    - contract:near/mainnet/fast.bridge.near

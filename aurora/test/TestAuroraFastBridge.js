@@ -32,7 +32,7 @@ describe("Aurora Fast Bridge", function () {
         const nearConnection = await connect(connectionConfig);
 
         let keyPair = await myKeyStore.getKey(connectionConfig.networkId, near_fast_bridge_account_str);
-        if (keyPair === undefined) {
+        if (keyPair === null) {
             keyPair = KeyPair.fromRandom("ed25519");
             await myKeyStore.setKey(connectionConfig.networkId, near_fast_bridge_account_str, keyPair);
         }
@@ -61,7 +61,8 @@ describe("Aurora Fast Bridge", function () {
             eth_client_account: "client-eth2.goerli.testnet",
             lock_time_min: "1s",
             lock_time_max: "24h",
-            eth_block_time: 12000000000
+            eth_block_time: 12000000000,
+            whitelist_mode: true
         }, gas: "300000000000000"});
 
         await near_fast_bridge_contract.acl_grant_role({
@@ -131,6 +132,11 @@ describe("Aurora Fast Bridge", function () {
         await sleep(20000);
         const balance_after_init_transfer = await usdc.balanceOf(deployerWallet.address);
         expect(balance_before - balance_after_init_transfer).to.equals(200);
+
+        await fastbridge.withdraw(NEAR_TOKEN_ADDRESS, options);
+        await sleep(20000);
+        const balance_after_withdraw = await usdc.balanceOf(deployerWallet.address);
+        expect(balance_after_init_transfer).to.equals(balance_after_withdraw);
 
         await sleep(100000);
 

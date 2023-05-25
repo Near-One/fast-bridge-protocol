@@ -23,6 +23,9 @@ mod lp_relayer;
 mod utils;
 mod whitelist;
 
+#[cfg(test)]
+mod tests;
+
 pub const NO_DEPOSIT: u128 = 0;
 
 #[ext_contract(ext_prover)]
@@ -38,6 +41,21 @@ pub trait Prover {
         #[serializer(borsh)] proof: Vec<Vec<u8>>,
         #[serializer(borsh)] skip_bridge_call: bool,
     ) -> bool;
+
+    #[result_serializer(borsh)]
+    fn verify_storage_proof(
+        &self,
+        #[serializer(borsh)] header_data: Vec<u8>,
+        #[serializer(borsh)] account_proof: Vec<Vec<u8>>, // account proof
+        #[serializer(borsh)] contract_address: Vec<u8>,   // eth address
+        #[serializer(borsh)] account_state: Vec<u8>,      // rlp encoded account state
+        #[serializer(borsh)] storage_key_hash: Vec<u8>,   // keccak256 of storage key
+        #[serializer(borsh)] storage_proof: Vec<Vec<u8>>, // storage proof
+        #[serializer(borsh)] value: Vec<u8>,              // storage value
+        #[serializer(borsh)] min_header_height: Option<u64>,
+        #[serializer(borsh)] max_header_height: Option<u64>,
+        #[serializer(borsh)] skip_bridge_call: bool,
+    ) -> PromiseOrValue<bool>;
 }
 
 #[ext_contract(ext_eth_client)]
@@ -62,9 +80,12 @@ trait FastBridgeInterface {
         #[serializer(borsh)] proof: EthTransferEvent,
     ) -> Promise;
     fn unlock_callback(
-        &self,
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] recipient_id: AccountId,
+        #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] aurora_sender: Option<EthAddress>,
     );
     fn init_transfer_callback(
@@ -73,6 +94,16 @@ trait FastBridgeInterface {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> PromiseOrValue<U128>;
+}
+
+#[derive(
+    Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize, PartialEq,
+)]
+pub struct UnlockProof {
+    header_data: Vec<u8>,
+    account_proof: Vec<Vec<u8>>,
+    account_data: Vec<u8>,
+    storage_proof: Vec<Vec<u8>>,
 }
 
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Debug, Clone)]
@@ -148,9 +179,8 @@ impl FastBridge {
         lock_time_min: String,
         lock_time_max: String,
         eth_block_time: Duration,
+        whitelist_mode: bool,
     ) -> Self {
-        require!(!env::state_exists(), "Already initialized");
-
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
             .as_nanos()
@@ -182,7 +212,7 @@ impl FastBridge {
             eth_block_time,
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
-            is_whitelist_mode_enabled: true,
+            is_whitelist_mode_enabled: whitelist_mode,
             __acl: Default::default(),
         };
 
@@ -193,6 +223,13 @@ impl FastBridge {
         contract
     }
 
+    /// Initializes a token transfer from NEAR to Ethereum using the provided `TransferMessage`.
+    ///
+    /// This function is called by the NEAR Fast Bridge contract to initiate a token transfer to Ethereum. The `msg` parameter is a `Base64VecU8` containing the encoded `TransferMessage`. The function decodes the `msg` parameter, checks its validity, and then calls `init_transfer_internal` to initiate the token transfer.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg` -- the encoded `TransferMessage` in borsh Base64 format. It contains details about the transaction - `token`, `fee_token`, `amount`, `recipient`, etc.
     #[pause]
     pub fn init_transfer(
         &mut self,
@@ -221,6 +258,25 @@ impl FastBridge {
             )
     }
 
+    /// This function finalizes the execution flow of the `init_transfer()` function. This function
+    /// is called from the `Eth2Client` contract after extracting the last Ethereum block number on Near.
+    /// This function validates the transfer message and decreases the token transfer balance and fee
+    /// balance for the sender. If an `update_balance` is provided, it increases the sender's balance
+    /// accordingly and emits a `FastBridgeDepositEvent`. It then stores the transfer and emits a
+    /// `FastBridgeInitTransferEvent` with the `nonce`, `sender_id`, and `transfer_message`.
+    ///
+    /// # Arguments
+    ///
+    /// * `last_block_height` -- the last Ethereum block height in LightClient on Near.
+    ///
+    /// * `transfer_message` -- the details about the transaction: token, fee token, amount, recipient, etc.
+    ///    The `TransferMessage` is deserialized from a Borsh-encoded string.
+    ///
+    /// * `sender_id` -- the account which initiates this transfer.
+    ///    The `AccountId` is deserialized from a Borsh-encoded string.
+    ///
+    /// * `update_balance` -- balance update in case the transfer of tokens and initialization of the transfer
+    ///    happen in one transaction. The `UpdateBalance` is deserialized from a Borsh-encoded string.
     #[private]
     pub fn init_transfer_callback(
         &mut self,
@@ -235,6 +291,11 @@ impl FastBridge {
         require!(
             transfer_message.fee.token == transfer_message.transfer.token_near,
             "The fee token does not match the transfer token"
+        );
+
+        require!(
+            transfer_message.transfer.token_eth != transfer_message.recipient,
+            "The eth token address and recipient address can't be the same"
         );
 
         if let Some(update_balance) = update_balance.as_ref() {
@@ -269,14 +330,14 @@ impl FastBridge {
             });
 
         require!(
-            token_transfer_balance >= u128::from(transfer_message.transfer.amount),
+            token_transfer_balance >= transfer_message.transfer.amount.0,
             "Not enough transfer token balance."
         );
 
         self.decrease_balance(
             &sender_id,
             &transfer_message.transfer.token_near,
-            &u128::from(transfer_message.transfer.amount),
+            &transfer_message.transfer.amount.0,
         );
 
         let token_fee_balance = user_token_balance
@@ -289,14 +350,14 @@ impl FastBridge {
             });
 
         require!(
-            token_fee_balance >= u128::from(transfer_message.fee.amount),
+            token_fee_balance >= transfer_message.fee.amount.0,
             "Not enough fee token balance."
         );
 
         self.decrease_balance(
             &sender_id,
             &transfer_message.fee.token,
-            &u128::from(transfer_message.fee.amount),
+            &transfer_message.fee.amount.0,
         );
 
         let nonce = U128::from(self.store_transfers(sender_id.clone(), transfer_message.clone()));
@@ -320,44 +381,97 @@ impl FastBridge {
         U128::from(0)
     }
 
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function could be executed successfully only if called either by the original creator of the transfer
+    /// or by the account that has the `UnrestrictedUnlock` role.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(&self, nonce: U128, aurora_sender: Option<String>) -> Promise {
+    pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8, aurora_sender: Option<String>) -> Promise {
         let aurora_sender: Option<EthAddress> = match aurora_sender {
             Some(aurora_str) => Some(get_eth_address(aurora_str)),
             None => None,
         };
 
-        ext_eth_client::ext(self.eth_client_account.clone())
-            .with_static_gas(utils::tera_gas(5))
-            .last_block_number()
-            .then(
-                ext_self::ext(env::current_account_id())
+        let proof = UnlockProof::try_from_slice(&proof.0)
+            .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `UnlockProof`"));
+
+        let (_recipient_id, transfer_data) = self
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+
+        let storage_key_hash = utils::get_eth_storage_key_hash(
+            transfer_data.transfer.token_eth,
+            transfer_data.recipient,
+            eth_types::U256(nonce.0.into()),
+            eth_types::U256(transfer_data.transfer.amount.0.into()),
+        );
+
+        let expected_storage_value = vec![];
+
+        ext_prover::ext(self.prover_account.clone())
+            .with_static_gas(utils::tera_gas(50))
+            .with_attached_deposit(utils::NO_DEPOSIT)
+            .verify_storage_proof(
+                proof.header_data,
+                proof.account_proof,
+                self.eth_bridge_contract.0.to_vec(),
+                proof.account_data,
+                storage_key_hash,
+                proof.storage_proof,
+                expected_storage_value,
+                transfer_data.valid_till_block_height,
+                None,
+                false,
+            ).then(
+                ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_callback(nonce, env::predecessor_account_id(), aurora_sender),
             )
     }
 
+    /// This function finalizes the execution flow of the `unlock()` function. This function
+    /// is called as a callback from the `EthProver` contract after the `proof` of the non-existence
+    /// of the transfer has been verified. It unlocks the transfer specified by the nonce, returns the appropriate
+    /// amount of locked tokens to the transfer creator, and emits a `FastBridgeUnlockEvent`
+    /// with the details of the unlocked transfer.
+    ///
+    /// This function is only intended for internal use and should not be called directly by external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification_result` - A boolean value indicating whether the proof verification was
+    ///   successful.
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `sender_id` - The account ID of the sender that initiated the unlock request.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
+    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
+    /// or if the verification of the unlock proof fails.
     #[private]
     #[result_serializer(borsh)]
     pub fn unlock_callback(
         &mut self,
         #[callback]
         #[serializer(borsh)]
-        last_block_height: u64,
+        verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] aurora_sender: Option<EthAddress>,
     ) -> TransferMessage {
-        let transaction_id = utils::get_transaction_id(u128::try_from(nonce).unwrap());
         let (recipient_id, transfer_data) = self
-            .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Transaction with id: {} not found",
-                    &transaction_id.to_string()
-                )
-            });
+            .get_pending_transfer(nonce.0.to_string())
+            .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
 
         require!(aurora_sender == transfer_data.aurora_sender,
                  format!("Aurora sender({:?}) in unlock arg is unequal to the aurora sender({:?}) in transfer data.",
@@ -376,25 +490,21 @@ impl FastBridge {
         );
 
         require!(
-            last_block_height > transfer_data.valid_till_block_height.unwrap(),
-            format!(
-                "Minimum allowed block height is {}, but current client's block height is {}",
-                transfer_data.valid_till_block_height.unwrap(),
-                last_block_height
-            )
+            verification_result,
+            format!("Verification failed for unlock proof")
         );
 
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce.0.to_string(), &transfer_data);
 
         Event::FastBridgeUnlockEvent {
             nonce,
@@ -406,6 +516,22 @@ impl FastBridge {
         transfer_data
     }
 
+    /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
+    /// from the proof of the transfer event.
+    ///
+    /// # Arguments
+    ///
+    /// * `proof` - A `Proof` for the event of the successful transfer on the Ethereum side.
+    ///
+    /// # Returns
+    ///
+    /// A promise that resolves when the proof has been successfully verified.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the Ethereum Fast Bridge contract address in the provided proof does not
+    /// match the expected Fast Bridge contract's address stored in the contract state.
     #[pause(except(roles(Role::UnrestrictedLpUnlock)))]
     pub fn lp_unlock(&mut self, proof: Proof) -> Promise {
         let parsed_proof = lp_relayer::EthTransferEvent::parse(proof.clone());
@@ -437,6 +563,24 @@ impl FastBridge {
             )
     }
 
+    /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
+    ///
+    /// This function is called from the `EthProver` contract after the proof verification.
+    /// If the verification is successful, the function checks if the transfer is valid and if so, executes
+    /// the transfer on NEAR by increasing the balance of the recipient's account.
+    /// It also emits a `FastBridgeLpUnlockEvent` event to signal that a transfer was successfully executed.
+    ///
+    /// This function is only intended for internal use and should not be called directly by external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `verification_success`: a boolean value indicating whether the verification of the event log entry was successful.
+    /// * `proof`: an `EthTransferEvent` object containing the data of the transfer.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if it cannot find a pending transfer with the given nonce or if any of the checks
+    /// on the transfer data fail.
     #[private]
     pub fn verify_log_entry_callback(
         &mut self,
@@ -447,17 +591,12 @@ impl FastBridge {
     ) {
         require!(verification_success, "Failed to verify the proof");
 
-        let transaction_id = utils::get_transaction_id(proof.nonce);
+        let nonce_str = proof.nonce.to_string();
 
         let transfer = self
             .pending_transfers
-            .get(&transaction_id)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Transaction with id: {} not found",
-                    &transaction_id.to_string()
-                )
-            });
+            .get(&nonce_str)
+            .unwrap_or_else(|| panic!("Transaction with id: {} not found", &nonce_str));
         let transfer_data = transfer.1;
 
         require!(
@@ -488,14 +627,14 @@ impl FastBridge {
         self.increase_balance(
             &recipient_id,
             &transfer_data.transfer.token_near,
-            &u128::from(transfer_data.transfer.amount),
+            &transfer_data.transfer.amount.0,
         );
         self.increase_balance(
             &recipient_id,
             &transfer_data.fee.token,
-            &u128::from(transfer_data.fee.amount),
+            &transfer_data.fee.amount.0,
         );
-        self.remove_transfer(&transaction_id, &transfer_data);
+        self.remove_transfer(&nonce_str, &transfer_data);
 
         Event::FastBridgeLpUnlockEvent {
             nonce: U128(proof.nonce),
@@ -505,7 +644,20 @@ impl FastBridge {
         .emit();
     }
 
-    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> u128 {
+    /// Gets the user balance of the specified token in this contract. These tokens can be immediately withdrawn.
+    /// # Arguments
+    ///
+    /// * `account_id` - The account ID for which to retrieve the balance.
+    /// * `token_id` - The token ID for which to retrieve the balance.
+    ///
+    /// # Panics
+    ///
+    /// If the user does not have any balance for the specified token, or if the specified user account does not exist.
+    ///
+    /// # Returns
+    ///
+    /// The balance of the specified token for the specified account.
+    pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
         let user_balance = self
             .user_balances
             .get(account_id)
@@ -514,6 +666,7 @@ impl FastBridge {
         user_balance
             .get(token_id)
             .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
+            .into()
     }
 
     fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
@@ -579,10 +732,9 @@ impl FastBridge {
             .insert(&transfer_message.transfer.token_near, &new_balance);
 
         self.nonce += 1;
-        let transaction_id = utils::get_transaction_id(self.nonce);
         let account_pending = (sender_id, transfer_message);
         self.pending_transfers
-            .insert(&transaction_id, &account_pending);
+            .insert(&self.nonce.to_string(), &account_pending);
         self.nonce
     }
 
@@ -599,19 +751,41 @@ impl FastBridge {
         self.pending_transfers.remove(transfer_id);
     }
 
+    /// Withdraws the specified `amount` of tokens from the provided token account ID from the balance of the caller.
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// * `token_id` - an `AccountId` representing the token ID to withdraw from.
+    /// * `amount` - an optional `U128` representing the amount to withdraw. If `None` is provided, the entire balance of the caller will be withdrawn.
+    ///
+    /// # Returns
+    ///
+    /// A `PromiseOrValue<U128>` indicating the result of the withdrawal operation.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if:
+    ///
+    /// * The specified `amount` is not a positive number.
+    /// * The balance of the caller is insufficient.
+    /// * The caller does not have any balance.
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
-    pub fn withdraw(&mut self, token_id: AccountId, amount: U128) -> Promise {
-        let receiver_id = env::predecessor_account_id();
-        let balance = self.get_user_balance(&receiver_id, &token_id);
+    pub fn withdraw(&mut self, token_id: AccountId, amount: Option<U128>) -> PromiseOrValue<U128> {
+        let recipient_id = env::predecessor_account_id();
+        let user_balance = self.get_user_balance(&recipient_id, &token_id);
+        let amount = amount.unwrap_or(user_balance);
 
-        require!(balance >= amount.into(), "Not enough token balance");
+        require!(amount.0 > 0, "The amount should be a positive number");
+        require!(amount <= user_balance, "Insufficient user balance");
+        self.decrease_balance(&recipient_id, &token_id, &amount.0);
 
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
             .ft_transfer(
-                receiver_id.clone(),
+                recipient_id.clone(),
                 amount,
                 Some(format!(
                     "Withdraw from: {} amount: {}",
@@ -623,46 +797,105 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, receiver_id),
+                    .withdraw_callback(token_id, amount, recipient_id),
             )
+            .into()
     }
 
+    /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
+    /// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
+    /// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
+    /// to the user's balance. This function is only intended for internal use and should not be called directly by
+    /// external accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id`: An `AccountId` representing the token being withdrawn.
+    /// * `amount`: A `U128` value representing the amount being withdrawn.
+    /// * `recipient_id`: An `AccountId` representing the account that will receive the withdrawn funds.
+    ///
+    /// # Returns
+    ///
+    /// * A `U128` value representing the amount that was withdrawn, or `0` if the promise was not
+    ///   successful and the funds were returned to the user's balance.
     #[private]
-    pub fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId) {
-        require!(is_promise_success(), "Error transfer");
-
-        self.decrease_balance(&sender_id, &token_id, &u128::try_from(amount).unwrap());
-
-        Event::FastBridgeWithdrawEvent {
-            recipient_id: sender_id,
-            token: token_id,
-            amount,
+    pub fn withdraw_callback(
+        &mut self,
+        token_id: AccountId,
+        amount: U128,
+        recipient_id: AccountId,
+    ) -> U128 {
+        if is_promise_success() {
+            Event::FastBridgeWithdrawEvent {
+                recipient_id,
+                token: token_id,
+                amount,
+            }
+            .emit();
+            amount
+        } else {
+            self.increase_balance(&recipient_id, &token_id, &amount.0);
+            U128(0)
         }
-        .emit();
     }
 
+    /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// # Arguments
+    /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
     #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
     }
 
+    /// Sets the Ethereum Fast Bridge contract address.
+    ///
+    /// Note, This address is further used for the verification of operations that utilize the Ethereum proofs.
+    /// This is needed so the contract is able to check that proofs originate from the specified address.
+    ///
+    /// # Arguments
+    ///
+    /// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
     #[access_control_any(roles(Role::ConfigManager))]
-    pub fn set_enear_address(&mut self, near_address: String) {
-        require!(
-            utils::is_valid_eth_address(near_address.clone()),
-            format!("Ethereum address:{} not valid.", near_address)
-        );
-        self.eth_bridge_contract = fast_bridge_common::get_eth_address(near_address);
+    pub fn set_eth_bridge_contract_address(&mut self, address: String) {
+        self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
 
+    /// Gets the minimum and maximum possible time for the tokens lock period.
     pub fn get_lock_duration(self) -> LockDuration {
         self.lock_duration
     }
 
+    /// Gets the amount of currently locked tokens in the contract for the specified `token_id`.
+    /// If the account has no pending balance, 0 is returned. The fee is not counted.
+    ///
+    /// # Arguments
+    ///
+    /// * `token_id` - An account identifier for a token contract.
+    ///
+    /// # Returns
+    ///
+    /// The pending balance for the specified token account, or 0 if there is no pending balance.
     pub fn get_pending_balance(&self, token_id: AccountId) -> u128 {
         self.pending_transfers_balances.get(&token_id).unwrap_or(0)
     }
 
+    /// Returns a vector of pending transfers with their associated IDs.
+    ///
+    /// The vector contains a tuple for each pending transfer, where the first element is the
+    /// transfer ID as a string, and the second element is another tuple containing the recipient's
+    /// account ID and the transfer message. The function starts at the specified `from_index` and
+    /// returns a maximum of `limit` transfers.
+    ///
+    /// # Arguments
+    ///
+    /// * `from_index` - The index at which to start retrieving the pending transfers.
+    /// * `limit` - The maximum number of transfers to retrieve.
+    ///
+    /// # Returns
+    ///
+    /// A vector of tuples, where the first element is a transfer ID and the second element is a tuple
+    /// containing the recipient's account ID and the transfer message.
     pub fn get_pending_transfers(
         &self,
         from_index: usize,
@@ -675,10 +908,33 @@ impl FastBridge {
             .collect::<Vec<_>>()
     }
 
+    /// Gets the pending transfer details for the given transfer ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - A string representing the transfer ID (nonce).
+    ///
+    /// # Returns
+    ///
+    /// Returns an `Option` containing the account ID and transfer message if the transfer ID exists in
+    /// the pending transfers list, or `None` otherwise.
     pub fn get_pending_transfer(&self, id: String) -> Option<(AccountId, TransferMessage)> {
         self.pending_transfers.get(&id)
     }
 
+    /// Sets the lock time for the contract.
+    ///
+    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    /// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
+    ///
     #[access_control_any(roles(Role::ConfigManager))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
@@ -692,6 +948,11 @@ impl FastBridge {
             .try_into()
             .unwrap();
 
+        require!(
+            lock_time_max > lock_time_min,
+            "Error initialize: lock_time_min must be less than lock_time_max"
+        );
+
         self.lock_duration = LockDuration {
             lock_time_min,
             lock_time_max,
@@ -700,7 +961,7 @@ impl FastBridge {
 }
 
 #[cfg(test)]
-mod tests {
+mod unit_tests {
     use super::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
     use near_sdk::env::{sha256, signer_account_id};
@@ -831,7 +1092,15 @@ mod tests {
     }
 
     fn eth_bridge_address() -> String {
-        "6b175474e89094c44da98b954eedeac495271d0f".to_string()
+        "6b175474e89094c44da98b954eedeac495271d0f".to_owned()
+    }
+
+    fn eth_token_address() -> String {
+        "71c7656ec7ab88b098defb751b7401b5f6d8976f".to_owned()
+    }
+
+    fn eth_recipient_address() -> String {
+        "8ba1f109551bd432803012645ac136ddd64dba72".to_owned()
     }
 
     fn prover() -> AccountId {
@@ -863,12 +1132,15 @@ mod tests {
         });
 
         let mut contract = FastBridge::new(
-            config.eth_bridge_contract.unwrap_or(eth_bridge_address()),
-            config.prover_account.unwrap_or(prover()),
-            config.eth_client_account.unwrap_or(eth_client()),
-            config.lock_time_min.unwrap_or("1h".to_string()),
-            config.lock_time_max.unwrap_or("24h".to_string()),
+            config
+                .eth_bridge_contract
+                .unwrap_or_else(eth_bridge_address),
+            config.prover_account.unwrap_or_else(prover),
+            config.eth_client_account.unwrap_or_else(eth_client),
+            config.lock_time_min.unwrap_or_else(|| "1h".to_string()),
+            config.lock_time_max.unwrap_or_else(|| "24h".to_string()),
             12_000_000_000,
+            true,
         );
 
         contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
@@ -876,7 +1148,7 @@ mod tests {
             "WhitelistManager".to_string(),
             "token_near".parse().unwrap(),
         );
-        for token in config.whitelisted_tokens.unwrap_or(vec![]) {
+        for token in config.whitelisted_tokens.unwrap_or_default() {
             contract.set_token_whitelist_mode(token.parse().unwrap(), WhitelistMode::CheckToken);
         }
 
@@ -919,14 +1191,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
 
         contract.ft_on_transfer(
@@ -1009,14 +1281,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+            "recipient": eth_recipient_address()
         });
 
         let transfer_message = serde_json::from_value(msg).unwrap();
@@ -1026,16 +1298,14 @@ mod tests {
             valid_till: current_timestamp,
             transfer: TransferDataEthereum {
                 token_near: AccountId::try_from("alice_near".to_string()).unwrap(),
-                token_eth: get_eth_address("71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string()),
+                token_eth: get_eth_address(eth_token_address()),
                 amount: U128(100),
             },
             fee: TransferDataNear {
                 token: AccountId::try_from("alice_near".to_string()).unwrap(),
                 amount: U128(100),
             },
-            recipient: fast_bridge_common::get_eth_address(
-                "71C7656EC7ab88b098defB751B7401B5f6d8976F".to_string(),
-            ),
+            recipient: fast_bridge_common::get_eth_address(eth_recipient_address()),
             valid_till_block_height: None,
             aurora_sender: None,
         };
@@ -1057,14 +1327,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+            "recipient": eth_recipient_address()
         });
 
         contract.validate_transfer_message(
@@ -1085,14 +1355,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": token,
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": token,
                 "amount": "100"
             },
-            "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+            "recipient": eth_recipient_address()
         });
 
         contract.validate_transfer_message(
@@ -1158,14 +1428,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "100"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
 
         contract.init_transfer_callback(
@@ -1178,6 +1448,38 @@ mod tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(0, transfer_token_amount);
+    }
+
+    #[test]
+    #[should_panic(expected = "The eth token address and recipient address can't be the same")]
+    fn same_token_and_recipient_addresses() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+
+        let valid_till_timestamp = block_timestamp() + contract.lock_duration.lock_time_max;
+        let token = "alice_near";
+        let msg = json!({
+            "valid_till": valid_till_timestamp,
+            "transfer": {
+                "token_near": token,
+                "token_eth": eth_token_address(),
+                "amount": "100"
+            },
+            "fee": {
+                "token": token,
+                "amount": "100"
+            },
+            "recipient": eth_token_address()
+        });
+
+        let last_block_height = 10;
+        contract.init_transfer_callback(
+            last_block_height,
+            serde_json::from_value(msg).unwrap(),
+            signer_account_id(),
+            None,
+        );
     }
 
     #[test]
@@ -1205,14 +1507,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "100"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "100"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
 
         contract.init_transfer_callback(
@@ -1244,14 +1546,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1267,10 +1569,61 @@ mod tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock_callback(312, nonce, signer_account_id(), None);
+        contract.unlock_callback(true, nonce, signer_account_id(), None);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
+    }
+
+    #[test]
+    fn test_unlock_for_valid_proof() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
+        let transfer_account: AccountId = AccountId::try_from("bob_near".to_string()).unwrap();
+        let balance = U128(200);
+
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(400, transfer_token_amount);
+
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
+        let msg = json!({
+            "valid_till": current_timestamp,
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": eth_token_address(),
+                "amount": "200"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "200"
+            },
+             "recipient": eth_recipient_address()
+        });
+        contract.init_transfer_callback(
+            10,
+            serde_json::from_value(msg).unwrap(),
+            signer_account_id(),
+            None,
+        );
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(0, transfer_token_amount);
+
+        let context = get_context_for_unlock(false);
+        testing_env!(context);
+
+        let nonce = U128(1);
+        contract.unlock_callback(true, nonce, signer_account_id());
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(400, transfer_token_amount); //user get the all 400 tokens back after successfull valid proof submition
     }
 
     //audit tests
@@ -1286,14 +1639,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1304,7 +1657,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Balance for token transfer: token_near299 not found"#)]
+    #[should_panic(expected = r#"The fee token does not match the transfer token"#)]
     fn test_lock_balance_not_found() {
         let context = get_context(false);
         testing_env!(context);
@@ -1319,14 +1672,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near299",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1337,7 +1690,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Balance for token fee: token_near not found"#)]
+    #[should_panic(expected = r#"The fee token does not match the transfer token"#)]
     fn test_lock_fee_balance_not_found() {
         let context = get_context(false);
         testing_env!(context);
@@ -1357,14 +1710,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near299",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1375,7 +1728,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Transaction with id:"#)]
+    #[should_panic(expected = r#"Transfer not found"#)]
     fn test_unlock_transaction_not_found() {
         let context = get_context(false);
         testing_env!(context);
@@ -1397,14 +1750,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1419,7 +1772,8 @@ mod tests {
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(10, U128(9), signer_account_id(), None);
+        let nonce = U128(9);
+        contract.unlock_callback(true, nonce, signer_account_id(), None);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1474,14 +1828,14 @@ mod tests {
             "valid_till": current_timestamp,
             "transfer": {
                 "token_near": "token_near",
-                "token_eth": "71c7656ec7ab88b098defb751b7401b5f6d8976f",
+                "token_eth": eth_token_address(),
                 "amount": "75"
             },
             "fee": {
                 "token": "token_near",
                 "amount": "75"
             },
-             "recipient": "71c7656ec7ab88b098defb751b7401b5f6d8976f"
+             "recipient": eth_recipient_address()
         });
         contract.init_transfer_callback(
             10,
@@ -1496,7 +1850,8 @@ mod tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-        contract.unlock_callback(1000, U128(1), signer_account_id(), None);
+        let nonce = U128(1);
+        contract.unlock_callback(true, nonce, signer_account_id(), None);
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
@@ -1510,7 +1865,7 @@ mod tests {
         let mut contract = get_bridge_contract(None);
         let transfer_token: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, Some(U128(amount)));
     }
 
     #[test]
@@ -1526,12 +1881,12 @@ mod tests {
         contract.ft_on_transfer(transfer_token.clone(), U128(amount), "".to_string());
         let context = get_context_custom_predecessor(false, String::from("token_near"));
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount));
+        contract.withdraw(transfer_token, Some(U128(amount)));
     }
 
     #[test]
-    #[should_panic(expected = r#"Not enough token balance"#)]
-    fn test_withdraw_not_enough_balance() {
+    #[should_panic(expected = r#"Insufficient user balance"#)]
+    fn test_withdraw_not_enough_user_balance() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
@@ -1543,7 +1898,7 @@ mod tests {
 
         let context = get_context(false);
         testing_env!(context);
-        contract.withdraw(transfer_token, U128(amount + 1));
+        contract.withdraw(transfer_token, Some(U128(amount + 1)));
     }
 
     #[test]
@@ -1558,25 +1913,25 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"Ethereum address:test_addr not valid"#)]
-    fn test_set_enear_address_invalid_address() {
+    #[should_panic(expected = r#"address should be a valid hex string"#)]
+    fn test_set_eth_bridge_contract_address_address_invalid_address() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let invalid_address = "test_addr".to_string();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
-        contract.set_enear_address(invalid_address);
+        contract.set_eth_bridge_contract_address(invalid_address);
     }
 
     #[test]
-    fn test_set_enear_address() {
+    fn test_set_eth_bridge_contract_address() {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
         let valid_address: String = "42".repeat(20);
         let valid_eth_address: Vec<u8> = hex::decode(valid_address.clone()).unwrap();
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
-        contract.set_enear_address(valid_address);
+        contract.set_eth_bridge_contract_address(valid_address);
 
         assert_eq!(contract.eth_bridge_contract.0, valid_eth_address[..]);
     }
@@ -1586,20 +1941,14 @@ mod tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
-        let lock_time_min = "420h".to_string();
-        let lock_time_max = "42h".to_string();
+        let lock_time_min = "42h".to_string();
+        let lock_time_max = "420h".to_string();
         let convert_nano = 36 * u64::pow(10, 11);
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_lock_time(lock_time_min, lock_time_max);
 
-        assert_eq!(
-            contract.lock_duration.lock_time_min as u64 / convert_nano,
-            420
-        );
-        assert_eq!(
-            contract.lock_duration.lock_time_max as u64 / convert_nano,
-            42
-        );
+        assert_eq!(contract.lock_duration.lock_time_min / convert_nano, 42);
+        assert_eq!(contract.lock_duration.lock_time_max / convert_nano, 420);
     }
 
     #[test]
@@ -1621,7 +1970,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    contract.increase_balance(&user, &token, &10);
+                    contract.increase_balance(user, token, &10);
                 }
             }
         }
@@ -1629,7 +1978,7 @@ mod tests {
         for user in users.iter() {
             for token in tokens.iter() {
                 for _ in 0..3 {
-                    assert_eq!(contract.get_user_balance(user, token), 30);
+                    assert_eq!(contract.get_user_balance(user, token).0, 30);
                 }
             }
         }
@@ -1711,8 +2060,8 @@ mod tests {
             sender_account.clone(),
         );
 
-        set_env!(predecessor_account_id: token_account.clone(), signer_account_id: sender_account.clone());
-        contract.ft_on_transfer(sender_account.clone(), U128(1_000_000), "".to_string());
+        set_env!(predecessor_account_id: token_account, signer_account_id: sender_account.clone());
+        contract.ft_on_transfer(sender_account, U128(1_000_000), "".to_string());
     }
 
     #[test]
