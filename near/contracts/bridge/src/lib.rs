@@ -555,9 +555,11 @@ impl FastBridge {
             eth_types::U256(transfer_data.transfer.amount.0.into()),
         );
 
-        let expected_storage_value = _unlock_recipient
+        let mut expected_storage_value = _unlock_recipient
             .try_to_vec()
             .expect("failed to unwrap unlock_recipient");
+
+        expected_storage_value.insert(0, 160);
 
         ext_prover::ext(self.prover_account.clone())
             .with_static_gas(utils::tera_gas(50))
