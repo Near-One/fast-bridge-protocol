@@ -14,7 +14,9 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
     bytes32 public constant WHITELISTING_TOKENS_ADMIN_ROLE = keccak256("WHITELISTING_TOKENS_ADMIN_ROLE");
 
     mapping(address => bool) public whitelistedTokens;
+    // Deprecated since lp_unlock with storage-proof
     mapping(bytes32 => bool) public processedHashes;
+    mapping (bytes32 => string) public unlockRecipient;
 
     event SetTokens(address[] _tokens, bool[] _states);
 
@@ -150,11 +152,14 @@ contract EthErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgr
         require(block.number < _valid_till_block_height, "Transfer expired");
         require(_recipient != address(0) && _recipient != msg.sender, "Wrong recipient provided");
         require(_amount != 0, "Wrong amount provided");
-
+        require(bytes(_unlock_recipient).length != 0, "Invalid unlock recipient");
         bytes32 processedHash = keccak256(abi.encodePacked(_token, _recipient, _nonce, _amount));
 
-        require(!processedHashes[processedHash], "This transaction has already been processed!");
-        processedHashes[processedHash] = true;
+        // require(!processedHashes[processedHash], "This transaction has already been processed!");
+        // processedHashes[processedHash] = true;
+        
+        require(bytes(unlockRecipient[processedHash]).length == 0, "This transaction has already been processed!");
+        unlockRecipient[processedHash] = _unlock_recipient;
 
         if (_token == address(0)) {
             require(_amount == msg.value, "Wrong ethers amount provided");
