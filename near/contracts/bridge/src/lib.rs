@@ -144,7 +144,7 @@ pub enum Role {
     UnrestrictedWithdraw,
     WhitelistManager,
     ConfigManager,
-    ForceUnlock,
+    UnlockManager,
 }
 
 #[access_control(role_type(Role))]
@@ -555,7 +555,7 @@ impl FastBridge {
     /// Force unlocks tokens that were transferred on the Ethereum. The function increases the balance
     /// of the transfer token and transfer fee token for the relayer account on NEAR side.
     ///
-    /// The function is allowed to be called only by accounts that have `ForceUnlock` role.
+    /// The function is allowed to be called only by accounts that have `UnlockManager` role.
     ///
     /// # Arguments
     ///
@@ -566,7 +566,7 @@ impl FastBridge {
     ///
     /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
     ///
-    #[access_control_any(roles(Role::ForceUnlock))]
+    #[access_control_any(roles(Role::UnlockManager))]
     pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
         let nonce_str = nonce.0.to_string();
 
@@ -1488,6 +1488,79 @@ mod unit_tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(0, transfer_token_amount);
+    }
+
+    #[test]
+    fn test_unlock_stuck_transfer() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        contract.acl_grant_role("UnlockManager".to_string(), force_unlock_account.clone());
+
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        assert_eq!(transfer_token_amount, balance.0);
+
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
+        let msg = json!({
+            "valid_till": current_timestamp,
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": eth_token_address(),
+                "amount": "100"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "100"
+            },
+             "recipient": eth_recipient_address()
+        });
+
+        contract.init_transfer_callback(
+            10,
+            serde_json::from_value(msg).unwrap(),
+            signer_account_id(),
+            None,
+        );
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        assert_eq!(user_balance.get(&transfer_token).unwrap(), 0);
+
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + DURATION_ALLOWED_TO_FORCE_UNLOCK;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        contract.unlock_stuck_transfer(1.into(), recipient_id.clone());
+
+        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
+        assert_eq!(user_balance.get(&transfer_token).unwrap(), 0);
+
+        let user_balance = contract.user_balances.get(&recipient_id).unwrap();
+        assert_eq!(user_balance.get(&transfer_token).unwrap(), balance.0);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Insufficient permissions for method unlock_stuck_transfer restricted by access control"
+    )]
+    fn test_only_unlock_manager_can_unlock_stuck_transfer() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        contract.acl_grant_role("UnlockManager".to_string(), force_unlock_account.clone());
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        contract.unlock_stuck_transfer(1.into(), recipient_id.clone());
     }
 
     #[test]
