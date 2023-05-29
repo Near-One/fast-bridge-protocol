@@ -116,8 +116,8 @@ pub struct UpdateBalance {
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
     PendingTransfers,
-    UserBalances,
-    UserBalancePrefix,
+    TokenBalances,
+    TokenBalancePrefix,
     WhitelistTokens,
     WhitelistAccounts,
     PendingTransfersBalances,
@@ -151,7 +151,7 @@ pub enum Role {
 #[pausable(manager_roles(Role::PauseManager))]
 pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
-    user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
+    token_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     prover_account: AccountId,
     eth_client_account: AccountId,
@@ -199,7 +199,7 @@ impl FastBridge {
         let mut contract = Self {
             pending_transfers: UnorderedMap::new(StorageKey::PendingTransfers),
             pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
-            user_balances: LookupMap::new(StorageKey::UserBalances),
+            token_balances: LookupMap::new(StorageKey::TokenBalances),
             nonce: 0,
             prover_account,
             eth_client_account,
@@ -312,24 +312,10 @@ impl FastBridge {
 
         self.validate_transfer_message(&transfer_message, &sender_id);
 
-        let user_token_balance = self.user_balances.get(&sender_id).unwrap_or_else(|| {
-            panic!(
-                "Balance in {} for user {} not found",
-                transfer_message.transfer.token_near, sender_id
-            )
-        });
-
-        let token_transfer_balance = user_token_balance
-            .get(&transfer_message.transfer.token_near)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Balance for token transfer: {} not found",
-                    &transfer_message.transfer.token_near
-                )
-            });
+        let token_transfer_balance = self.get_user_balance(&sender_id, &transfer_message.fee.token);
 
         require!(
-            token_transfer_balance >= transfer_message.transfer.amount.0,
+            token_transfer_balance >= transfer_message.transfer.amount,
             "Not enough transfer token balance."
         );
 
@@ -339,17 +325,10 @@ impl FastBridge {
             &transfer_message.transfer.amount.0,
         );
 
-        let token_fee_balance = user_token_balance
-            .get(&transfer_message.fee.token)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Balance for token fee: {} not found",
-                    &transfer_message.transfer.token_near
-                )
-            });
+        let token_fee_balance = self.get_user_balance(&sender_id, &transfer_message.fee.token);
 
         require!(
-            token_fee_balance >= transfer_message.fee.amount.0,
+            token_fee_balance >= transfer_message.fee.amount,
             "Not enough fee token balance."
         );
 
@@ -637,50 +616,38 @@ impl FastBridge {
     /// * `account_id` - The account ID for which to retrieve the balance.
     /// * `token_id` - The token ID for which to retrieve the balance.
     ///
-    /// # Panics
-    ///
-    /// If the user does not have any balance for the specified token, or if the specified user account does not exist.
-    ///
     /// # Returns
     ///
     /// The balance of the specified token for the specified account.
     pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
-        let user_balance = self
-            .user_balances
-            .get(account_id)
-            .unwrap_or_else(|| panic!("{}", "User doesn't have balance".to_string()));
-
-        user_balance
-            .get(token_id)
-            .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
-            .into()
+        let Some(token_balance) = self.token_balances.get(token_id) else { return U128(0) };
+        token_balance.get(account_id).unwrap_or(0).into()
     }
 
-    fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        let mut user_token_balance = self.user_balances.get(user).unwrap();
-        let balance = user_token_balance.get(token_id).unwrap() - amount;
-        user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(user, &user_token_balance);
+    fn decrease_balance(&mut self, account_id: &AccountId, token_id: &AccountId, amount: &u128) {
+        let mut token_balance = self.token_balances.get(token_id).unwrap();
+        let balance = token_balance.get(account_id).unwrap() - amount;
+        token_balance.insert(account_id, &balance);
     }
 
-    fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        if let Some(mut user_balances) = self.user_balances.get(user) {
-            user_balances.insert(
-                token_id,
-                &(user_balances.get(token_id).unwrap_or(0) + amount),
+    fn increase_balance(&mut self, account_id: &AccountId, token_id: &AccountId, amount: &u128) {
+        if let Some(mut token_balance) = self.token_balances.get(token_id) {
+            token_balance.insert(
+                account_id,
+                &(token_balance.get(account_id).unwrap_or(0) + amount),
             );
         } else {
             let storage_key = [
-                StorageKey::UserBalancePrefix
+                StorageKey::TokenBalancePrefix
                     .try_to_vec()
                     .unwrap()
                     .as_slice(),
-                user.try_to_vec().unwrap().as_slice(),
+                token_id.try_to_vec().unwrap().as_slice(),
             ]
             .concat();
-            let mut token_balance = LookupMap::new(storage_key);
-            token_balance.insert(token_id, amount);
-            self.user_balances.insert(user, &token_balance);
+            let mut user_balance = LookupMap::new(storage_key);
+            user_balance.insert(account_id, amount);
+            self.token_balances.insert(token_id, &user_balance);
         }
     }
 
@@ -1368,8 +1335,9 @@ mod unit_tests {
         let balance = U128(100);
 
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let amount = user_balance.get(&transfer_token).unwrap();
+        let amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(100, amount);
     }
 
@@ -1384,13 +1352,15 @@ mod unit_tests {
         let balance = U128(100);
 
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let amount = user_balance.get(&transfer_token).unwrap();
+        let amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(100, amount);
 
         contract.decrease_balance(&signer_account_id(), &transfer_token, &balance.0);
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let amount = user_balance.get(&transfer_token).unwrap();
+        let amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(0, amount);
     }
 
@@ -1405,8 +1375,9 @@ mod unit_tests {
 
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1431,8 +1402,9 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(0, transfer_token_amount);
     }
 
@@ -1484,8 +1456,9 @@ mod unit_tests {
             "".to_string(),
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let user_balance_for_transfer_token = user_balance.get(&transfer_token).unwrap();
+        let user_balance_for_transfer_token = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(transfer_token_amount, user_balance_for_transfer_token);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1523,8 +1496,9 @@ mod unit_tests {
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1548,16 +1522,19 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(50, transfer_token_amount);
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
         contract.unlock_callback(true, nonce, signer_account_id());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
     }
 
@@ -1573,8 +1550,9 @@ mod unit_tests {
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(400, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1598,8 +1576,9 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(0, transfer_token_amount);
 
         let context = get_context_for_unlock(false);
@@ -1607,14 +1586,15 @@ mod unit_tests {
 
         let nonce = U128(1);
         contract.unlock_callback(true, nonce, signer_account_id());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(400, transfer_token_amount); //user get the all 400 tokens back after successfull valid proof submition
     }
 
     //audit tests
     #[test]
-    #[should_panic(expected = r#"Balance in token_near for user bob_near not found"#)]
+    #[should_panic(expected = r#"Not enough transfer token balance"#)]
     fn test_lock_no_balance() {
         let context = get_context(false);
         testing_env!(context);
@@ -1727,8 +1707,9 @@ mod unit_tests {
 
         contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
@@ -1752,8 +1733,9 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(50, transfer_token_amount);
 
         let context = get_context_for_unlock(false);
@@ -1761,8 +1743,9 @@ mod unit_tests {
 
         let nonce = U128(9);
         contract.unlock_callback(true, nonce, signer_account_id());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
     }
 
@@ -1797,16 +1780,18 @@ mod unit_tests {
         let context = get_context_dex(false);
         testing_env!(context);
         contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
-        let user_balance = contract.user_balances.get(&signer_account_id()).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
 
         assert_eq!(100, transfer_token_amount);
 
         let context = get_context(false);
         testing_env!(context);
         contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
 
         assert_eq!(200, transfer_token_amount);
 
@@ -1831,8 +1816,9 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(50, transfer_token_amount);
 
         let context = get_panic_context_for_unlock(false);
@@ -1840,13 +1826,14 @@ mod unit_tests {
 
         let nonce = U128(1);
         contract.unlock_callback(true, nonce, signer_account_id());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
     }
 
     #[test]
-    #[should_panic(expected = r#"User doesn't have balance"#)]
+    #[should_panic(expected = r#"Insufficient user balance"#)]
     fn test_withdraw_no_balance() {
         let context = get_context(false);
         testing_env!(context);
@@ -1857,7 +1844,7 @@ mod unit_tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"User doesn't have balance"#)]
+    #[should_panic(expected = r#"Insufficient user balance"#)]
     fn test_withdraw_wrong_balance() {
         let context = get_context(false);
         testing_env!(context);
