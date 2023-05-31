@@ -13156,12 +13156,12 @@ impl FastBridgeExt {
     pub fn unlock_callback(
         self,
         nonce: U128,
-        sender_id: AccountId,
+        _sender_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
-                sender_id: &'nearinput AccountId,
+                _sender_id: &'nearinput AccountId,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
@@ -13173,13 +13173,13 @@ impl FastBridgeExt {
                     writer: &mut W,
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
-                    borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                    borsh::BorshSerialize::serialize(&self._sender_id, writer)?;
                     Ok(())
                 }
             }
             let __args = Input {
                 nonce: &nonce,
-                sender_id: &sender_id,
+                _sender_id: &_sender_id,
             };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
@@ -14268,46 +14268,17 @@ impl FastBridge {
     ///
     /// # Panics
     ///
-    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
-    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
-    /// or if the verification of the unlock proof fails.
+    /// This function panics if the transfer specified by the nonce is not found;
+    /// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
     pub fn unlock_callback(
         &mut self,
         verification_result: bool,
         nonce: U128,
-        sender_id: AccountId,
+        _sender_id: AccountId,
     ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
-        let is_unlock_allowed = recipient_id == sender_id
-            || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
-        if true {
-            let msg: &str = &{
-                let res = ::alloc::fmt::format(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Permission denied for account: "],
-                        &[::core::fmt::ArgumentV1::new_display(&sender_id)],
-                    ),
-                );
-                res
-            };
-            if !is_unlock_allowed {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !is_unlock_allowed {
-            ::near_sdk::env::panic_str(
-                &{
-                    let res = ::alloc::fmt::format(
-                        ::core::fmt::Arguments::new_v1(
-                            &["Permission denied for account: "],
-                            &[::core::fmt::ArgumentV1::new_display(&sender_id)],
-                        ),
-                    );
-                    res
-                },
-            )
-        }
         if true {
             let msg: &str = &"Valid time is not correct.";
             if !(block_timestamp() > transfer_data.valid_till) {
@@ -16345,9 +16316,8 @@ pub extern "C" fn unlock() {
 ///
 /// # Panics
 ///
-/// This function panics if the transfer specified by the nonce is not found; if the sender ID
-/// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
-/// or if the verification of the unlock proof fails.
+/// This function panics if the transfer specified by the nonce is not found;
+/// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock_callback() {
@@ -16360,7 +16330,7 @@ pub extern "C" fn unlock_callback() {
     }
     struct Input {
         nonce: U128,
-        sender_id: AccountId,
+        _sender_id: AccountId,
     }
     impl borsh::de::BorshDeserialize for Input
     where
@@ -16372,11 +16342,11 @@ pub extern "C" fn unlock_callback() {
         ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
-                sender_id: borsh::BorshDeserialize::deserialize(buf)?,
+                _sender_id: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce, _sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -16389,7 +16359,7 @@ pub extern "C" fn unlock_callback() {
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.unlock_callback(verification_result, nonce, sender_id);
+    contract.unlock_callback(verification_result, nonce, _sender_id);
     near_sdk::env::state_write(&contract);
 }
 /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
