@@ -312,7 +312,8 @@ impl FastBridge {
 
         self.validate_transfer_message(&transfer_message, &sender_id);
 
-        let token_transfer_balance = self.get_user_balance(&sender_id, &transfer_message.transfer.token_near);
+        let token_transfer_balance =
+            self.get_user_balance(&sender_id, &transfer_message.transfer.token_near);
 
         require!(
             token_transfer_balance >= transfer_message.transfer.amount,
