@@ -3500,7 +3500,7 @@ trait FastBridgeInterface {
         &mut self,
         token_id: AccountId,
         amount: U128,
-        sender_id: AccountId,
+        recipient_id: AccountId,
     );
     fn verify_log_entry_callback(
         &mut self,
@@ -3557,14 +3557,14 @@ pub mod ext_self {
             self,
             token_id: AccountId,
             amount: U128,
-            sender_id: AccountId,
+            recipient_id: AccountId,
         ) -> near_sdk::Promise {
             let __args = {
                 #[serde(crate = "near_sdk::serde")]
                 struct Input<'nearinput> {
                     token_id: &'nearinput AccountId,
                     amount: &'nearinput U128,
-                    sender_id: &'nearinput AccountId,
+                    recipient_id: &'nearinput AccountId,
                 }
                 #[doc(hidden)]
                 #[allow(
@@ -3615,8 +3615,8 @@ pub mod ext_self {
                             };
                             match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
-                                "sender_id",
-                                &self.sender_id,
+                                "recipient_id",
+                                &self.recipient_id,
                             ) {
                                 _serde::__private::Ok(__val) => __val,
                                 _serde::__private::Err(__err) => {
@@ -3630,7 +3630,7 @@ pub mod ext_self {
                 let __args = Input {
                     token_id: &token_id,
                     amount: &amount,
-                    sender_id: &sender_id,
+                    recipient_id: &recipient_id,
                 };
                 near_sdk::serde_json::to_vec(&__args)
                     .expect("Failed to serialize the cross contract args using JSON.")
