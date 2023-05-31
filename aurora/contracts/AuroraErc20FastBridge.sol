@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 uint64 constant BASE_NEAR_GAS = 50_000_000_000_000;
 uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
-uint64 constant UNLOCK_NEAR_GAS = 100_000_000_000_000;
+uint64 constant UNLOCK_NEAR_GAS = 200_000_000_000_000;
 
 contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
@@ -90,6 +90,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
         emit SetWhitelistedUsers(users, states);
     }
+
 
     function tokens_registration(
         address aurora_token_address,
@@ -197,11 +198,13 @@ contract AuroraErc20FastBridge is AccessControl {
             );
     }
 
-    function unlock(uint128 nonce) public {
+    function unlock(uint128 nonce, string memory proof) public {
         bytes memory args = bytes(
             string.concat(
                 '{"nonce": "',
                 Strings.toString(nonce),
+                '", "proof": "',
+                proof,
                 '", "aurora_sender": "',
                 address_to_string(msg.sender),
                 '"}'
