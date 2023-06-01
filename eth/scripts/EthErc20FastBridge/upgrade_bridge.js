@@ -1,16 +1,15 @@
 const { ethers, upgrades } = require("hardhat");
 const { getImplementationAddress } = require("@openzeppelin/upgrades-core");
 require("dotenv");
-// const { argv } = require("process");
 
 async function main() {
     const [deployer] = await ethers.getSigners();
 
     const EthErc20FastBridge = await ethers.getContractFactory("EthErc20FastBridge", deployer);
-    const bridgeaddress = process.env.BRIDGE_PROXY_ADDRESS;
-    console.log(bridgeaddress);
+    const bridgeProxyAddress = process.env.BRIDGE_PROXY_ADDRESS;
+    console.log(bridgeProxyAddress);
     console.log("Need to upgrade bridge?");
-    console.log("Proxy provided : ", bridgeaddress);
+    console.log("Proxy provided : ", bridgeProxyAddress);
 
     process.stdout.write("Ok to proceed? (y/n) : ");
     process.stdin.on("readable", async () => {
@@ -20,14 +19,19 @@ async function main() {
             if (userInput === "y") {
                 // Perform the upgrade
                 console.log("Performing the upgrade...");
-                await upgrades.upgradeProxy(
-                    bridgeaddress, // address of proxy deployed
-                    EthErc20FastBridge,
-                    {
-                        unsafeAllow: ["delegatecall"]
-                    }
+                if (process.env.FORCE_IMPORT_PROXY) {
+                    // FORCE_IMPORT_PROXY must be the contract factory of the current implementation 
+                    // contract version that is being used, not the version that you are planning to upgrade to.
+                    const EthErc20FastBridgeV1 = await ethers.getContractFactory(process.env.FORCE_IMPORT_PROXY, deployer);
+                    await upgrades.forceImport(bridgeProxyAddress, EthErc20FastBridgeV1);
+                }
+                const proxy = await upgrades.upgradeProxy(
+                    bridgeProxyAddress, // address of proxy deployed
+                    EthErc20FastBridge
                 );
-                const currentImplAddress = await getImplementationAddress(ethers.provider, bridgeaddress);
+                await proxy.deployed();
+
+                const currentImplAddress = await getImplementationAddress(ethers.provider, bridgeProxyAddress);
                 console.log("EthErc20FastBridge upgraded");
                 console.log("Current implementation address is ", currentImplAddress);
             } else if (userInput === "n") {

@@ -11,8 +11,8 @@ async function main() {
     const tokensAddresses = Object.values(require("./deploymentAddresses.json").tokens);
     const whitelistedTokens = Object.values(require("./deploymentAddresses.json").whitelisted_tokens);
     const bridge = (await ethers.getContractFactory("EthErc20FastBridge")).connect(deployer);
-    let proxy = await upgrades.deployProxy(bridge, [tokensAddresses, whitelistedTokens], {
-        unsafeAllow: ["delegatecall"]
+    let proxy = await upgrades.deployProxy(bridge, [tokensAddresses, whitelistedTokens], { 
+        initializer: "initialize" 
     });
     await proxy.deployed();
 
