@@ -13156,12 +13156,13 @@ impl FastBridgeExt {
     pub fn unlock_callback(
         self,
         nonce: U128,
-        _sender_id: AccountId,
+        #[allow(unused_variables)]
+        sender_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
-                _sender_id: &'nearinput AccountId,
+                sender_id: &'nearinput AccountId,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
@@ -13173,13 +13174,13 @@ impl FastBridgeExt {
                     writer: &mut W,
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
-                    borsh::BorshSerialize::serialize(&self._sender_id, writer)?;
+                    borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
                     Ok(())
                 }
             }
             let __args = Input {
                 nonce: &nonce,
-                _sender_id: &_sender_id,
+                sender_id: &sender_id,
             };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
@@ -14177,8 +14178,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully only if called either by the original creator of the transfer
-    /// or by the account that has the `UnrestrictedUnlock` role.
+    /// The function could be executed successfully by any account that provides proof.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
     ///
@@ -14274,7 +14274,8 @@ impl FastBridge {
         &mut self,
         verification_result: bool,
         nonce: U128,
-        _sender_id: AccountId,
+        #[allow(unused_variables)]
+        sender_id: AccountId,
     ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
@@ -16014,8 +16015,7 @@ pub extern "C" fn init_transfer_callback() {
 /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
 /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
 /// didn't happen and its validity time is already expired.
-/// The function could be executed successfully only if called either by the original creator of the transfer
-/// or by the account that has the `UnrestrictedUnlock` role.
+/// The function could be executed successfully by any account that provides proof.
 ///
 /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
 ///
@@ -16330,7 +16330,7 @@ pub extern "C" fn unlock_callback() {
     }
     struct Input {
         nonce: U128,
-        _sender_id: AccountId,
+        sender_id: AccountId,
     }
     impl borsh::de::BorshDeserialize for Input
     where
@@ -16342,11 +16342,11 @@ pub extern "C" fn unlock_callback() {
         ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
-                _sender_id: borsh::BorshDeserialize::deserialize(buf)?,
+                sender_id: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, _sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -16359,7 +16359,7 @@ pub extern "C" fn unlock_callback() {
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.unlock_callback(verification_result, nonce, _sender_id);
+    contract.unlock_callback(verification_result, nonce, sender_id);
     near_sdk::env::state_write(&contract);
 }
 /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
