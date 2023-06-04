@@ -383,8 +383,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully only if called either by the original creator of the transfer
-    /// or by the account that has the `UnrestrictedUnlock` role.
+    /// The function could be executed successfully by any account that provides proof.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
     ///
@@ -459,7 +458,9 @@ impl FastBridge {
         #[serializer(borsh)]
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] _sender_id: AccountId,
+        #[allow(unused_variables)]
+        #[serializer(borsh)]
+        sender_id: AccountId,
     ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
