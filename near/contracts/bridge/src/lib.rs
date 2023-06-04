@@ -71,7 +71,7 @@ trait NEP141Token {
 
 #[ext_contract(ext_self)]
 trait FastBridgeInterface {
-    fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId);
+    fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, recipient_id: AccountId);
     fn verify_log_entry_callback(
         &mut self,
         #[callback]
