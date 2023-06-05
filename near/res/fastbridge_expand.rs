@@ -3089,6 +3089,7 @@ mod whitelist {
     }
 }
 pub const NO_DEPOSIT: u128 = 0;
+pub const MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS: u64 = 604800000000000;
 pub trait Prover {
     fn verify_log_entry(
         &self,
@@ -5141,6 +5142,7 @@ pub enum Role {
     UnrestrictedWithdraw,
     WhitelistManager,
     ConfigManager,
+    UnlockManager,
 }
 struct __AclBoundchecker<T: Copy + Clone> {
     _marker: ::std::marker::PhantomData<T>,
@@ -5166,6 +5168,7 @@ impl From<Role> for u8 {
             Role::UnrestrictedWithdraw => 3u8,
             Role::WhitelistManager => 4u8,
             Role::ConfigManager => 5u8,
+            Role::UnlockManager => 6u8,
         }
     }
 }
@@ -5179,6 +5182,7 @@ impl ::std::convert::TryFrom<u8> for Role {
             3u8 => Ok(Role::UnrestrictedWithdraw),
             4u8 => Ok(Role::WhitelistManager),
             5u8 => Ok(Role::ConfigManager),
+            6u8 => Ok(Role::UnlockManager),
             _ => Err("Value does not correspond to a variant"),
         }
     }
@@ -5192,6 +5196,7 @@ impl From<Role> for &'static str {
             Role::UnrestrictedWithdraw => "UnrestrictedWithdraw",
             Role::WhitelistManager => "WhitelistManager",
             Role::ConfigManager => "ConfigManager",
+            Role::UnlockManager => "UnlockManager",
         }
     }
 }
@@ -5204,6 +5209,7 @@ impl From<Role> for String {
             Role::UnrestrictedWithdraw => "UnrestrictedWithdraw".to_string(),
             Role::WhitelistManager => "WhitelistManager".to_string(),
             Role::ConfigManager => "ConfigManager".to_string(),
+            Role::UnlockManager => "UnlockManager".to_string(),
         }
     }
 }
@@ -5217,6 +5223,7 @@ impl ::std::convert::TryFrom<&str> for Role {
             "UnrestrictedWithdraw" => Ok(Role::UnrestrictedWithdraw),
             "WhitelistManager" => Ok(Role::WhitelistManager),
             "ConfigManager" => Ok(Role::ConfigManager),
+            "UnlockManager" => Ok(Role::UnlockManager),
             _ => Err("Value does not correspond to a variant"),
         }
     }
@@ -5395,6 +5402,14 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
             fn CONFIGMANAGER_ADMIN(&self) -> bool {
                 false
             }
+            #[inline]
+            fn UNLOCKMANAGER(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn UNLOCKMANAGER_ADMIN(&self) -> bool {
+                false
+            }
         }
         #[allow(non_snake_case)]
         impl __BitFlags for RoleFlags {
@@ -5525,6 +5540,25 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
                         == Self::CONFIGMANAGER_ADMIN.bits
                 }
             }
+            #[allow(deprecated)]
+            #[inline]
+            fn UNLOCKMANAGER(&self) -> bool {
+                if Self::UNLOCKMANAGER.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::UNLOCKMANAGER.bits == Self::UNLOCKMANAGER.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn UNLOCKMANAGER_ADMIN(&self) -> bool {
+                if Self::UNLOCKMANAGER_ADMIN.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::UNLOCKMANAGER_ADMIN.bits
+                        == Self::UNLOCKMANAGER_ADMIN.bits
+                }
+            }
         }
         let mut first = true;
         if <Self as __BitFlags>::__SUPER_ADMIN(self) {
@@ -5618,6 +5652,20 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
             first = false;
             f.write_str("CONFIGMANAGER_ADMIN")?;
         }
+        if <Self as __BitFlags>::UNLOCKMANAGER(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("UNLOCKMANAGER")?;
+        }
+        if <Self as __BitFlags>::UNLOCKMANAGER_ADMIN(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("UNLOCKMANAGER_ADMIN")?;
+        }
         let extra_bits = self.bits & !Self::all().bits();
         if extra_bits != 0 {
             if !first {
@@ -5680,6 +5728,8 @@ impl RoleFlags {
     pub const WHITELISTMANAGER_ADMIN: Self = Self { bits: 1u128 << 10u8 };
     pub const CONFIGMANAGER: Self = Self { bits: 1u128 << 11u8 };
     pub const CONFIGMANAGER_ADMIN: Self = Self { bits: 1u128 << 12u8 };
+    pub const UNLOCKMANAGER: Self = Self { bits: 1u128 << 13u8 };
+    pub const UNLOCKMANAGER_ADMIN: Self = Self { bits: 1u128 << 14u8 };
     /// Returns an empty set of flags.
     #[inline]
     pub const fn empty() -> Self {
@@ -5703,6 +5753,8 @@ impl RoleFlags {
             const WHITELISTMANAGER_ADMIN: u128 = 0;
             const CONFIGMANAGER: u128 = 0;
             const CONFIGMANAGER_ADMIN: u128 = 0;
+            const UNLOCKMANAGER: u128 = 0;
+            const UNLOCKMANAGER_ADMIN: u128 = 0;
         }
         #[allow(non_snake_case)]
         impl __BitFlags for RoleFlags {
@@ -5734,6 +5786,10 @@ impl RoleFlags {
             const CONFIGMANAGER: u128 = Self::CONFIGMANAGER.bits;
             #[allow(deprecated)]
             const CONFIGMANAGER_ADMIN: u128 = Self::CONFIGMANAGER_ADMIN.bits;
+            #[allow(deprecated)]
+            const UNLOCKMANAGER: u128 = Self::UNLOCKMANAGER.bits;
+            #[allow(deprecated)]
+            const UNLOCKMANAGER_ADMIN: u128 = Self::UNLOCKMANAGER_ADMIN.bits;
         }
         Self {
             bits: <Self as __BitFlags>::__SUPER_ADMIN
@@ -5748,7 +5804,9 @@ impl RoleFlags {
                 | <Self as __BitFlags>::WHITELISTMANAGER
                 | <Self as __BitFlags>::WHITELISTMANAGER_ADMIN
                 | <Self as __BitFlags>::CONFIGMANAGER
-                | <Self as __BitFlags>::CONFIGMANAGER_ADMIN,
+                | <Self as __BitFlags>::CONFIGMANAGER_ADMIN
+                | <Self as __BitFlags>::UNLOCKMANAGER
+                | <Self as __BitFlags>::UNLOCKMANAGER_ADMIN,
         }
     }
     /// Returns the raw value of the flags currently stored.
@@ -6044,6 +6102,7 @@ const _: () = {
                 __field3,
                 __field4,
                 __field5,
+                __field6,
             }
             struct __FieldVisitor;
             impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
@@ -6071,11 +6130,12 @@ const _: () = {
                         3u64 => _serde::__private::Ok(__Field::__field3),
                         4u64 => _serde::__private::Ok(__Field::__field4),
                         5u64 => _serde::__private::Ok(__Field::__field5),
+                        6u64 => _serde::__private::Ok(__Field::__field6),
                         _ => {
                             _serde::__private::Err(
                                 _serde::de::Error::invalid_value(
                                     _serde::de::Unexpected::Unsigned(__value),
-                                    &"variant index 0 <= i < 6",
+                                    &"variant index 0 <= i < 7",
                                 ),
                             )
                         }
@@ -6099,6 +6159,7 @@ const _: () = {
                         }
                         "WhitelistManager" => _serde::__private::Ok(__Field::__field4),
                         "ConfigManager" => _serde::__private::Ok(__Field::__field5),
+                        "UnlockManager" => _serde::__private::Ok(__Field::__field6),
                         _ => {
                             _serde::__private::Err(
                                 _serde::de::Error::unknown_variant(__value, VARIANTS),
@@ -6124,6 +6185,7 @@ const _: () = {
                         }
                         b"WhitelistManager" => _serde::__private::Ok(__Field::__field4),
                         b"ConfigManager" => _serde::__private::Ok(__Field::__field5),
+                        b"UnlockManager" => _serde::__private::Ok(__Field::__field6),
                         _ => {
                             let __value = &_serde::__private::from_utf8_lossy(__value);
                             _serde::__private::Err(
@@ -6226,6 +6288,15 @@ const _: () = {
                             };
                             _serde::__private::Ok(Role::ConfigManager)
                         }
+                        (__Field::__field6, __variant) => {
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::__private::Ok(Role::UnlockManager)
+                        }
                     }
                 }
             }
@@ -6236,6 +6307,7 @@ const _: () = {
                 "UnrestrictedWithdraw",
                 "WhitelistManager",
                 "ConfigManager",
+                "UnlockManager",
             ];
             _serde::Deserializer::deserialize_enum(
                 __deserializer,
@@ -6309,6 +6381,14 @@ const _: () = {
                         "Role",
                         5u32,
                         "ConfigManager",
+                    )
+                }
+                Role::UnlockManager => {
+                    _serde::Serializer::serialize_unit_variant(
+                        __serializer,
+                        "Role",
+                        6u32,
+                        "UnlockManager",
                     )
                 }
             }
@@ -13250,6 +13330,80 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
+    pub fn unlock_stuck_transfer(
+        self,
+        nonce: U128,
+        recipient_id: AccountId,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                nonce: &'nearinput U128,
+                recipient_id: &'nearinput AccountId,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1 + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "nonce",
+                            &self.nonce,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "recipient_id",
+                            &self.recipient_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input {
+                nonce: &nonce,
+                recipient_id: &recipient_id,
+            };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "unlock_stuck_transfer".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
     pub fn verify_log_entry_callback(
         self,
         proof: EthTransferEvent,
@@ -14420,6 +14574,84 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
             )
+    }
+    /// Force unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side.
+    ///
+    /// The function is allowed to be called only by accounts that have `UnlockManager` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `recipient_id` - The account ID that receive the unlocked tokens.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
+    ///
+    pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::UnlockManager.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"unlock_stuck_transfer",
+                            ),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        let nonce_str = nonce.0.to_string();
+        let (_, transfer_data) = self
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| env::panic_str("Transaction not found"));
+        let over_timeout_duration = env::block_timestamp()
+            .checked_sub(transfer_data.valid_till)
+            .unwrap_or_else(|| env::panic_str("Can't unlock active transfer"));
+        if true {
+            let msg: &str = &"Force unlock isn't allowed yet";
+            if !(over_timeout_duration >= MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(over_timeout_duration >= MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS) {
+            ::near_sdk::env::panic_str(&"Force unlock isn't allowed yet")
+        }
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.transfer.token_near,
+            &transfer_data.transfer.amount.0,
+        );
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.fee.token,
+            &transfer_data.fee.amount.0,
+        );
+        self.remove_transfer(&nonce_str, &transfer_data);
+        Event::FastBridgeLpUnlockEvent {
+            nonce,
+            recipient_id,
+            transfer_message: transfer_data,
+        }
+            .emit();
     }
     /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
     ///
@@ -16596,6 +16828,297 @@ pub extern "C" fn lp_unlock() {
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
+}
+/// Force unlocks tokens that were transferred on the Ethereum. The function increases the balance
+/// of the transfer token and transfer fee token for the relayer account on NEAR side.
+///
+/// The function is allowed to be called only by accounts that have `UnlockManager` role.
+///
+/// # Arguments
+///
+/// * `nonce` - The nonce of the transfer to be unlocked.
+/// * `recipient_id` - The account ID that receive the unlocked tokens.
+///
+/// # Panics
+///
+/// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
+///
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn unlock_stuck_transfer() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str("Method unlock_stuck_transfer doesn't accept deposit");
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        nonce: U128,
+        recipient_id: AccountId,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __field1,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            1u64 => _serde::__private::Ok(__Field::__field1),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "nonce" => _serde::__private::Ok(__Field::__field0),
+                            "recipient_id" => _serde::__private::Ok(__Field::__field1),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"nonce" => _serde::__private::Ok(__Field::__field0),
+                            b"recipient_id" => _serde::__private::Ok(__Field::__field1),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            U128,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 2 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
+                            AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        1usize,
+                                        &"struct Input with 2 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            recipient_id: __field1,
+                        })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("nonce"),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field1 => {
+                                    if _serde::__private::Option::is_some(&__field1) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "recipient_id",
+                                            ),
+                                        );
+                                    }
+                                    __field1 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field1 = match __field1 {
+                            _serde::__private::Some(__field1) => __field1,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("recipient_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            recipient_id: __field1,
+                        })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["nonce", "recipient_id"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { nonce, recipient_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    contract.unlock_stuck_transfer(nonce, recipient_id);
     near_sdk::env::state_write(&contract);
 }
 /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
