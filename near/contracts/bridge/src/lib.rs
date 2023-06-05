@@ -1533,6 +1533,7 @@ mod unit_tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         assert_eq!(user_balance.get(&transfer_token).unwrap(), 0);
 
+        // Unlock when the minimum time for the force unlock is passed (strictly passed)
         let mut context = get_context(false);
         context.block_timestamp = current_timestamp + DURATION_ALLOWED_TO_FORCE_UNLOCK;
         context.predecessor_account_id = force_unlock_account;
