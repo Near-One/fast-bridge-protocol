@@ -27,7 +27,7 @@ mod whitelist;
 mod tests;
 
 pub const NO_DEPOSIT: u128 = 0;
-pub const DURATION_ALLOWED_TO_FORCE_UNLOCK: u64 = 604800000000000; // 7 days
+pub const MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS: u64 = 604800000000000; // 7 days
 
 #[ext_contract(ext_prover)]
 pub trait Prover {
@@ -580,7 +580,7 @@ impl FastBridge {
             .unwrap_or_else(|| env::panic_str("Can't unlock active transfer"));
 
         require!(
-            over_timeout_duration >= DURATION_ALLOWED_TO_FORCE_UNLOCK,
+            over_timeout_duration >= MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS,
             "Force unlock isn't allowed yet"
         );
 
