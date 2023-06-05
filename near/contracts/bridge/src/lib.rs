@@ -27,6 +27,7 @@ mod whitelist;
 mod tests;
 
 pub const NO_DEPOSIT: u128 = 0;
+pub const MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS: u64 = 604800000000000; // 7 days
 
 #[ext_contract(ext_prover)]
 pub trait Prover {
@@ -143,6 +144,7 @@ pub enum Role {
     UnrestrictedWithdraw,
     WhitelistManager,
     ConfigManager,
+    UnlockManager,
 }
 
 #[access_control(role_type(Role))]
@@ -548,6 +550,58 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
             )
+    }
+
+    /// Force unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side.
+    ///
+    /// The function is allowed to be called only by accounts that have `UnlockManager` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `recipient_id` - The account ID that receive the unlocked tokens.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
+    ///
+    #[access_control_any(roles(Role::UnlockManager))]
+    pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
+        let nonce_str = nonce.0.to_string();
+
+        let (_, transfer_data) = self
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| env::panic_str("Transaction not found"));
+
+        let over_timeout_duration = env::block_timestamp()
+            .checked_sub(transfer_data.valid_till)
+            .unwrap_or_else(|| env::panic_str("Can't unlock active transfer"));
+
+        require!(
+            over_timeout_duration >= MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS,
+            "Force unlock isn't allowed yet"
+        );
+
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.transfer.token_near,
+            &transfer_data.transfer.amount.0,
+        );
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.fee.token,
+            &transfer_data.fee.amount.0,
+        );
+        self.remove_transfer(&nonce_str, &transfer_data);
+
+        Event::FastBridgeLpUnlockEvent {
+            nonce,
+            recipient_id,
+            transfer_message: transfer_data,
+        }
+        .emit();
     }
 
     /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
@@ -1434,6 +1488,182 @@ mod unit_tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(0, transfer_token_amount);
+    }
+
+    fn init_transfer_for_unlock_stuck_transfer(
+        force_unlock_account: &AccountId,
+        transfer_token: &AccountId,
+        transfer_account: &AccountId,
+        balance: U128,
+    ) -> (FastBridge, u64) {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        contract.acl_grant_role("UnlockManager".to_string(), force_unlock_account.clone());
+
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
+        assert_eq!(transfer_token_amount, balance.0);
+
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
+        let msg = json!({
+            "valid_till": current_timestamp,
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": eth_token_address(),
+                "amount": "100"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "100"
+            },
+             "recipient": eth_recipient_address()
+        });
+
+        contract.init_transfer_callback(
+            10,
+            serde_json::from_value(msg).unwrap(),
+            signer_account_id(),
+            None,
+        );
+
+        assert_eq!(
+            contract
+                .get_user_balance(&transfer_account, &transfer_token)
+                .0,
+            0
+        );
+        (contract, current_timestamp)
+    }
+
+    #[test]
+    fn test_unlock_stuck_transfer() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock is passed (strictly passed)
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+
+        assert_eq!(
+            contract.get_user_balance(&transfer_account, &transfer_token),
+            U128(0)
+        );
+        assert_eq!(
+            contract.get_user_balance(&recipient_id, &transfer_token),
+            balance
+        );
+    }
+
+    #[test]
+    fn test_unlock_stuck_transfer_strictly_bigger_timestamp() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock is passed (strictly bigger passed)
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS + 1;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+
+        assert_eq!(
+            contract.get_user_balance(&transfer_account, &transfer_token),
+            U128(0)
+        );
+        assert_eq!(
+            contract.get_user_balance(&recipient_id, &transfer_token),
+            balance
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Force unlock isn't allowed yet")]
+    fn test_unlock_stuck_transfer_is_not_allowed() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock isn't passed
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS - 1;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+    }
+
+    #[test]
+    #[should_panic(expected = "Can't unlock active transfer")]
+    fn test_unlock_stuck_transfer_for_active_transfer() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock isn't passed
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp - 1;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Insufficient permissions for method unlock_stuck_transfer restricted by access control"
+    )]
+    fn test_only_unlock_manager_can_unlock_stuck_transfer() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        contract.acl_grant_role("UnlockManager".to_string(), force_unlock_account.clone());
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        contract.unlock_stuck_transfer(U128(1), recipient_id.clone());
     }
 
     #[test]
