@@ -13236,6 +13236,7 @@ impl FastBridgeExt {
     pub fn unlock_callback(
         self,
         nonce: U128,
+        #[allow(unused_variables)]
         sender_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
@@ -14331,8 +14332,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully only if called either by the original creator of the transfer
-    /// or by the account that has the `UnrestrictedUnlock` role.
+    /// The function could be executed successfully by any account that provides proof.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
     ///
@@ -14422,46 +14422,18 @@ impl FastBridge {
     ///
     /// # Panics
     ///
-    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
-    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
-    /// or if the verification of the unlock proof fails.
+    /// This function panics if the transfer specified by the nonce is not found;
+    /// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
     pub fn unlock_callback(
         &mut self,
         verification_result: bool,
         nonce: U128,
+        #[allow(unused_variables)]
         sender_id: AccountId,
     ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
-        let is_unlock_allowed = recipient_id == sender_id
-            || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
-        if true {
-            let msg: &str = &{
-                let res = ::alloc::fmt::format(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Permission denied for account: "],
-                        &[::core::fmt::ArgumentV1::new_display(&sender_id)],
-                    ),
-                );
-                res
-            };
-            if !is_unlock_allowed {
-                ::core::panicking::panic_display(&msg)
-            }
-        } else if !is_unlock_allowed {
-            ::near_sdk::env::panic_str(
-                &{
-                    let res = ::alloc::fmt::format(
-                        ::core::fmt::Arguments::new_v1(
-                            &["Permission denied for account: "],
-                            &[::core::fmt::ArgumentV1::new_display(&sender_id)],
-                        ),
-                    );
-                    res
-                },
-            )
-        }
         if true {
             let msg: &str = &"Valid time is not correct.";
             if !(block_timestamp() > transfer_data.valid_till) {
@@ -16275,8 +16247,7 @@ pub extern "C" fn init_transfer_callback() {
 /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
 /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
 /// didn't happen and its validity time is already expired.
-/// The function could be executed successfully only if called either by the original creator of the transfer
-/// or by the account that has the `UnrestrictedUnlock` role.
+/// The function could be executed successfully by any account that provides proof.
 ///
 /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
 ///
@@ -16577,9 +16548,8 @@ pub extern "C" fn unlock() {
 ///
 /// # Panics
 ///
-/// This function panics if the transfer specified by the nonce is not found; if the sender ID
-/// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
-/// or if the verification of the unlock proof fails.
+/// This function panics if the transfer specified by the nonce is not found;
+/// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock_callback() {

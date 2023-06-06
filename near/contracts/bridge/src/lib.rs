@@ -385,8 +385,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully only if called either by the original creator of the transfer
-    /// or by the account that has the `UnrestrictedUnlock` role.
+    /// The function could be executed successfully by any account that provides proof.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
     ///
@@ -452,9 +451,8 @@ impl FastBridge {
     ///
     /// # Panics
     ///
-    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
-    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
-    /// or if the verification of the unlock proof fails.
+    /// This function panics if the transfer specified by the nonce is not found;
+    /// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
     #[private]
     pub fn unlock_callback(
         &mut self,
@@ -462,19 +460,14 @@ impl FastBridge {
         #[serializer(borsh)]
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
+        #[allow(unused_variables)]
+        #[serializer(borsh)]
+        sender_id: AccountId,
     ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
 
-        let is_unlock_allowed = recipient_id == sender_id
-            || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
-
-        require!(
-            is_unlock_allowed,
-            format!("Permission denied for account: {}", sender_id)
-        );
         require!(
             block_timestamp() > transfer_data.valid_till,
             "Valid time is not correct."
@@ -1994,15 +1987,6 @@ mod unit_tests {
         let user_balance = contract.user_balances.get(&transfer_account).unwrap();
         let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
         assert_eq!(200, transfer_token_amount);
-    }
-
-    #[test]
-    #[should_panic(expected = "Permission denied for account:")]
-    fn test_unlock_invalid_account() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
-        test_unlock(&mut contract);
     }
 
     #[test]
