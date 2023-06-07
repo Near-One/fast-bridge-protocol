@@ -1,7 +1,8 @@
 use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
-use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
-use near_plugins_derive::{access_control_any, pause};
+use near_plugins::{
+    access_control, access_control_any, pause, AccessControlRole, AccessControllable, Pausable,
+};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -214,7 +215,6 @@ impl FastBridge {
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
             is_whitelist_mode_enabled: whitelist_mode,
-            __acl: Default::default(),
         };
 
         near_sdk::require!(
