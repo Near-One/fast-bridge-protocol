@@ -17462,7 +17462,7 @@ impl FastBridge {
     pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::UnlockManager.into()]),
+            ::alloc::boxed::Box::new([Role::UnlockManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -18011,7 +18011,7 @@ impl FastBridge {
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -18049,7 +18049,7 @@ impl FastBridge {
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -18150,7 +18150,7 @@ impl FastBridge {
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()

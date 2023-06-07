@@ -571,7 +571,7 @@ impl FastBridge {
     ///
     /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
     ///
-    #[access_control_any(roles(Role::UnlockManager))]
+    #[access_control_any(roles(Role::UnlockManager, Role::DAO))]
     pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
         let nonce_str = nonce.0.to_string();
 
@@ -889,7 +889,7 @@ impl FastBridge {
     /// The function is allowed to be called only by accounts that have `ConfigManager` role.
     /// # Arguments
     /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
     }
@@ -902,7 +902,7 @@ impl FastBridge {
     /// # Arguments
     ///
     /// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
@@ -981,7 +981,7 @@ impl FastBridge {
     ///
     /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
     ///
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
