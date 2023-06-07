@@ -2,6 +2,7 @@ use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
 use near_plugins::{
     access_control, access_control_any, pause, AccessControlRole, AccessControllable, Pausable,
+    Upgradable,
 };
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
@@ -146,12 +147,23 @@ pub enum Role {
     WhitelistManager,
     ConfigManager,
     UnlockManager,
+    DAO,
+    CodeStager,
+    CodeDeployer,
+    DurationManager,
 }
 
 #[access_control(role_type(Role))]
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
-#[pausable(manager_roles(Role::PauseManager))]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable, Upgradable)]
+#[pausable(manager_roles(Role::PauseManager, Role::DAO))]
+#[upgradable(access_control_roles(
+    code_stagers(Role::CodeStager, Role::DAO),
+    code_deployers(Role::CodeDeployer, Role::DAO),
+    duration_initializers(Role::DurationManager, Role::DAO),
+    duration_update_stagers(Role::DurationManager, Role::DAO),
+    duration_update_appliers(Role::DurationManager, Role::DAO),
+))]
 pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
     user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
