@@ -1486,7 +1486,10 @@ mod whitelist {
         ) {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -1522,7 +1525,10 @@ mod whitelist {
         ) {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -1569,7 +1575,10 @@ mod whitelist {
         ) -> bool {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -1692,7 +1701,10 @@ mod whitelist {
         pub fn set_whitelist_mode_enabled(&mut self, enabled: bool) {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
