@@ -6,7 +6,6 @@ require("@nomicfoundation/hardhat-network-helpers");
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
-const { ethers } = require("ethers");
 const { task } = require("hardhat/config");
 const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
 const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
@@ -34,17 +33,18 @@ task("method", "Execute Fastbridge methods")
         const jsonString = taskArgs.jsonstring;
         const json = JSON.parse(jsonString);
         const arg = json.arguments;
-        const functionSignature = json.signature;
+        const methodName = json.methodname;
+        const gasLimit = json.gaslimit;
         console.log(arg);
-        const functionArguments = Object.values(arg);
-        console.log(functionSignature, functionArguments);
-        const iface = new ethers.utils.Interface(bridgeArtifacts.abi);
+        const methodArguments = Object.values(arg);
+        console.log(methodName, methodArguments);
+        const contractInterface = new ethers.utils.Interface(bridgeArtifacts.abi);
         // Send the transaction
-        const txdata = iface.encodeFunctionData(functionSignature, functionArguments);
+        const txdata = contractInterface.encodeFunctionData(methodName, methodArguments);
         const tx = await signer.sendTransaction({
             to: bridgeAddress,
             data: txdata,
-            gasLimit: 999999
+            gasLimit: gasLimit
         });
         console.log(tx);
         await tx.wait();

@@ -28,19 +28,19 @@ Described in the corresponding [README](near/README.md)
 ## EthErc20Bridge scripts
 Below given command will help user to deploy and interact with contracts on the network provided as arg to below command, if no arg is provided it will use default network from hardhat-config.
 
-First set up your `.env` file in `spectere-bridge-protocol/.env`, for help `.env.example` is provided in `spectere-bridge-protocol` directory.
+First set up your `.env` file in `fast-bridge-protocol/eth/.env`, for help `.env.example` is provided in `fast-bridge-protocol/eth` directory.
 1. First copy content of `.env.example` file
-2. Create a new file in `spectere-bridge-protocol` directory and name it `.env`
+2. Create a new file in `fast-bridge-protocol/eth` directory and name it `.env`
 3. Paste copied content in `.env` file 
 4. Fill up details as required as per used in `hardhat.config.json` file.
 
-Then, to run below scripts go to `spectere-bridge-protocol/eth` directory, i.e. **run command `cd eth`**
+Then, to run below scripts go to `fast-bridge-protocol/eth` directory, i.e. **run command `cd eth`**
 
 example : to deploy EthErc20FastBridge on <network-name> network (network-name must be defined in hardhat-config.json's networks)
 `npm run deploy:bridge -- <network-name>`
 
 ### Deployment script
-Running ths script will deploy bridge proxy and store proxy and implementation address in `spectre-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`
+Running ths script will deploy bridge proxy and store proxy and implementation address in `fast-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`
 To execute this script => run command `yarn run deploy:bridge -- <network-name>`
 example : to deploy bridge on goerli run command `yarn run deploy:bridge -- goerli`
 
@@ -50,14 +50,14 @@ To execute this script => run command `yarn run deploy:verify:bridge -- <network
 example : to deploy and verify bridge on goerli run command `yarn run deploy:verify:bridge -- goerli`
 
 ### Upgrade script 
-To upgrade bridge contract(using hardhat's upgrades plugin), use `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` script.
-<!-- Before upgrading, go to file `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7. -->
+To upgrade bridge contract(using hardhat's upgrades plugin), use `fast-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` script.
+<!-- Before upgrading, go to file `fast-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7. -->
 
 To execute this script => run command `yarn run upgrade:bridge -- <network-name>`
 example : to upgrade on goerli run command `yarn run deploy:verify:bridge -- goerli`
 
 ### Whitelisting
-To interact with EthErc20FastBridge whitelisting methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/whitelistTokens.js
+To interact with EthErc20FastBridge whitelisting methods use methods defined in fast-bridge-protocol/eth/scripts/EthErc20FastBridge/whitelistTokens.js
 
 * To bulk update whitelist status of tokens import and use method `bulkWhitelistStatusUpdate` from above mentioned file with an array of token addresses, an array of their corresponding status and a signer with `WHITELISTING_TOKENS_ADMIN_ROLE` as parameters.
 
@@ -87,7 +87,7 @@ main().catch((error) => {
 And to run above script run `npx hardhat run <path_to_script/script.js> --` from eth folder.
 
 ### Pause/Unpause transfers
-To interact with EthErc20FastBridge pause and unpause methods use methods defined in spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/pause_unPause.js
+To interact with EthErc20FastBridge pause and unpause methods use methods defined in fast-bridge-protocol/eth/scripts/EthErc20FastBridge/pause_unPause.js
 
 * To pause transfers import and use `pauseTransfer` method from above mentioned file with a signer with `PAUSABLE_ADMIN_ROLE` as parameter. 
 
@@ -95,13 +95,13 @@ To interact with EthErc20FastBridge pause and unpause methods use methods define
 
 These methods can be used in similar to above example
 
-### To interact with above methods use script `spectre-bridge-protocol/eth/scripts/EthErc20FastBridge/interact_with_bridge.js`
+### To interact with above methods use script `fast-bridge-protocol/eth/scripts/EthErc20FastBridge/interact_with_bridge.js`
 Follow below steps to execute script and start interacting
 1. First, create your `.env` file(mentioned in `EthErc20Bridge scripts` section's starting)
-2. Go to `spectre-bridge-protocol/eth` directory in terminal
+2. Go to `fast-bridge-protocol/eth` directory in terminal
 3. Run command `npm run interact:bridge -- <network_name_as_defined_in_hardhat_config>` 
 4. Follow guide in terminal
-Note: bridge address will be picked from `deploymentAddress[network].new.bridge` (from `spectre-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`)
+Note: bridge address will be picked from `deploymentAddress[network].new.bridge` (from `fast-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`)
 
 ### To interact with FastBridge using hardhat task
 To call any method of EthErc20FastBridge use hardhat task `method` 
@@ -111,7 +111,7 @@ to create `json_string_input`
 1. create json with `signature` and `arguments` properties in below example format
 
  {
-    "signature": "setWhitelistedTokens(address[],bool[])",
+    "methodname": "setWhitelistedTokens",
     "argcount": "2",
     "arguments": {
         "arg1": [
@@ -130,4 +130,4 @@ to create `json_string_input`
 2. pass below json to JSON.stringify() and use output as `json_string_input`
 
 ```
-example: to call `setWhitelistedTokens` method run command `npx hardhat method --jsonstring '{"signature":"setWhitelistedTokens","arguments":{"arg1":["0xdAC17F958D2ee523a2206206994597C13D831ec7"],"arg2":[true]}}'`
+example: to call `setWhitelistedTokens` method run command `npx hardhat method --jsonstring '{"methodname":"setWhitelistedTokens","arguments":{"arg1":["0xdAC17F958D2ee523a2206206994597C13D831ec7"],"arg2":[true]}}'`

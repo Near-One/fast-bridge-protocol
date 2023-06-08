@@ -1,14 +1,5 @@
 const { ethers } = require("hardhat");
-const deploymentAddress = require("../deployment/deploymentAddresses.json");
-
-async function getBridgeContract() {
-    console.log("Connecting with bridge...");
-    const network = (await ethers.getDefaultProvider().getNetwork()).name;
-    const bridgeAddress = deploymentAddress[network].new.bridge_proxy;
-    const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeAddress);
-    console.log("Connected !");
-    return bridge;
-}
+const { getBridgeContract } = require("../utilities/helpers.js")
 
 async function bulkWhitelistStatusUpdate(tokensArray, statusArray, signer) {
     let bridge;

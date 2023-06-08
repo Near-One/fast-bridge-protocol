@@ -4,9 +4,9 @@ const {
     addTokenToWhitelist,
     removeTokenFromWhitelist,
     isTokenInWhitelist
-} = require("./whitelistTokens");
+} = require("./whitelist_tokens");
 const { pauseTransfer, unpauseTransfer } = require("./pause_unpause");
-const { withdrawStuckTokens } = require("./withdraw_Stuck_tokens");
+const { withdrawStuckTokens } = require("./withdraw_stuck_tokens");
 const prompt = require("prompt-sync")();
 
 async function main() {
