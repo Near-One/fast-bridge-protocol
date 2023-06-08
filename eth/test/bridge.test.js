@@ -70,7 +70,7 @@ describe("Fast Bridge", () => {
         await tokenInstance.connect(someone).transfer(someoneWithTokens.address, someoneBalance);
 
         bridge = await ethers.getContractFactory("EthErc20FastBridge");
-        proxy = await upgrades.deployProxy(bridge, [[], []], { unsafeAllow: ["delegatecall"] });
+        proxy = await upgrades.deployProxy(bridge, [[], []], { initializer: "initialize" });
         await proxy.deployed();
 
         await proxy.connect(owner).grantRole(await proxy.PAUSABLE_ADMIN_ROLE(), pausableAdmin.address);
