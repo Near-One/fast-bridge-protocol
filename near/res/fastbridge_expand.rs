@@ -5,8 +5,10 @@ use std::prelude::rust_2021::*;
 extern crate std;
 use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
-use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
-use near_plugins_derive::{access_control_any, pause};
+use near_plugins::{
+    access_control, access_control_any, pause, AccessControlRole, AccessControllable,
+    Pausable, Upgradable,
+};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -1484,7 +1486,10 @@ mod whitelist {
         ) {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -1520,7 +1525,10 @@ mod whitelist {
         ) {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -1567,7 +1575,10 @@ mod whitelist {
         ) -> bool {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -1690,7 +1701,10 @@ mod whitelist {
         pub fn set_whitelist_mode_enabled(&mut self, enabled: bool) {
             let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
                 #[rustc_box]
-                ::alloc::boxed::Box::new([Role::WhitelistManager.into()]),
+                ::alloc::boxed::Box::new([
+                    Role::WhitelistManager.into(),
+                    Role::DAO.into(),
+                ]),
             );
             let __acl_any_roles_ser: Vec<String> = __acl_any_roles
                 .iter()
@@ -5143,6 +5157,10 @@ pub enum Role {
     WhitelistManager,
     ConfigManager,
     UnlockManager,
+    DAO,
+    CodeStager,
+    CodeDeployer,
+    DurationManager,
 }
 struct __AclBoundchecker<T: Copy + Clone> {
     _marker: ::std::marker::PhantomData<T>,
@@ -5169,6 +5187,10 @@ impl From<Role> for u8 {
             Role::WhitelistManager => 4u8,
             Role::ConfigManager => 5u8,
             Role::UnlockManager => 6u8,
+            Role::DAO => 7u8,
+            Role::CodeStager => 8u8,
+            Role::CodeDeployer => 9u8,
+            Role::DurationManager => 10u8,
         }
     }
 }
@@ -5183,6 +5205,10 @@ impl ::std::convert::TryFrom<u8> for Role {
             4u8 => Ok(Role::WhitelistManager),
             5u8 => Ok(Role::ConfigManager),
             6u8 => Ok(Role::UnlockManager),
+            7u8 => Ok(Role::DAO),
+            8u8 => Ok(Role::CodeStager),
+            9u8 => Ok(Role::CodeDeployer),
+            10u8 => Ok(Role::DurationManager),
             _ => Err("Value does not correspond to a variant"),
         }
     }
@@ -5197,6 +5223,10 @@ impl From<Role> for &'static str {
             Role::WhitelistManager => "WhitelistManager",
             Role::ConfigManager => "ConfigManager",
             Role::UnlockManager => "UnlockManager",
+            Role::DAO => "DAO",
+            Role::CodeStager => "CodeStager",
+            Role::CodeDeployer => "CodeDeployer",
+            Role::DurationManager => "DurationManager",
         }
     }
 }
@@ -5210,6 +5240,10 @@ impl From<Role> for String {
             Role::WhitelistManager => "WhitelistManager".to_string(),
             Role::ConfigManager => "ConfigManager".to_string(),
             Role::UnlockManager => "UnlockManager".to_string(),
+            Role::DAO => "DAO".to_string(),
+            Role::CodeStager => "CodeStager".to_string(),
+            Role::CodeDeployer => "CodeDeployer".to_string(),
+            Role::DurationManager => "DurationManager".to_string(),
         }
     }
 }
@@ -5224,6 +5258,10 @@ impl ::std::convert::TryFrom<&str> for Role {
             "WhitelistManager" => Ok(Role::WhitelistManager),
             "ConfigManager" => Ok(Role::ConfigManager),
             "UnlockManager" => Ok(Role::UnlockManager),
+            "DAO" => Ok(Role::DAO),
+            "CodeStager" => Ok(Role::CodeStager),
+            "CodeDeployer" => Ok(Role::CodeDeployer),
+            "DurationManager" => Ok(Role::DurationManager),
             _ => Err("Value does not correspond to a variant"),
         }
     }
@@ -5237,6 +5275,24 @@ fn safe_leftshift(value: u128, n: u8) -> u128 {
         ))
 }
 impl AccessControlRole for Role {
+    fn acl_role_variants() -> Vec<&'static str> {
+        <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([
+                "PauseManager",
+                "UnrestrictedUnlock",
+                "UnrestrictedLpUnlock",
+                "UnrestrictedWithdraw",
+                "WhitelistManager",
+                "ConfigManager",
+                "UnlockManager",
+                "DAO",
+                "CodeStager",
+                "CodeDeployer",
+                "DurationManager",
+            ]),
+        )
+    }
     fn acl_super_admin_permission() -> u128 {
         1
     }
@@ -5410,6 +5466,38 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
             fn UNLOCKMANAGER_ADMIN(&self) -> bool {
                 false
             }
+            #[inline]
+            fn DAO(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn DAO_ADMIN(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn CODESTAGER(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn CODESTAGER_ADMIN(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn CODEDEPLOYER(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn CODEDEPLOYER_ADMIN(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn DURATIONMANAGER(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn DURATIONMANAGER_ADMIN(&self) -> bool {
+                false
+            }
         }
         #[allow(non_snake_case)]
         impl __BitFlags for RoleFlags {
@@ -5559,6 +5647,81 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
                         == Self::UNLOCKMANAGER_ADMIN.bits
                 }
             }
+            #[allow(deprecated)]
+            #[inline]
+            fn DAO(&self) -> bool {
+                if Self::DAO.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::DAO.bits == Self::DAO.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn DAO_ADMIN(&self) -> bool {
+                if Self::DAO_ADMIN.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::DAO_ADMIN.bits == Self::DAO_ADMIN.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn CODESTAGER(&self) -> bool {
+                if Self::CODESTAGER.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::CODESTAGER.bits == Self::CODESTAGER.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn CODESTAGER_ADMIN(&self) -> bool {
+                if Self::CODESTAGER_ADMIN.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::CODESTAGER_ADMIN.bits
+                        == Self::CODESTAGER_ADMIN.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn CODEDEPLOYER(&self) -> bool {
+                if Self::CODEDEPLOYER.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::CODEDEPLOYER.bits == Self::CODEDEPLOYER.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn CODEDEPLOYER_ADMIN(&self) -> bool {
+                if Self::CODEDEPLOYER_ADMIN.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::CODEDEPLOYER_ADMIN.bits
+                        == Self::CODEDEPLOYER_ADMIN.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn DURATIONMANAGER(&self) -> bool {
+                if Self::DURATIONMANAGER.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::DURATIONMANAGER.bits == Self::DURATIONMANAGER.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn DURATIONMANAGER_ADMIN(&self) -> bool {
+                if Self::DURATIONMANAGER_ADMIN.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::DURATIONMANAGER_ADMIN.bits
+                        == Self::DURATIONMANAGER_ADMIN.bits
+                }
+            }
         }
         let mut first = true;
         if <Self as __BitFlags>::__SUPER_ADMIN(self) {
@@ -5666,6 +5829,62 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
             first = false;
             f.write_str("UNLOCKMANAGER_ADMIN")?;
         }
+        if <Self as __BitFlags>::DAO(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("DAO")?;
+        }
+        if <Self as __BitFlags>::DAO_ADMIN(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("DAO_ADMIN")?;
+        }
+        if <Self as __BitFlags>::CODESTAGER(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("CODESTAGER")?;
+        }
+        if <Self as __BitFlags>::CODESTAGER_ADMIN(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("CODESTAGER_ADMIN")?;
+        }
+        if <Self as __BitFlags>::CODEDEPLOYER(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("CODEDEPLOYER")?;
+        }
+        if <Self as __BitFlags>::CODEDEPLOYER_ADMIN(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("CODEDEPLOYER_ADMIN")?;
+        }
+        if <Self as __BitFlags>::DURATIONMANAGER(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("DURATIONMANAGER")?;
+        }
+        if <Self as __BitFlags>::DURATIONMANAGER_ADMIN(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("DURATIONMANAGER_ADMIN")?;
+        }
         let extra_bits = self.bits & !Self::all().bits();
         if extra_bits != 0 {
             if !first {
@@ -5730,6 +5949,14 @@ impl RoleFlags {
     pub const CONFIGMANAGER_ADMIN: Self = Self { bits: 1u128 << 12u8 };
     pub const UNLOCKMANAGER: Self = Self { bits: 1u128 << 13u8 };
     pub const UNLOCKMANAGER_ADMIN: Self = Self { bits: 1u128 << 14u8 };
+    pub const DAO: Self = Self { bits: 1u128 << 15u8 };
+    pub const DAO_ADMIN: Self = Self { bits: 1u128 << 16u8 };
+    pub const CODESTAGER: Self = Self { bits: 1u128 << 17u8 };
+    pub const CODESTAGER_ADMIN: Self = Self { bits: 1u128 << 18u8 };
+    pub const CODEDEPLOYER: Self = Self { bits: 1u128 << 19u8 };
+    pub const CODEDEPLOYER_ADMIN: Self = Self { bits: 1u128 << 20u8 };
+    pub const DURATIONMANAGER: Self = Self { bits: 1u128 << 21u8 };
+    pub const DURATIONMANAGER_ADMIN: Self = Self { bits: 1u128 << 22u8 };
     /// Returns an empty set of flags.
     #[inline]
     pub const fn empty() -> Self {
@@ -5755,6 +5982,14 @@ impl RoleFlags {
             const CONFIGMANAGER_ADMIN: u128 = 0;
             const UNLOCKMANAGER: u128 = 0;
             const UNLOCKMANAGER_ADMIN: u128 = 0;
+            const DAO: u128 = 0;
+            const DAO_ADMIN: u128 = 0;
+            const CODESTAGER: u128 = 0;
+            const CODESTAGER_ADMIN: u128 = 0;
+            const CODEDEPLOYER: u128 = 0;
+            const CODEDEPLOYER_ADMIN: u128 = 0;
+            const DURATIONMANAGER: u128 = 0;
+            const DURATIONMANAGER_ADMIN: u128 = 0;
         }
         #[allow(non_snake_case)]
         impl __BitFlags for RoleFlags {
@@ -5790,6 +6025,22 @@ impl RoleFlags {
             const UNLOCKMANAGER: u128 = Self::UNLOCKMANAGER.bits;
             #[allow(deprecated)]
             const UNLOCKMANAGER_ADMIN: u128 = Self::UNLOCKMANAGER_ADMIN.bits;
+            #[allow(deprecated)]
+            const DAO: u128 = Self::DAO.bits;
+            #[allow(deprecated)]
+            const DAO_ADMIN: u128 = Self::DAO_ADMIN.bits;
+            #[allow(deprecated)]
+            const CODESTAGER: u128 = Self::CODESTAGER.bits;
+            #[allow(deprecated)]
+            const CODESTAGER_ADMIN: u128 = Self::CODESTAGER_ADMIN.bits;
+            #[allow(deprecated)]
+            const CODEDEPLOYER: u128 = Self::CODEDEPLOYER.bits;
+            #[allow(deprecated)]
+            const CODEDEPLOYER_ADMIN: u128 = Self::CODEDEPLOYER_ADMIN.bits;
+            #[allow(deprecated)]
+            const DURATIONMANAGER: u128 = Self::DURATIONMANAGER.bits;
+            #[allow(deprecated)]
+            const DURATIONMANAGER_ADMIN: u128 = Self::DURATIONMANAGER_ADMIN.bits;
         }
         Self {
             bits: <Self as __BitFlags>::__SUPER_ADMIN
@@ -5806,7 +6057,13 @@ impl RoleFlags {
                 | <Self as __BitFlags>::CONFIGMANAGER
                 | <Self as __BitFlags>::CONFIGMANAGER_ADMIN
                 | <Self as __BitFlags>::UNLOCKMANAGER
-                | <Self as __BitFlags>::UNLOCKMANAGER_ADMIN,
+                | <Self as __BitFlags>::UNLOCKMANAGER_ADMIN | <Self as __BitFlags>::DAO
+                | <Self as __BitFlags>::DAO_ADMIN | <Self as __BitFlags>::CODESTAGER
+                | <Self as __BitFlags>::CODESTAGER_ADMIN
+                | <Self as __BitFlags>::CODEDEPLOYER
+                | <Self as __BitFlags>::CODEDEPLOYER_ADMIN
+                | <Self as __BitFlags>::DURATIONMANAGER
+                | <Self as __BitFlags>::DURATIONMANAGER_ADMIN,
         }
     }
     /// Returns the raw value of the flags currently stored.
@@ -6103,6 +6360,10 @@ const _: () = {
                 __field4,
                 __field5,
                 __field6,
+                __field7,
+                __field8,
+                __field9,
+                __field10,
             }
             struct __FieldVisitor;
             impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
@@ -6131,11 +6392,15 @@ const _: () = {
                         4u64 => _serde::__private::Ok(__Field::__field4),
                         5u64 => _serde::__private::Ok(__Field::__field5),
                         6u64 => _serde::__private::Ok(__Field::__field6),
+                        7u64 => _serde::__private::Ok(__Field::__field7),
+                        8u64 => _serde::__private::Ok(__Field::__field8),
+                        9u64 => _serde::__private::Ok(__Field::__field9),
+                        10u64 => _serde::__private::Ok(__Field::__field10),
                         _ => {
                             _serde::__private::Err(
                                 _serde::de::Error::invalid_value(
                                     _serde::de::Unexpected::Unsigned(__value),
-                                    &"variant index 0 <= i < 7",
+                                    &"variant index 0 <= i < 11",
                                 ),
                             )
                         }
@@ -6160,6 +6425,10 @@ const _: () = {
                         "WhitelistManager" => _serde::__private::Ok(__Field::__field4),
                         "ConfigManager" => _serde::__private::Ok(__Field::__field5),
                         "UnlockManager" => _serde::__private::Ok(__Field::__field6),
+                        "DAO" => _serde::__private::Ok(__Field::__field7),
+                        "CodeStager" => _serde::__private::Ok(__Field::__field8),
+                        "CodeDeployer" => _serde::__private::Ok(__Field::__field9),
+                        "DurationManager" => _serde::__private::Ok(__Field::__field10),
                         _ => {
                             _serde::__private::Err(
                                 _serde::de::Error::unknown_variant(__value, VARIANTS),
@@ -6186,6 +6455,10 @@ const _: () = {
                         b"WhitelistManager" => _serde::__private::Ok(__Field::__field4),
                         b"ConfigManager" => _serde::__private::Ok(__Field::__field5),
                         b"UnlockManager" => _serde::__private::Ok(__Field::__field6),
+                        b"DAO" => _serde::__private::Ok(__Field::__field7),
+                        b"CodeStager" => _serde::__private::Ok(__Field::__field8),
+                        b"CodeDeployer" => _serde::__private::Ok(__Field::__field9),
+                        b"DurationManager" => _serde::__private::Ok(__Field::__field10),
                         _ => {
                             let __value = &_serde::__private::from_utf8_lossy(__value);
                             _serde::__private::Err(
@@ -6297,6 +6570,42 @@ const _: () = {
                             };
                             _serde::__private::Ok(Role::UnlockManager)
                         }
+                        (__Field::__field7, __variant) => {
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::__private::Ok(Role::DAO)
+                        }
+                        (__Field::__field8, __variant) => {
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::__private::Ok(Role::CodeStager)
+                        }
+                        (__Field::__field9, __variant) => {
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::__private::Ok(Role::CodeDeployer)
+                        }
+                        (__Field::__field10, __variant) => {
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::__private::Ok(Role::DurationManager)
+                        }
                     }
                 }
             }
@@ -6308,6 +6617,10 @@ const _: () = {
                 "WhitelistManager",
                 "ConfigManager",
                 "UnlockManager",
+                "DAO",
+                "CodeStager",
+                "CodeDeployer",
+                "DurationManager",
             ];
             _serde::Deserializer::deserialize_enum(
                 __deserializer,
@@ -6391,6 +6704,38 @@ const _: () = {
                         "UnlockManager",
                     )
                 }
+                Role::DAO => {
+                    _serde::Serializer::serialize_unit_variant(
+                        __serializer,
+                        "Role",
+                        7u32,
+                        "DAO",
+                    )
+                }
+                Role::CodeStager => {
+                    _serde::Serializer::serialize_unit_variant(
+                        __serializer,
+                        "Role",
+                        8u32,
+                        "CodeStager",
+                    )
+                }
+                Role::CodeDeployer => {
+                    _serde::Serializer::serialize_unit_variant(
+                        __serializer,
+                        "Role",
+                        9u32,
+                        "CodeDeployer",
+                    )
+                }
+                Role::DurationManager => {
+                    _serde::Serializer::serialize_unit_variant(
+                        __serializer,
+                        "Role",
+                        10u32,
+                        "DurationManager",
+                    )
+                }
             }
         }
     }
@@ -6404,7 +6749,16 @@ impl ::core::clone::Clone for Role {
         *self
     }
 }
-#[pausable(manager_roles(Role::PauseManager))]
+#[pausable(manager_roles(Role::PauseManager, Role::DAO))]
+#[upgradable(
+    access_control_roles(
+        code_stagers(Role::CodeStager, Role::DAO),
+        code_deployers(Role::CodeDeployer, Role::DAO),
+        duration_initializers(Role::DurationManager, Role::DAO),
+        duration_update_stagers(Role::DurationManager, Role::DAO),
+        duration_update_appliers(Role::DurationManager, Role::DAO),
+    )
+)]
 pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
     token_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
@@ -6421,7 +6775,6 @@ pub struct FastBridge {
     /// The mode of the whitelist check
     is_whitelist_mode_enabled: bool,
     pending_transfers_balances: UnorderedMap<AccountId, u128>,
-    __acl: __Acl,
 }
 impl borsh::de::BorshDeserialize for FastBridge
 where
@@ -6437,7 +6790,6 @@ where
     UnorderedSet<String>: borsh::BorshDeserialize,
     bool: borsh::BorshDeserialize,
     UnorderedMap<AccountId, u128>: borsh::BorshDeserialize,
-    __Acl: borsh::BorshDeserialize,
 {
     fn deserialize(
         buf: &mut &[u8],
@@ -6455,7 +6807,6 @@ where
             whitelist_accounts: borsh::BorshDeserialize::deserialize(buf)?,
             is_whitelist_mode_enabled: borsh::BorshDeserialize::deserialize(buf)?,
             pending_transfers_balances: borsh::BorshDeserialize::deserialize(buf)?,
-            __acl: borsh::BorshDeserialize::deserialize(buf)?,
         })
     }
 }
@@ -6473,7 +6824,6 @@ where
     UnorderedSet<String>: borsh::ser::BorshSerialize,
     bool: borsh::ser::BorshSerialize,
     UnorderedMap<AccountId, u128>: borsh::ser::BorshSerialize,
-    __Acl: borsh::ser::BorshSerialize,
 {
     fn serialize<W: borsh::maybestd::io::Write>(
         &self,
@@ -6491,7 +6841,6 @@ where
         borsh::BorshSerialize::serialize(&self.whitelist_accounts, writer)?;
         borsh::BorshSerialize::serialize(&self.is_whitelist_mode_enabled, writer)?;
         borsh::BorshSerialize::serialize(&self.pending_transfers_balances, writer)?;
-        borsh::BorshSerialize::serialize(&self.__acl, writer)?;
         Ok(())
     }
 }
@@ -6693,8 +7042,8 @@ impl FastBridgeExt {
     }
 }
 impl Pausable for FastBridge {
-    fn pa_storage_key(&self) -> Vec<u8> {
-        ("__PAUSE__").as_bytes().to_vec()
+    fn pa_storage_key(&self) -> &'static [u8] {
+        ("__PAUSE__").as_bytes()
     }
     fn pa_is_paused(&self, key: String) -> bool {
         self.pa_all_paused()
@@ -6710,10 +7059,10 @@ impl Pausable for FastBridge {
                     ))
             })
     }
-    fn pa_pause_feature(&mut self, key: String) {
+    fn pa_pause_feature(&mut self, key: String) -> bool {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::PauseManager.into()]),
+            ::alloc::boxed::Box::new([Role::PauseManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -6739,16 +7088,10 @@ impl Pausable for FastBridge {
             near_sdk::env::panic_str(&message);
         }
         let mut paused_keys = self.pa_all_paused().unwrap_or_default();
-        paused_keys.insert(key.clone());
-        ::near_sdk::env::log_str(
-            near_plugins::events::AsEvent::event(
-                    &near_plugins::pausable::Pause {
-                        by: ::near_sdk::env::predecessor_account_id(),
-                        key,
-                    },
-                )
-                .as_ref(),
-        );
+        let newly_paused = paused_keys.insert(key.clone());
+        if !newly_paused {
+            return false;
+        }
         ::near_sdk::env::storage_write(
             self.pa_storage_key().as_ref(),
             paused_keys
@@ -6758,11 +7101,17 @@ impl Pausable for FastBridge {
                 ))
                 .as_ref(),
         );
+        let event = near_plugins::pausable::Pause {
+            by: ::near_sdk::env::predecessor_account_id(),
+            key,
+        };
+        near_plugins::events::AsEvent::emit(&event);
+        true
     }
-    fn pa_unpause_feature(&mut self, key: String) {
+    fn pa_unpause_feature(&mut self, key: String) -> bool {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::PauseManager.into()]),
+            ::alloc::boxed::Box::new([Role::PauseManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -6788,16 +7137,10 @@ impl Pausable for FastBridge {
             near_sdk::env::panic_str(&message);
         }
         let mut paused_keys = self.pa_all_paused().unwrap_or_default();
-        paused_keys.remove(&key);
-        ::near_sdk::env::log_str(
-            near_plugins::events::AsEvent::event(
-                    &near_plugins::pausable::Unpause {
-                        by: ::near_sdk::env::predecessor_account_id(),
-                        key,
-                    },
-                )
-                .as_ref(),
-        );
+        let was_paused = paused_keys.remove(&key);
+        if !was_paused {
+            return false;
+        }
         if paused_keys.is_empty() {
             ::near_sdk::env::storage_remove(self.pa_storage_key().as_ref());
         } else {
@@ -6811,6 +7154,12 @@ impl Pausable for FastBridge {
                     .as_ref(),
             );
         }
+        let event = near_plugins::pausable::Unpause {
+            by: ::near_sdk::env::predecessor_account_id(),
+            key,
+        };
+        near_plugins::events::AsEvent::emit(&event);
+        true
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -7263,7 +7612,10 @@ pub extern "C" fn pa_pause_feature() {
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.pa_pause_feature(key);
+    let result = contract.pa_pause_feature(key);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
@@ -7480,7 +7832,1442 @@ pub extern "C" fn pa_unpause_feature() {
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.pa_unpause_feature(key);
+    let result = contract.pa_unpause_feature(key);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
+}
+/// Used to make storage prefixes unique. Not to be used directly,
+/// instead it should be prepended to the storage prefix specified by
+/// the user.
+enum __UpgradableStorageKey {
+    Code,
+    StagingTimestamp,
+    StagingDuration,
+    NewStagingDuration,
+    NewStagingDurationTimestamp,
+}
+impl borsh::ser::BorshSerialize for __UpgradableStorageKey {
+    fn serialize<W: borsh::maybestd::io::Write>(
+        &self,
+        writer: &mut W,
+    ) -> core::result::Result<(), borsh::maybestd::io::Error> {
+        let variant_idx: u8 = match self {
+            __UpgradableStorageKey::Code => 0u8,
+            __UpgradableStorageKey::StagingTimestamp => 1u8,
+            __UpgradableStorageKey::StagingDuration => 2u8,
+            __UpgradableStorageKey::NewStagingDuration => 3u8,
+            __UpgradableStorageKey::NewStagingDurationTimestamp => 4u8,
+        };
+        writer.write_all(&variant_idx.to_le_bytes())?;
+        match self {
+            __UpgradableStorageKey::Code => {}
+            __UpgradableStorageKey::StagingTimestamp => {}
+            __UpgradableStorageKey::StagingDuration => {}
+            __UpgradableStorageKey::NewStagingDuration => {}
+            __UpgradableStorageKey::NewStagingDurationTimestamp => {}
+        }
+        Ok(())
+    }
+}
+impl FastBridge {
+    fn up_get_timestamp(
+        &self,
+        key: __UpgradableStorageKey,
+    ) -> Option<::near_sdk::Timestamp> {
+        near_sdk::env::storage_read(self.up_storage_key(key).as_ref())
+            .map(|timestamp_bytes| {
+                ::near_sdk::Timestamp::try_from_slice(&timestamp_bytes)
+                    .unwrap_or_else(|_| near_sdk::env::panic_str(
+                        "Upgradable: Invalid u64 timestamp format",
+                    ))
+            })
+    }
+    fn up_get_duration(
+        &self,
+        key: __UpgradableStorageKey,
+    ) -> Option<::near_sdk::Duration> {
+        near_sdk::env::storage_read(self.up_storage_key(key).as_ref())
+            .map(|duration_bytes| {
+                ::near_sdk::Duration::try_from_slice(&duration_bytes)
+                    .unwrap_or_else(|_| near_sdk::env::panic_str(
+                        "Upgradable: Invalid u64 Duration format",
+                    ))
+            })
+    }
+    fn up_set_timestamp(
+        &self,
+        key: __UpgradableStorageKey,
+        value: ::near_sdk::Timestamp,
+    ) {
+        self.up_storage_write(key, &value.try_to_vec().unwrap());
+    }
+    fn up_set_duration(&self, key: __UpgradableStorageKey, value: ::near_sdk::Duration) {
+        self.up_storage_write(key, &value.try_to_vec().unwrap());
+    }
+    fn up_storage_key(&self, key: __UpgradableStorageKey) -> Vec<u8> {
+        let key_vec = key
+            .try_to_vec()
+            .unwrap_or_else(|_| ::near_sdk::env::panic_str(
+                "Storage key should be serializable",
+            ));
+        [("__up__").as_bytes(), key_vec.as_slice()].concat()
+    }
+    fn up_storage_write(&self, key: __UpgradableStorageKey, value: &[u8]) {
+        near_sdk::env::storage_write(self.up_storage_key(key).as_ref(), &value);
+    }
+    fn up_set_staging_duration_unchecked(&self, staging_duration: near_sdk::Duration) {
+        self.up_storage_write(
+            __UpgradableStorageKey::StagingDuration,
+            &staging_duration.try_to_vec().unwrap(),
+        );
+    }
+}
+impl FastBridgeExt {
+    pub fn up_storage_prefix(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_storage_prefix".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_get_delay_status(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_get_delay_status".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_stage_code(self, code: Vec<u8>) -> near_sdk::Promise {
+        let __args = {
+            struct Input<'nearinput> {
+                code: &'nearinput Vec<u8>,
+            }
+            impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
+            where
+                &'nearinput Vec<u8>: borsh::ser::BorshSerialize,
+            {
+                fn serialize<W: borsh::maybestd::io::Write>(
+                    &self,
+                    writer: &mut W,
+                ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+                    borsh::BorshSerialize::serialize(&self.code, writer)?;
+                    Ok(())
+                }
+            }
+            let __args = Input { code: &code };
+            near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using Borsh.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_stage_code".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_staged_code(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_staged_code".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_staged_code_hash(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_staged_code_hash".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_deploy_code(
+        self,
+        function_call_args: Option<near_plugins::upgradable::FunctionCallArgs>,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                function_call_args: &'nearinput Option<
+                    near_plugins::upgradable::FunctionCallArgs,
+                >,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "function_call_args",
+                            &self.function_call_args,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input {
+                function_call_args: &function_call_args,
+            };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_deploy_code".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_init_staging_duration(
+        self,
+        staging_duration: near_sdk::Duration,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                staging_duration: &'nearinput near_sdk::Duration,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "staging_duration",
+                            &self.staging_duration,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input {
+                staging_duration: &staging_duration,
+            };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_init_staging_duration".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_stage_update_staging_duration(
+        self,
+        staging_duration: near_sdk::Duration,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                staging_duration: &'nearinput near_sdk::Duration,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "staging_duration",
+                            &self.staging_duration,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input {
+                staging_duration: &staging_duration,
+            };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_stage_update_staging_duration".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn up_apply_update_staging_duration(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "up_apply_update_staging_duration".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+}
+impl Upgradable for FastBridge {
+    fn up_storage_prefix(&self) -> &'static [u8] {
+        ("__up__").as_bytes()
+    }
+    fn up_get_delay_status(&self) -> near_plugins::UpgradableDurationStatus {
+        near_plugins::UpgradableDurationStatus {
+            staging_duration: self
+                .up_get_duration(__UpgradableStorageKey::StagingDuration),
+            staging_timestamp: self
+                .up_get_timestamp(__UpgradableStorageKey::StagingTimestamp),
+            new_staging_duration: self
+                .up_get_duration(__UpgradableStorageKey::NewStagingDuration),
+            new_staging_duration_timestamp: self
+                .up_get_timestamp(__UpgradableStorageKey::NewStagingDurationTimestamp),
+        }
+    }
+    fn up_stage_code(&mut self, code: Vec<u8>) {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::CodeStager.into(), Role::DAO.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&"up_stage_code"),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        if code.is_empty() {
+            near_sdk::env::storage_remove(
+                self.up_storage_key(__UpgradableStorageKey::Code).as_ref(),
+            );
+            near_sdk::env::storage_remove(
+                self.up_storage_key(__UpgradableStorageKey::StagingTimestamp).as_ref(),
+            );
+        } else {
+            let timestamp = near_sdk::env::block_timestamp()
+                + self
+                    .up_get_duration(__UpgradableStorageKey::StagingDuration)
+                    .unwrap_or(0);
+            self.up_storage_write(__UpgradableStorageKey::Code, &code);
+            self.up_set_timestamp(__UpgradableStorageKey::StagingTimestamp, timestamp);
+        }
+    }
+    fn up_staged_code(&self) -> Option<Vec<u8>> {
+        near_sdk::env::storage_read(
+            self.up_storage_key(__UpgradableStorageKey::Code).as_ref(),
+        )
+    }
+    fn up_staged_code_hash(&self) -> Option<::near_sdk::CryptoHash> {
+        self.up_staged_code()
+            .map(|code| {
+                std::convert::TryInto::try_into(near_sdk::env::sha256(code.as_ref()))
+                    .unwrap()
+            })
+    }
+    fn up_deploy_code(
+        &mut self,
+        function_call_args: Option<near_plugins::upgradable::FunctionCallArgs>,
+    ) -> near_sdk::Promise {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::CodeDeployer.into(), Role::DAO.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(&"up_deploy_code"),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        let staging_timestamp = self
+            .up_get_timestamp(__UpgradableStorageKey::StagingTimestamp)
+            .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                "Upgradable: staging timestamp isn't set",
+            ));
+        if near_sdk::env::block_timestamp() < staging_timestamp {
+            near_sdk::env::panic_str(
+                {
+                    let res = ::alloc::fmt::format(
+                        ::core::fmt::Arguments::new_v1(
+                            &["Upgradable: Deploy code too early: staging ends on "],
+                            &[::core::fmt::ArgumentV1::new_display(&staging_timestamp)],
+                        ),
+                    );
+                    res
+                }
+                    .as_str(),
+            );
+        }
+        let code = self
+            .up_staged_code()
+            .unwrap_or_else(|| ::near_sdk::env::panic_str("Upgradable: No staged code"));
+        let promise = near_sdk::Promise::new(near_sdk::env::current_account_id())
+            .deploy_contract(code);
+        match function_call_args {
+            None => promise,
+            Some(args) => {
+                promise
+                    .function_call(
+                        args.function_name,
+                        args.arguments,
+                        args.amount,
+                        args.gas,
+                    )
+            }
+        }
+    }
+    fn up_init_staging_duration(&mut self, staging_duration: near_sdk::Duration) {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::DurationManager.into(), Role::DAO.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"up_init_staging_duration",
+                            ),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        if true {
+            let msg: &str = &"Upgradable: staging duration was already initialized";
+            if !self.up_get_duration(__UpgradableStorageKey::StagingDuration).is_none() {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !self
+            .up_get_duration(__UpgradableStorageKey::StagingDuration)
+            .is_none()
+        {
+            ::near_sdk::env::panic_str(
+                &"Upgradable: staging duration was already initialized",
+            )
+        }
+        self.up_set_staging_duration_unchecked(staging_duration);
+    }
+    fn up_stage_update_staging_duration(
+        &mut self,
+        staging_duration: near_sdk::Duration,
+    ) {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::DurationManager.into(), Role::DAO.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"up_stage_update_staging_duration",
+                            ),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        let current_staging_duration = self
+            .up_get_duration(__UpgradableStorageKey::StagingDuration)
+            .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                "Upgradable: staging duration isn't initialized",
+            ));
+        self.up_set_duration(
+            __UpgradableStorageKey::NewStagingDuration,
+            staging_duration,
+        );
+        let staging_duration_timestamp = near_sdk::env::block_timestamp()
+            + current_staging_duration;
+        self.up_set_timestamp(
+            __UpgradableStorageKey::NewStagingDurationTimestamp,
+            staging_duration_timestamp,
+        );
+    }
+    fn up_apply_update_staging_duration(&mut self) {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::DurationManager.into(), Role::DAO.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"up_apply_update_staging_duration",
+                            ),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        let staging_timestamp = self
+            .up_get_timestamp(__UpgradableStorageKey::NewStagingDurationTimestamp)
+            .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                "Upgradable: No staged update",
+            ));
+        if near_sdk::env::block_timestamp() < staging_timestamp {
+            near_sdk::env::panic_str(
+                {
+                    let res = ::alloc::fmt::format(
+                        ::core::fmt::Arguments::new_v1(
+                            &["Upgradable: Update duration too early: staging ends on "],
+                            &[::core::fmt::ArgumentV1::new_display(&staging_timestamp)],
+                        ),
+                    );
+                    res
+                }
+                    .as_str(),
+            );
+        }
+        let new_duration = self
+            .up_get_duration(__UpgradableStorageKey::NewStagingDuration)
+            .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                "Upgradable: No staged duration update",
+            ));
+        self.up_set_duration(__UpgradableStorageKey::StagingDuration, new_duration);
+    }
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_storage_prefix() {
+    near_sdk::env::setup_panic_hook();
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.up_storage_prefix();
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_get_delay_status() {
+    near_sdk::env::setup_panic_hook();
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.up_get_delay_status();
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_stage_code() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str("Method up_stage_code doesn't accept deposit");
+    }
+    struct Input {
+        code: Vec<u8>,
+    }
+    impl borsh::de::BorshDeserialize for Input
+    where
+        Vec<u8>: borsh::BorshDeserialize,
+    {
+        fn deserialize(
+            buf: &mut &[u8],
+        ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
+            Ok(Self {
+                code: borsh::BorshDeserialize::deserialize(buf)?,
+            })
+        }
+    }
+    let Input { code }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from Borsh.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    contract.up_stage_code(code);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_staged_code() {
+    near_sdk::env::setup_panic_hook();
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.up_staged_code();
+    let result = near_sdk::borsh::BorshSerialize::try_to_vec(&result)
+        .expect("Failed to serialize the return value using Borsh.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_staged_code_hash() {
+    near_sdk::env::setup_panic_hook();
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.up_staged_code_hash();
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_deploy_code() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str("Method up_deploy_code doesn't accept deposit");
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        function_call_args: Option<near_plugins::upgradable::FunctionCallArgs>,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "function_call_args" => {
+                                _serde::__private::Ok(__Field::__field0)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"function_call_args" => {
+                                _serde::__private::Ok(__Field::__field0)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            Option<near_plugins::upgradable::FunctionCallArgs>,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            function_call_args: __field0,
+                        })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<
+                            Option<near_plugins::upgradable::FunctionCallArgs>,
+                        > = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "function_call_args",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            Option<near_plugins::upgradable::FunctionCallArgs>,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field(
+                                    "function_call_args",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            function_call_args: __field0,
+                        })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["function_call_args"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { function_call_args }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.up_deploy_code(function_call_args);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_init_staging_duration() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str(
+            "Method up_init_staging_duration doesn't accept deposit",
+        );
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        staging_duration: near_sdk::Duration,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "staging_duration" => {
+                                _serde::__private::Ok(__Field::__field0)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"staging_duration" => {
+                                _serde::__private::Ok(__Field::__field0)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            near_sdk::Duration,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            staging_duration: __field0,
+                        })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<
+                            near_sdk::Duration,
+                        > = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "staging_duration",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            near_sdk::Duration,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field(
+                                    "staging_duration",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            staging_duration: __field0,
+                        })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["staging_duration"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { staging_duration }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    contract.up_init_staging_duration(staging_duration);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_stage_update_staging_duration() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str(
+            "Method up_stage_update_staging_duration doesn't accept deposit",
+        );
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        staging_duration: near_sdk::Duration,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "staging_duration" => {
+                                _serde::__private::Ok(__Field::__field0)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"staging_duration" => {
+                                _serde::__private::Ok(__Field::__field0)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            near_sdk::Duration,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            staging_duration: __field0,
+                        })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<
+                            near_sdk::Duration,
+                        > = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "staging_duration",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            near_sdk::Duration,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field(
+                                    "staging_duration",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            staging_duration: __field0,
+                        })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["staging_duration"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { staging_duration }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    contract.up_stage_update_staging_duration(staging_duration);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn up_apply_update_staging_duration() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str(
+            "Method up_apply_update_staging_duration doesn't accept deposit",
+        );
+    }
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    contract.up_apply_update_staging_duration();
     near_sdk::env::state_write(&contract);
 }
 #[must_use]
@@ -7584,6 +9371,7 @@ enum __AclStorageKey {
     Permissions,
     Bearers,
     BearersSet { permission: RoleFlags },
+    AclStorage,
 }
 impl borsh::ser::BorshSerialize for __AclStorageKey
 where
@@ -7597,6 +9385,7 @@ where
             __AclStorageKey::Permissions => 0u8,
             __AclStorageKey::Bearers => 1u8,
             __AclStorageKey::BearersSet { .. } => 2u8,
+            __AclStorageKey::AclStorage => 3u8,
         };
         writer.write_all(&variant_idx.to_le_bytes())?;
         match self {
@@ -7605,6 +9394,7 @@ where
             __AclStorageKey::BearersSet { permission } => {
                 borsh::BorshSerialize::serialize(permission, writer)?;
             }
+            __AclStorageKey::AclStorage => {}
         }
         Ok(())
     }
@@ -7617,6 +9407,32 @@ fn __acl_storage_prefix(base: &[u8], specifier: __AclStorageKey) -> Vec<u8> {
             "Storage key should be serializable",
         ));
     [base, specifier.as_slice()].concat()
+}
+impl FastBridge {
+    fn acl_get_storage(&self) -> Option<__Acl> {
+        let base_prefix = <FastBridge as AccessControllable>::acl_storage_prefix();
+        near_sdk::env::storage_read(
+                &__acl_storage_prefix(base_prefix, __AclStorageKey::AclStorage),
+            )
+            .map(|acl_storage_bytes| {
+                __Acl::try_from_slice(&acl_storage_bytes)
+                    .unwrap_or_else(|_| near_sdk::env::panic_str(
+                        "ACL: invalid acl storage format",
+                    ))
+            })
+    }
+    fn acl_get_or_init(&mut self) -> __Acl {
+        self.acl_get_storage().unwrap_or_else(|| self.acl_init_storage_unchecked())
+    }
+    fn acl_init_storage_unchecked(&mut self) -> __Acl {
+        let base_prefix = <FastBridge as AccessControllable>::acl_storage_prefix();
+        let acl_storage: __Acl = Default::default();
+        near_sdk::env::storage_write(
+            &__acl_storage_prefix(base_prefix, __AclStorageKey::AclStorage),
+            &acl_storage.try_to_vec().unwrap(),
+        );
+        acl_storage
+    }
 }
 impl __Acl {
     fn new_bearers_set(
@@ -7637,15 +9453,12 @@ impl __Acl {
         self.permissions.entry(account_id).or_insert_with(|| RoleFlags::empty())
     }
     fn init_super_admin(&mut self, account_id: &::near_sdk::AccountId) -> bool {
-        let flag = <RoleFlags>::from_bits(<Role>::acl_super_admin_permission())
+        let permission = <RoleFlags>::from_bits(<Role>::acl_super_admin_permission())
             .unwrap_or_else(|| ::near_sdk::env::panic_str(
                 "Value does not correspond to a permission",
             ));
-        let number_super_admins = match self.bearers.get(&flag) {
-            None => 0,
-            Some(bearers) => bearers.len(),
-        };
-        if number_super_admins > 0 {
+        let super_admins = self.get_bearers(permission, 0, 1);
+        if super_admins.len() > 0 {
             return false;
         }
         let res = self.add_super_admin_unchecked(account_id);
@@ -7658,6 +9471,12 @@ impl __Acl {
             ::near_sdk::env::panic_str(&"Failed to init super-admin.")
         }
         res
+    }
+    fn add_super_admin(&mut self, account_id: &::near_sdk::AccountId) -> Option<bool> {
+        if !self.is_super_admin(&::near_sdk::env::predecessor_account_id()) {
+            return None;
+        }
+        Some(self.add_super_admin_unchecked(account_id))
     }
     /// Makes `account_id` a super-admin __without__ checking any permissions.
     /// It returns whether `account_id` is a new super-admin.
@@ -7693,6 +9512,30 @@ impl __Acl {
                 "Value does not correspond to a permission",
             ));
         permissions.contains(super_admin)
+    }
+    fn revoke_super_admin(
+        &mut self,
+        account_id: &::near_sdk::AccountId,
+    ) -> Option<bool> {
+        if !self.is_super_admin(&::near_sdk::env::predecessor_account_id()) {
+            return None;
+        }
+        Some(self.revoke_super_admin_unchecked(account_id))
+    }
+    fn transfer_super_admin(
+        &mut self,
+        account_id: &::near_sdk::AccountId,
+    ) -> Option<bool> {
+        let current_super_admin = ::near_sdk::env::predecessor_account_id();
+        if !self.is_super_admin(&current_super_admin) {
+            return None;
+        }
+        if account_id == &current_super_admin {
+            return Some(true);
+        }
+        let is_new_super_admin = self.add_super_admin_unchecked(account_id);
+        self.revoke_super_admin_unchecked(&current_super_admin);
+        Some(is_new_super_admin)
     }
     /// Revokes super-admin permissions from `account_id` without checking any
     /// permissions. It returns whether `account_id` was a super-admin.
@@ -7980,6 +9823,16 @@ impl __Acl {
         };
         set.iter().skip(skip).take(limit).cloned().collect()
     }
+    /// Returns _all_ bearers of `permission`. In this implementation of
+    /// `AccessControllable` there is no upper bound on the number of bearers per
+    /// permission, so gas limits should be considered when calling this function.
+    fn get_all_bearers(&self, permission: RoleFlags) -> Vec<::near_sdk::AccountId> {
+        let set = match self.bearers.get(&permission) {
+            Some(set) => set,
+            None => return ::alloc::vec::Vec::new(),
+        };
+        set.iter().cloned().collect()
+    }
     /// Removes `account_id` from the set of `permission` bearers.
     fn remove_bearer(
         &mut self,
@@ -7991,6 +9844,69 @@ impl __Acl {
             None => return,
         };
         set.remove(account_id);
+    }
+    /// Provides the implementation of `AccessControllable::acl_get_permissioned_accounts`.
+    ///
+    /// Uniqueness of account ids in returned vectors is guaranteed by the ids being
+    /// retrieved from bearer sets.
+    fn get_permissioned_accounts(
+        &self,
+    ) -> near_plugins::access_controllable::PermissionedAccounts {
+        let permission = <RoleFlags>::from_bits(<Role>::acl_super_admin_permission())
+            .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                "Value does not correspond to a permission",
+            ));
+        let super_admins = self.get_all_bearers(permission);
+        let roles = <Role>::acl_role_variants();
+        let mut map = ::std::collections::HashMap::new();
+        for role in roles {
+            let role: Role = ::std::convert::TryFrom::try_from(role)
+                .unwrap_or_else(|_| ::near_sdk::env::panic_str(
+                    "Value does not correspond to a role",
+                ));
+            let admin_permission = <RoleFlags>::from_bits(role.acl_admin_permission())
+                .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                    "Value does not correspond to a permission",
+                ));
+            let admins = self.get_all_bearers(admin_permission);
+            let grantee_permission = <RoleFlags>::from_bits(role.acl_permission())
+                .unwrap_or_else(|| ::near_sdk::env::panic_str(
+                    "Value does not correspond to a permission",
+                ));
+            let grantees = self.get_all_bearers(grantee_permission);
+            map.insert(
+                role.into(),
+                near_plugins::access_controllable::PermissionedAccountsPerRole {
+                    admins,
+                    grantees,
+                },
+            );
+        }
+        near_plugins::access_controllable::PermissionedAccounts {
+            super_admins,
+            roles: map,
+        }
+    }
+}
+fn get_default_permissioned_accounts() -> near_plugins::access_controllable::PermissionedAccounts {
+    let roles = <Role>::acl_role_variants();
+    let mut map = ::std::collections::HashMap::new();
+    for role in roles {
+        let role: Role = ::std::convert::TryFrom::try_from(role)
+            .unwrap_or_else(|_| ::near_sdk::env::panic_str(
+                "Value does not correspond to a role",
+            ));
+        map.insert(
+            role.into(),
+            near_plugins::access_controllable::PermissionedAccountsPerRole {
+                admins: Default::default(),
+                grantees: Default::default(),
+            },
+        );
+    }
+    near_plugins::access_controllable::PermissionedAccounts {
+        super_admins: Default::default(),
+        roles: map,
     }
 }
 impl FastBridgeExt {
@@ -8064,6 +9980,76 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
+    pub fn acl_add_super_admin(
+        self,
+        account_id: ::near_sdk::AccountId,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                account_id: &'nearinput ::near_sdk::AccountId,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "account_id",
+                            &self.account_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input { account_id: &account_id };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "acl_add_super_admin".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn acl_role_variants(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "acl_role_variants".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
     pub fn acl_is_super_admin(
         self,
         account_id: ::near_sdk::AccountId,
@@ -8117,6 +10103,124 @@ impl FastBridgeExt {
         near_sdk::Promise::new(self.account_id)
             .function_call_weight(
                 "acl_is_super_admin".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn acl_revoke_super_admin(
+        self,
+        account_id: ::near_sdk::AccountId,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                account_id: &'nearinput ::near_sdk::AccountId,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "account_id",
+                            &self.account_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input { account_id: &account_id };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "acl_revoke_super_admin".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn acl_transfer_super_admin(
+        self,
+        account_id: ::near_sdk::AccountId,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                account_id: &'nearinput ::near_sdk::AccountId,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "account_id",
+                            &self.account_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input { account_id: &account_id };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "acl_transfer_super_admin".to_string(),
                 __args,
                 self.deposit,
                 self.static_gas,
@@ -8997,16 +11101,54 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
+    pub fn acl_get_permissioned_accounts(self) -> near_sdk::Promise {
+        let __args = ::alloc::vec::Vec::new();
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "acl_get_permissioned_accounts".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
 }
 impl AccessControllable for FastBridge {
     fn acl_storage_prefix() -> &'static [u8] {
         ("__acl").as_bytes()
     }
     fn acl_init_super_admin(&mut self, account_id: ::near_sdk::AccountId) -> bool {
-        self.__acl.init_super_admin(&account_id)
+        self.acl_get_or_init().init_super_admin(&account_id)
+    }
+    fn acl_add_super_admin(
+        &mut self,
+        account_id: ::near_sdk::AccountId,
+    ) -> Option<bool> {
+        self.acl_get_or_init().add_super_admin(&account_id)
+    }
+    fn acl_role_variants(&self) -> Vec<&'static str> {
+        <Role>::acl_role_variants()
     }
     fn acl_is_super_admin(&self, account_id: ::near_sdk::AccountId) -> bool {
-        self.__acl.is_super_admin(&account_id)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return false;
+            }
+        }
+            .is_super_admin(&account_id)
+    }
+    fn acl_revoke_super_admin(
+        &mut self,
+        account_id: ::near_sdk::AccountId,
+    ) -> Option<bool> {
+        self.acl_get_or_init().revoke_super_admin(&account_id)
+    }
+    fn acl_transfer_super_admin(
+        &mut self,
+        account_id: ::near_sdk::AccountId,
+    ) -> Option<bool> {
+        self.acl_get_or_init().transfer_super_admin(&account_id)
     }
     fn acl_add_admin(
         &mut self,
@@ -9017,14 +11159,20 @@ impl AccessControllable for FastBridge {
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.add_admin(role, &account_id)
+        self.acl_get_or_init().add_admin(role, &account_id)
     }
     fn acl_is_admin(&self, role: String, account_id: ::near_sdk::AccountId) -> bool {
         let role: Role = ::std::convert::TryFrom::try_from(role.as_str())
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.is_admin(role, &account_id)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return false;
+            }
+        }
+            .is_admin(role, &account_id)
     }
     fn acl_revoke_admin(
         &mut self,
@@ -9035,14 +11183,14 @@ impl AccessControllable for FastBridge {
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.revoke_admin(role, &account_id)
+        self.acl_get_or_init().revoke_admin(role, &account_id)
     }
     fn acl_renounce_admin(&mut self, role: String) -> bool {
         let role: Role = ::std::convert::TryFrom::try_from(role.as_str())
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.renounce_admin(role)
+        self.acl_get_or_init().renounce_admin(role)
     }
     fn acl_revoke_role(
         &mut self,
@@ -9053,14 +11201,14 @@ impl AccessControllable for FastBridge {
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.revoke_role(role, &account_id)
+        self.acl_get_or_init().revoke_role(role, &account_id)
     }
     fn acl_renounce_role(&mut self, role: String) -> bool {
         let role: Role = ::std::convert::TryFrom::try_from(role.as_str())
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.renounce_role(role)
+        self.acl_get_or_init().renounce_role(role)
     }
     fn acl_grant_role(
         &mut self,
@@ -9071,14 +11219,20 @@ impl AccessControllable for FastBridge {
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.grant_role(role, &account_id)
+        self.acl_get_or_init().grant_role(role, &account_id)
     }
     fn acl_has_role(&self, role: String, account_id: ::near_sdk::AccountId) -> bool {
         let role: Role = ::std::convert::TryFrom::try_from(role.as_str())
             .unwrap_or_else(|_| ::near_sdk::env::panic_str(
                 "Value does not correspond to a role",
             ));
-        self.__acl.has_role(role, &account_id)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return false;
+            }
+        }
+            .has_role(role, &account_id)
     }
     fn acl_has_any_role(
         &self,
@@ -9094,14 +11248,26 @@ impl AccessControllable for FastBridge {
                     ))
             })
             .collect();
-        self.__acl.has_any_role(roles, &account_id)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return false;
+            }
+        }
+            .has_any_role(roles, &account_id)
     }
     fn acl_get_super_admins(&self, skip: u64, limit: u64) -> Vec<::near_sdk::AccountId> {
         let permission = <RoleFlags>::from_bits(<Role>::acl_super_admin_permission())
             .unwrap_or_else(|| ::near_sdk::env::panic_str(
                 "Value does not correspond to a permission",
             ));
-        self.__acl.get_bearers(permission, skip, limit)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return ::alloc::vec::Vec::new();
+            }
+        }
+            .get_bearers(permission, skip, limit)
     }
     fn acl_get_admins(
         &self,
@@ -9117,7 +11283,13 @@ impl AccessControllable for FastBridge {
             .unwrap_or_else(|| ::near_sdk::env::panic_str(
                 "Value does not correspond to a permission",
             ));
-        self.__acl.get_bearers(permission, skip, limit)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return ::alloc::vec::Vec::new();
+            }
+        }
+            .get_bearers(permission, skip, limit)
     }
     fn acl_get_grantees(
         &self,
@@ -9133,7 +11305,24 @@ impl AccessControllable for FastBridge {
             .unwrap_or_else(|| ::near_sdk::env::panic_str(
                 "Value does not correspond to a permission",
             ));
-        self.__acl.get_bearers(permission, skip, limit)
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return ::alloc::vec::Vec::new();
+            }
+        }
+            .get_bearers(permission, skip, limit)
+    }
+    fn acl_get_permissioned_accounts(
+        &self,
+    ) -> near_plugins::access_controllable::PermissionedAccounts {
+        match self.acl_get_storage() {
+            Some(val) => val,
+            None => {
+                return get_default_permissioned_accounts();
+            }
+        }
+            .get_permissioned_accounts()
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -9377,6 +11566,240 @@ pub extern "C" fn acl_init_super_admin() {
 }
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
+pub extern "C" fn acl_add_super_admin() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str("Method acl_add_super_admin doesn't accept deposit");
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        account_id: ::near_sdk::AccountId,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            ::near_sdk::AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<
+                            ::near_sdk::AccountId,
+                        > = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "account_id",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            ::near_sdk::AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["account_id"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { account_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.acl_add_super_admin(account_id);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn acl_role_variants() {
+    near_sdk::env::setup_panic_hook();
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.acl_role_variants();
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
 pub extern "C" fn acl_is_super_admin() {
     near_sdk::env::setup_panic_hook();
     #[serde(crate = "near_sdk::serde")]
@@ -9594,6 +12017,456 @@ pub extern "C" fn acl_is_super_admin() {
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn acl_revoke_super_admin() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str("Method acl_revoke_super_admin doesn't accept deposit");
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        account_id: ::near_sdk::AccountId,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            ::near_sdk::AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<
+                            ::near_sdk::AccountId,
+                        > = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "account_id",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            ::near_sdk::AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["account_id"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { account_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.acl_revoke_super_admin(account_id);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn acl_transfer_super_admin() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str(
+            "Method acl_transfer_super_admin doesn't accept deposit",
+        );
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        account_id: ::near_sdk::AccountId,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            ::near_sdk::AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<
+                            ::near_sdk::AccountId,
+                        > = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "account_id",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            ::near_sdk::AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["account_id"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { account_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.acl_transfer_super_admin(account_id);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
 }
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
@@ -12915,6 +15788,16 @@ pub extern "C" fn acl_get_grantees() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn acl_get_permissioned_accounts() {
+    near_sdk::env::setup_panic_hook();
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.acl_get_permissioned_accounts();
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
 impl FastBridgeExt {
     pub fn new(
         self,
@@ -14106,7 +16989,6 @@ impl FastBridge {
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
             is_whitelist_mode_enabled: whitelist_mode,
-            __acl: Default::default(),
         };
         if true {
             let msg: &str = &"Failed to initialize super admin";
@@ -14552,7 +17434,7 @@ impl FastBridge {
     pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::UnlockManager.into()]),
+            ::alloc::boxed::Box::new([Role::UnlockManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -15087,7 +17969,7 @@ impl FastBridge {
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -15125,7 +18007,7 @@ impl FastBridge {
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()
@@ -15226,7 +18108,7 @@ impl FastBridge {
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::ConfigManager.into()]),
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
         );
         let __acl_any_roles_ser: Vec<String> = __acl_any_roles
             .iter()

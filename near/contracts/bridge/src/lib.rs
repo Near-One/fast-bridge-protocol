@@ -1,7 +1,9 @@
 use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
-use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
-use near_plugins_derive::{access_control_any, pause};
+use near_plugins::{
+    access_control, access_control_any, pause, AccessControlRole, AccessControllable, Pausable,
+    Upgradable,
+};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -145,12 +147,23 @@ pub enum Role {
     WhitelistManager,
     ConfigManager,
     UnlockManager,
+    DAO,
+    CodeStager,
+    CodeDeployer,
+    DurationManager,
 }
 
 #[access_control(role_type(Role))]
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
-#[pausable(manager_roles(Role::PauseManager))]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable, Upgradable)]
+#[pausable(manager_roles(Role::PauseManager, Role::DAO))]
+#[upgradable(access_control_roles(
+    code_stagers(Role::CodeStager, Role::DAO),
+    code_deployers(Role::CodeDeployer, Role::DAO),
+    duration_initializers(Role::DurationManager, Role::DAO),
+    duration_update_stagers(Role::DurationManager, Role::DAO),
+    duration_update_appliers(Role::DurationManager, Role::DAO),
+))]
 pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
     token_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
@@ -214,7 +227,6 @@ impl FastBridge {
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
             is_whitelist_mode_enabled: whitelist_mode,
-            __acl: Default::default(),
         };
 
         near_sdk::require!(
@@ -539,7 +551,7 @@ impl FastBridge {
     ///
     /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
     ///
-    #[access_control_any(roles(Role::UnlockManager))]
+    #[access_control_any(roles(Role::UnlockManager, Role::DAO))]
     pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
         let nonce_str = nonce.0.to_string();
 
@@ -845,7 +857,7 @@ impl FastBridge {
     /// The function is allowed to be called only by accounts that have `ConfigManager` role.
     /// # Arguments
     /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
     }
@@ -858,7 +870,7 @@ impl FastBridge {
     /// # Arguments
     ///
     /// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
@@ -937,7 +949,7 @@ impl FastBridge {
     ///
     /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
     ///
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
