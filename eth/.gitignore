@@ -56,4 +56,5 @@ __pycache__
 # Flatten script input
 json_inputs
 
-
+# local openzeppelin config
+.openzeppelin/unknown-31337.json

@@ -1,5 +1,5 @@
+const { task } = require("hardhat/config");
 require("dotenv").config();
-
 require("@nomicfoundation/hardhat-toolbox");
 
 require("@nomicfoundation/hardhat-chai-matchers");
@@ -9,17 +9,25 @@ require("@nomicfoundation/hardhat-network-helpers");
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
-require('hardhat-storage-layout');
+require("hardhat-storage-layout");
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
-const PRIVATE_KEY = process.env.PRIVATE_KEY || '11'.repeat(32);
+const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
 
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 const INFURA_API_KEY = process.env.INFURA_API_KEY;
 
-const FORKING = true;
+const FORKING = true; // set undefined to disable forking
 const ENABLED_OPTIMIZER = true;
 const OPTIMIZER_RUNS = 200;
+
+task("deploy_fastbridge_with_token", "Deploys Eth erc20 Fastbridge with erc20 tokens and whitelists them").setAction(
+    async (_taskArgs, hre) => {
+        await hre.run("compile");
+        const bridge_deployment_task = require("./scripts/deployment/deploy_fastbridge_and_token.js");
+        await bridge_deployment_task();
+    }
+);
 
 module.exports = {
     solidity: {
@@ -44,6 +52,14 @@ module.exports = {
                 url: process.env.FORKING_URL || `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
                 enabled: FORKING !== undefined
             }
+        },
+        ganache: {
+            url: "HTTP://127.0.0.1:7545",
+            allowUnlimitedContractSize: true
+        },
+        localnet: {
+            url: "HTTP://127.0.0.1:8545",
+            allowUnlimitedContractSize: true
         },
         mainnet: {
             url: process.env.MAINNET_URL || "",
@@ -89,5 +105,4 @@ module.exports = {
 if (process.env.FORKING_BLOCK_NUMBER)
     module.exports.networks.hardhat.forking.blockNumber = +process.env.FORKING_BLOCK_NUMBER;
 
-if (process.env.HARDFORK)
-    module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
+if (process.env.HARDFORK) module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
