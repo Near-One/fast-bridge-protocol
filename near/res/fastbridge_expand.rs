@@ -15808,6 +15808,7 @@ impl FastBridgeExt {
         lock_time_max: String,
         eth_block_time: Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
@@ -15819,6 +15820,7 @@ impl FastBridgeExt {
                 lock_time_max: &'nearinput String,
                 eth_block_time: &'nearinput Duration,
                 whitelist_mode: &'nearinput bool,
+                start_nonce: &'nearinput U128,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -15836,7 +15838,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1 + 1 + 1 + 1 + 1 + 1 + 1,
+                            false as usize + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -15913,6 +15915,16 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "start_nonce",
+                            &self.start_nonce,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -15925,6 +15937,7 @@ impl FastBridgeExt {
                 lock_time_max: &lock_time_max,
                 eth_block_time: &eth_block_time,
                 whitelist_mode: &whitelist_mode,
+                start_nonce: &start_nonce,
             };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
@@ -17006,6 +17019,7 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     ) -> Self {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
@@ -17033,7 +17047,7 @@ impl FastBridge {
                 StorageKey::PendingTransfersBalances,
             ),
             token_balances: LookupMap::new(StorageKey::TokenBalances),
-            nonce: 0,
+            nonce: start_nonce.0,
             prover_account,
             eth_client_account,
             eth_bridge_contract: get_eth_address(eth_bridge_contract),
@@ -18271,6 +18285,7 @@ pub extern "C" fn new() {
         lock_time_max: String,
         eth_block_time: Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -18293,6 +18308,7 @@ pub extern "C" fn new() {
                     __field4,
                     __field5,
                     __field6,
+                    __field7,
                     __ignore,
                 }
                 struct __FieldVisitor;
@@ -18322,6 +18338,7 @@ pub extern "C" fn new() {
                             4u64 => _serde::__private::Ok(__Field::__field4),
                             5u64 => _serde::__private::Ok(__Field::__field5),
                             6u64 => _serde::__private::Ok(__Field::__field6),
+                            7u64 => _serde::__private::Ok(__Field::__field7),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -18344,6 +18361,7 @@ pub extern "C" fn new() {
                             "lock_time_max" => _serde::__private::Ok(__Field::__field4),
                             "eth_block_time" => _serde::__private::Ok(__Field::__field5),
                             "whitelist_mode" => _serde::__private::Ok(__Field::__field6),
+                            "start_nonce" => _serde::__private::Ok(__Field::__field7),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -18366,6 +18384,7 @@ pub extern "C" fn new() {
                             b"lock_time_max" => _serde::__private::Ok(__Field::__field4),
                             b"eth_block_time" => _serde::__private::Ok(__Field::__field5),
                             b"whitelist_mode" => _serde::__private::Ok(__Field::__field6),
+                            b"start_nonce" => _serde::__private::Ok(__Field::__field7),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -18420,7 +18439,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18438,7 +18457,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         1usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18456,7 +18475,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         2usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18474,7 +18493,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         3usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18492,7 +18511,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         4usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18510,7 +18529,7 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         5usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18528,7 +18547,25 @@ pub extern "C" fn new() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         6usize,
-                                        &"struct Input with 7 elements",
+                                        &"struct Input with 8 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field7 = match match _serde::de::SeqAccess::next_element::<
+                            U128,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        7usize,
+                                        &"struct Input with 8 elements",
                                     ),
                                 );
                             }
@@ -18541,6 +18578,7 @@ pub extern "C" fn new() {
                             lock_time_max: __field4,
                             eth_block_time: __field5,
                             whitelist_mode: __field6,
+                            start_nonce: __field7,
                         })
                     }
                     #[inline]
@@ -18558,6 +18596,7 @@ pub extern "C" fn new() {
                         let mut __field4: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field5: _serde::__private::Option<Duration> = _serde::__private::None;
                         let mut __field6: _serde::__private::Option<bool> = _serde::__private::None;
+                        let mut __field7: _serde::__private::Option<U128> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -18701,6 +18740,25 @@ pub extern "C" fn new() {
                                         },
                                     );
                                 }
+                                __Field::__field7 => {
+                                    if _serde::__private::Option::is_some(&__field7) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "start_nonce",
+                                            ),
+                                        );
+                                    }
+                                    __field7 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
                                 _ => {
                                     let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
@@ -18804,6 +18862,17 @@ pub extern "C" fn new() {
                                 }
                             }
                         };
+                        let __field7 = match __field7 {
+                            _serde::__private::Some(__field7) => __field7,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("start_nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
                         _serde::__private::Ok(Input {
                             eth_bridge_contract: __field0,
                             prover_account: __field1,
@@ -18812,6 +18881,7 @@ pub extern "C" fn new() {
                             lock_time_max: __field4,
                             eth_block_time: __field5,
                             whitelist_mode: __field6,
+                            start_nonce: __field7,
                         })
                     }
                 }
@@ -18823,6 +18893,7 @@ pub extern "C" fn new() {
                     "lock_time_max",
                     "eth_block_time",
                     "whitelist_mode",
+                    "start_nonce",
                 ];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -18844,6 +18915,7 @@ pub extern "C" fn new() {
         lock_time_max,
         eth_block_time,
         whitelist_mode,
+        start_nonce,
     }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
@@ -18859,6 +18931,7 @@ pub extern "C" fn new() {
         lock_time_max,
         eth_block_time,
         whitelist_mode,
+        start_nonce,
     );
     near_sdk::env::state_write(&contract);
 }

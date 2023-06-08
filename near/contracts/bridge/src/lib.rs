@@ -194,6 +194,7 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     ) -> Self {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
@@ -215,7 +216,7 @@ impl FastBridge {
             pending_transfers: UnorderedMap::new(StorageKey::PendingTransfers),
             pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
             token_balances: LookupMap::new(StorageKey::TokenBalances),
-            nonce: 0,
+            nonce: start_nonce.0,
             prover_account,
             eth_client_account,
             eth_bridge_contract: get_eth_address(eth_bridge_contract),
@@ -1164,6 +1165,7 @@ mod unit_tests {
             config.lock_time_max.unwrap_or_else(|| "24h".to_string()),
             12_000_000_000,
             true,
+            U128(0),
         );
 
         contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
