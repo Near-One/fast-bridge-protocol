@@ -4735,8 +4735,8 @@ impl ::core::clone::Clone for UpdateBalance {
 }
 enum StorageKey {
     PendingTransfers,
-    UserBalances,
-    UserBalancePrefix,
+    TokenBalances,
+    TokenBalancePrefix,
     WhitelistTokens,
     WhitelistAccounts,
     PendingTransfersBalances,
@@ -4748,8 +4748,8 @@ impl borsh::ser::BorshSerialize for StorageKey {
     ) -> core::result::Result<(), borsh::maybestd::io::Error> {
         let variant_idx: u8 = match self {
             StorageKey::PendingTransfers => 0u8,
-            StorageKey::UserBalances => 1u8,
-            StorageKey::UserBalancePrefix => 2u8,
+            StorageKey::TokenBalances => 1u8,
+            StorageKey::TokenBalancePrefix => 2u8,
             StorageKey::WhitelistTokens => 3u8,
             StorageKey::WhitelistAccounts => 4u8,
             StorageKey::PendingTransfersBalances => 5u8,
@@ -4757,8 +4757,8 @@ impl borsh::ser::BorshSerialize for StorageKey {
         writer.write_all(&variant_idx.to_le_bytes())?;
         match self {
             StorageKey::PendingTransfers => {}
-            StorageKey::UserBalances => {}
-            StorageKey::UserBalancePrefix => {}
+            StorageKey::TokenBalances => {}
+            StorageKey::TokenBalancePrefix => {}
             StorageKey::WhitelistTokens => {}
             StorageKey::WhitelistAccounts => {}
             StorageKey::PendingTransfersBalances => {}
@@ -6407,7 +6407,7 @@ impl ::core::clone::Clone for Role {
 #[pausable(manager_roles(Role::PauseManager))]
 pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
-    user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
+    token_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     prover_account: AccountId,
     eth_client_account: AccountId,
@@ -6444,7 +6444,7 @@ where
     ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
         Ok(Self {
             pending_transfers: borsh::BorshDeserialize::deserialize(buf)?,
-            user_balances: borsh::BorshDeserialize::deserialize(buf)?,
+            token_balances: borsh::BorshDeserialize::deserialize(buf)?,
             nonce: borsh::BorshDeserialize::deserialize(buf)?,
             prover_account: borsh::BorshDeserialize::deserialize(buf)?,
             eth_client_account: borsh::BorshDeserialize::deserialize(buf)?,
@@ -6480,7 +6480,7 @@ where
         writer: &mut W,
     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
         borsh::BorshSerialize::serialize(&self.pending_transfers, writer)?;
-        borsh::BorshSerialize::serialize(&self.user_balances, writer)?;
+        borsh::BorshSerialize::serialize(&self.token_balances, writer)?;
         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
         borsh::BorshSerialize::serialize(&self.prover_account, writer)?;
         borsh::BorshSerialize::serialize(&self.eth_client_account, writer)?;
@@ -14093,7 +14093,7 @@ impl FastBridge {
             pending_transfers_balances: UnorderedMap::new(
                 StorageKey::PendingTransfersBalances,
             ),
-            user_balances: LookupMap::new(StorageKey::UserBalances),
+            token_balances: LookupMap::new(StorageKey::TokenBalances),
             nonce: 0,
             prover_account,
             eth_client_account,
@@ -14240,42 +14240,14 @@ impl FastBridge {
             last_block_height + lock_period / self.eth_block_time,
         );
         self.validate_transfer_message(&transfer_message, &sender_id);
-        let user_token_balance = self
-            .user_balances
-            .get(&sender_id)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Balance in ", " for user ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &transfer_message.transfer.token_near,
-                            ),
-                            ::core::fmt::ArgumentV1::new_display(&sender_id),
-                        ],
-                    ),
-                )
-            });
-        let token_transfer_balance = user_token_balance
-            .get(&transfer_message.transfer.token_near)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Balance for token transfer: ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &&transfer_message.transfer.token_near,
-                            ),
-                        ],
-                    ),
-                )
-            });
+        let token_transfer_balance = self
+            .get_user_balance(&sender_id, &transfer_message.transfer.token_near);
         if true {
             let msg: &str = &"Not enough transfer token balance.";
-            if !(token_transfer_balance >= transfer_message.transfer.amount.0) {
+            if !(token_transfer_balance >= transfer_message.transfer.amount) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(token_transfer_balance >= transfer_message.transfer.amount.0) {
+        } else if !(token_transfer_balance >= transfer_message.transfer.amount) {
             ::near_sdk::env::panic_str(&"Not enough transfer token balance.")
         }
         self.decrease_balance(
@@ -14283,26 +14255,14 @@ impl FastBridge {
             &transfer_message.transfer.token_near,
             &transfer_message.transfer.amount.0,
         );
-        let token_fee_balance = user_token_balance
-            .get(&transfer_message.fee.token)
-            .unwrap_or_else(|| {
-                ::core::panicking::panic_fmt(
-                    ::core::fmt::Arguments::new_v1(
-                        &["Balance for token fee: ", " not found"],
-                        &[
-                            ::core::fmt::ArgumentV1::new_display(
-                                &&transfer_message.transfer.token_near,
-                            ),
-                        ],
-                    ),
-                )
-            });
+        let token_fee_balance = self
+            .get_user_balance(&sender_id, &transfer_message.fee.token);
         if true {
             let msg: &str = &"Not enough fee token balance.";
-            if !(token_fee_balance >= transfer_message.fee.amount.0) {
+            if !(token_fee_balance >= transfer_message.fee.amount) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(token_fee_balance >= transfer_message.fee.amount.0) {
+        } else if !(token_fee_balance >= transfer_message.fee.amount) {
             ::near_sdk::env::panic_str(&"Not enough fee token balance.")
         }
         self.decrease_balance(
@@ -14824,10 +14784,6 @@ impl FastBridge {
     /// * `account_id` - The account ID for which to retrieve the balance.
     /// * `token_id` - The token ID for which to retrieve the balance.
     ///
-    /// # Panics
-    ///
-    /// If the user does not have any balance for the specified token, or if the specified user account does not exist.
-    ///
     /// # Returns
     ///
     /// The balance of the specified token for the specified account.
@@ -14836,51 +14792,41 @@ impl FastBridge {
         account_id: &AccountId,
         token_id: &AccountId,
     ) -> U128 {
-        let user_balance = self
-            .user_balances
-            .get(account_id)
-            .unwrap_or_else(|| ::core::panicking::panic_display(
-                &"User doesn't have balance".to_string(),
-            ));
-        user_balance
-            .get(token_id)
-            .unwrap_or_else(|| ::core::panicking::panic_fmt(
-                ::core::fmt::Arguments::new_v1(
-                    &["User token: ", " , balance is 0"],
-                    &[::core::fmt::ArgumentV1::new_display(&token_id)],
-                ),
-            ))
-            .into()
+        let Some(token_balance) = self.token_balances.get(token_id) else { return U128(0)
+    };
+        token_balance.get(account_id).unwrap_or(0).into()
     }
     fn decrease_balance(
         &mut self,
-        user: &AccountId,
+        account_id: &AccountId,
         token_id: &AccountId,
         amount: &u128,
     ) {
-        let mut user_token_balance = self.user_balances.get(user).unwrap();
-        let balance = user_token_balance.get(token_id).unwrap() - amount;
-        user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(user, &user_token_balance);
+        let mut token_balance = self.token_balances.get(token_id).unwrap();
+        let balance = token_balance.get(account_id).unwrap() - amount;
+        token_balance.insert(account_id, &balance);
     }
     fn increase_balance(
         &mut self,
-        user: &AccountId,
+        account_id: &AccountId,
         token_id: &AccountId,
         amount: &u128,
     ) {
-        if let Some(mut user_balances) = self.user_balances.get(user) {
-            user_balances
-                .insert(token_id, &(user_balances.get(token_id).unwrap_or(0) + amount));
+        if let Some(mut token_balance) = self.token_balances.get(token_id) {
+            token_balance
+                .insert(
+                    account_id,
+                    &(token_balance.get(account_id).unwrap_or(0) + amount),
+                );
         } else {
             let storage_key = [
-                StorageKey::UserBalancePrefix.try_to_vec().unwrap().as_slice(),
-                user.try_to_vec().unwrap().as_slice(),
+                StorageKey::TokenBalancePrefix.try_to_vec().unwrap().as_slice(),
+                token_id.try_to_vec().unwrap().as_slice(),
             ]
                 .concat();
-            let mut token_balance = LookupMap::new(storage_key);
-            token_balance.insert(token_id, amount);
-            self.user_balances.insert(user, &token_balance);
+            let mut user_balance = LookupMap::new(storage_key);
+            user_balance.insert(account_id, amount);
+            self.token_balances.insert(token_id, &user_balance);
         }
     }
     fn validate_transfer_message(
@@ -17187,10 +17133,6 @@ pub extern "C" fn verify_log_entry_callback() {
 ///
 /// * `account_id` - The account ID for which to retrieve the balance.
 /// * `token_id` - The token ID for which to retrieve the balance.
-///
-/// # Panics
-///
-/// If the user does not have any balance for the specified token, or if the specified user account does not exist.
 ///
 /// # Returns
 ///
