@@ -40,7 +40,7 @@ example : to deploy EthErc20FastBridge on <network-name> network (network-name m
 `npm run deploy:bridge -- <network-name>`
 
 ### Deployment script
-Running ths script will deploy bridge proxy and store proxy and implementation address in `fast-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`
+Running this script will deploy the bridge proxy and store the proxy and implementation address in `fast-bridge-protocol/eth/scripts/deployment/deploymentAddresses.json`
 To execute this script => run command `yarn run deploy:bridge -- <network-name>`
 example : to deploy bridge on goerli run command `yarn run deploy:bridge -- goerli`
 
