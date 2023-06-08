@@ -16613,6 +16613,62 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
+    pub fn set_eth_client_account(self, account_id: AccountId) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                account_id: &'nearinput AccountId,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "account_id",
+                            &self.account_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input { account_id: &account_id };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "set_eth_client_account".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
     pub fn set_eth_bridge_contract_address(self, address: String) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
@@ -17963,7 +18019,7 @@ impl FastBridge {
         }
     }
     /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
-    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
     /// # Arguments
     /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
@@ -17995,6 +18051,42 @@ impl FastBridge {
             near_sdk::env::panic_str(&message);
         }
         self.prover_account = prover_account;
+    }
+    /// Sets the eth client account. `EthClient` is a contract that provide the last block number.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
+    /// # Arguments
+    /// * `account_id`: An `AccountId` representing the `EthClient` account to use.
+    pub fn set_eth_client_account(&mut self, account_id: AccountId) {
+        let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
+        );
+        let __acl_any_roles_ser: Vec<String> = __acl_any_roles
+            .iter()
+            .map(|&role| role.into())
+            .collect();
+        let __acl_any_account_id = ::near_sdk::env::predecessor_account_id();
+        if !self.acl_has_any_role(__acl_any_roles_ser, __acl_any_account_id) {
+            let message = {
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Insufficient permissions for method ",
+                            " restricted by access control. Requires one of these roles: ",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_display(
+                                &"set_eth_client_account",
+                            ),
+                            ::core::fmt::ArgumentV1::new_debug(&__acl_any_roles),
+                        ],
+                    ),
+                );
+                res
+            };
+            near_sdk::env::panic_str(&message);
+        }
+        self.eth_client_account = account_id;
     }
     /// Sets the Ethereum Fast Bridge contract address.
     ///
@@ -20953,7 +21045,7 @@ pub extern "C" fn withdraw_callback() {
     near_sdk::env::state_write(&contract);
 }
 /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
-/// The function is allowed to be called only by accounts that have `ConfigManager` role.
+/// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
 /// # Arguments
 /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
 #[cfg(target_arch = "wasm32")]
@@ -21175,6 +21267,229 @@ pub extern "C" fn set_prover_account() {
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
     contract.set_prover_account(prover_account);
+    near_sdk::env::state_write(&contract);
+}
+/// Sets the eth client account. `EthClient` is a contract that provide the last block number.
+/// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
+/// # Arguments
+/// * `account_id`: An `AccountId` representing the `EthClient` account to use.
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn set_eth_client_account() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str("Method set_eth_client_account doesn't accept deposit");
+    }
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        account_id: AccountId,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                enum __Field {
+                    __field0,
+                    __ignore,
+                }
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"account_id" => _serde::__private::Ok(__Field::__field0),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 1 element",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
+                        while let _serde::__private::Some(__key)
+                            = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "account_id",
+                                            ),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input { account_id: __field0 })
+                    }
+                }
+                const FIELDS: &'static [&'static str] = &["account_id"];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { account_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    contract.set_eth_client_account(account_id);
     near_sdk::env::state_write(&contract);
 }
 /// Sets the Ethereum Fast Bridge contract address.

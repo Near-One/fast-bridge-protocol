@@ -854,12 +854,21 @@ impl FastBridge {
     }
 
     /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
-    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
     /// # Arguments
     /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
     #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
+    }
+
+    /// Sets the eth client account. `EthClient` is a contract that provide the last block number.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
+    /// # Arguments
+    /// * `account_id`: An `AccountId` representing the `EthClient` account to use.
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
+    pub fn set_eth_client_account(&mut self, account_id: AccountId) {
+        self.eth_client_account = account_id;
     }
 
     /// Sets the Ethereum Fast Bridge contract address.
