@@ -1,6 +1,6 @@
 // Sources flattened with hardhat v2.12.6 https://hardhat.org
 
-// File @openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (access/IAccessControl.sol)
@@ -92,7 +92,7 @@ interface IAccessControlUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (utils/Address.sol)
@@ -315,7 +315,7 @@ library AddressUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.1) (proxy/utils/Initializable.sol)
@@ -482,7 +482,7 @@ abstract contract Initializable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
@@ -522,7 +522,7 @@ abstract contract ContextUpgradeable is Initializable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)
@@ -551,7 +551,7 @@ interface IERC165Upgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/introspection/ERC165.sol)
@@ -595,7 +595,7 @@ abstract contract ERC165Upgradeable is Initializable, IERC165Upgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (utils/math/Math.sol)
@@ -944,7 +944,7 @@ library MathUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (utils/Strings.sol)
@@ -1016,7 +1016,7 @@ library StringsUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (access/AccessControl.sol)
@@ -1278,7 +1278,7 @@ abstract contract AccessControlUpgradeable is Initializable, ContextUpgradeable,
 }
 
 
-// File @openzeppelin/contracts-upgradeable/interfaces/draft-IERC1822Upgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/interfaces/draft-IERC1822Upgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.5.0) (interfaces/draft-IERC1822.sol)
@@ -1302,7 +1302,37 @@ interface IERC1822ProxiableUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/proxy/beacon/IBeaconUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/interfaces/IERC1967Upgradeable.sol@v4.8.3
+
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v4.8.3) (interfaces/IERC1967.sol)
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev ERC-1967: Proxy Storage Slots. This interface contains the events defined in the ERC.
+ *
+ * _Available since v4.9._
+ */
+interface IERC1967Upgradeable {
+    /**
+     * @dev Emitted when the implementation is upgraded.
+     */
+    event Upgraded(address indexed implementation);
+
+    /**
+     * @dev Emitted when the admin account has changed.
+     */
+    event AdminChanged(address previousAdmin, address newAdmin);
+
+    /**
+     * @dev Emitted when the beacon is changed.
+     */
+    event BeaconUpgraded(address indexed beacon);
+}
+
+
+// File @openzeppelin/contracts-upgradeable/proxy/beacon/IBeaconUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (proxy/beacon/IBeacon.sol)
@@ -1322,7 +1352,7 @@ interface IBeaconUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/utils/StorageSlotUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/utils/StorageSlotUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (utils/StorageSlot.sol)
@@ -1414,12 +1444,13 @@ library StorageSlotUpgradeable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.5.0) (proxy/ERC1967/ERC1967Upgrade.sol)
+// OpenZeppelin Contracts (last updated v4.8.3) (proxy/ERC1967/ERC1967Upgrade.sol)
 
 pragma solidity ^0.8.2;
+
 
 
 
@@ -1433,7 +1464,7 @@ pragma solidity ^0.8.2;
  *
  * @custom:oz-upgrades-unsafe-allow delegatecall
  */
-abstract contract ERC1967UpgradeUpgradeable is Initializable {
+abstract contract ERC1967UpgradeUpgradeable is Initializable, IERC1967Upgradeable {
     function __ERC1967Upgrade_init() internal onlyInitializing {
     }
 
@@ -1448,11 +1479,6 @@ abstract contract ERC1967UpgradeUpgradeable is Initializable {
      * validated in the constructor.
      */
     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
-
-    /**
-     * @dev Emitted when the implementation is upgraded.
-     */
-    event Upgraded(address indexed implementation);
 
     /**
      * @dev Returns the current implementation address.
@@ -1528,11 +1554,6 @@ abstract contract ERC1967UpgradeUpgradeable is Initializable {
     bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     /**
-     * @dev Emitted when the admin account has changed.
-     */
-    event AdminChanged(address previousAdmin, address newAdmin);
-
-    /**
      * @dev Returns the current admin.
      */
     function _getAdmin() internal view returns (address) {
@@ -1562,11 +1583,6 @@ abstract contract ERC1967UpgradeUpgradeable is Initializable {
      * This is bytes32(uint256(keccak256('eip1967.proxy.beacon')) - 1)) and is validated in the constructor.
      */
     bytes32 internal constant _BEACON_SLOT = 0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50;
-
-    /**
-     * @dev Emitted when the beacon is upgraded.
-     */
-    event BeaconUpgraded(address indexed beacon);
 
     /**
      * @dev Returns the current beacon.
@@ -1628,7 +1644,7 @@ abstract contract ERC1967UpgradeUpgradeable is Initializable {
 }
 
 
-// File @openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (proxy/utils/UUPSUpgradeable.sol)
@@ -1738,7 +1754,7 @@ abstract contract UUPSUpgradeable is Initializable, IERC1822ProxiableUpgradeable
 }
 
 
-// File @openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol@v4.8.1
+// File @openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (security/Pausable.sol)
@@ -1857,7 +1873,7 @@ abstract contract PausableUpgradeable is Initializable, ContextUpgradeable {
 }
 
 
-// File @openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol@v4.8.0
+// File @openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/draft-IERC20Permit.sol)
@@ -1921,7 +1937,7 @@ interface IERC20Permit {
 }
 
 
-// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.8.0
+// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
@@ -2007,7 +2023,7 @@ interface IERC20 {
 }
 
 
-// File @openzeppelin/contracts/utils/Address.sol@v4.8.0
+// File @openzeppelin/contracts/utils/Address.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (utils/Address.sol)
@@ -2255,7 +2271,7 @@ library Address {
 }
 
 
-// File @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol@v4.8.0
+// File @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol@v4.8.3
 
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/utils/SafeERC20.sol)
