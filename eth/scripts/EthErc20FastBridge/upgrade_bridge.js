@@ -7,7 +7,6 @@ async function main() {
 
     const EthErc20FastBridge = await ethers.getContractFactory("EthErc20FastBridge", deployer);
     const bridgeProxyAddress = process.env.BRIDGE_PROXY_ADDRESS;
-    console.log(bridgeProxyAddress);
     console.log("Need to upgrade bridge?");
     console.log("Proxy provided : ", bridgeProxyAddress);
 
