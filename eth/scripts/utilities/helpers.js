@@ -15,12 +15,11 @@ async function verify(address, args) {
             await sleep(5000);
             --retry;
         }
-        console.log(address, args);
+        console.log(address);
 
         await hre
             .run("verify:verify", {
                 address,
-                constructorArguments: args
             })
             .catch(() => console.log("Verification failed"));
     }
