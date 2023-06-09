@@ -31,6 +31,7 @@ mod integration_tests {
         lock_time_max: String,
         eth_block_time: near_sdk::Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     }
 
     struct TestData {
@@ -230,6 +231,7 @@ mod integration_tests {
                 lock_time_max: "10h".to_owned(),
                 eth_block_time: 0,
                 whitelist_mode: false,
+                start_nonce: U128(0),
             },
             BRIDGE_WASM_FILEPATH,
         )
@@ -390,6 +392,7 @@ mod integration_tests {
                 lock_time_max: "10h".to_owned(),
                 eth_block_time: 12000000000,
                 whitelist_mode: false,
+                start_nonce: U128(0),
             },
             BRIDGE_WASM_FILEPATH,
         )

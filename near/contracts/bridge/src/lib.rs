@@ -194,6 +194,7 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     ) -> Self {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
@@ -215,7 +216,7 @@ impl FastBridge {
             pending_transfers: UnorderedMap::new(StorageKey::PendingTransfers),
             pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
             token_balances: LookupMap::new(StorageKey::TokenBalances),
-            nonce: 0,
+            nonce: start_nonce.0,
             prover_account,
             eth_client_account,
             eth_bridge_contract: get_eth_address(eth_bridge_contract),
@@ -854,12 +855,21 @@ impl FastBridge {
     }
 
     /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
-    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
     /// # Arguments
     /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
     #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
+    }
+
+    /// Sets the eth client account. `EthClient` is a contract that provide the last block number.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
+    /// # Arguments
+    /// * `account_id`: An `AccountId` representing the `EthClient` account to use.
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
+    pub fn set_eth_client_account(&mut self, account_id: AccountId) {
+        self.eth_client_account = account_id;
     }
 
     /// Sets the Ethereum Fast Bridge contract address.
@@ -1155,6 +1165,7 @@ mod unit_tests {
             config.lock_time_max.unwrap_or_else(|| "24h".to_string()),
             12_000_000_000,
             true,
+            U128(0),
         );
 
         contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
