@@ -27,17 +27,16 @@ task("method", "Execute Fastbridge methods")
     .setAction(async (taskArgs) => {
         const network = (await ethers.getDefaultProvider().getNetwork()).name;
         const bridgeAddress = deploymentAddress[network].new.bridge;
-        const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_TASK);
+        const provider = new ethers.providers.JsonRpcProvider(process.env.TASK_RPC_URL);
         const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
         const jsonString = taskArgs.jsonstring;
         const json = JSON.parse(jsonString);
         const arg = json.arguments;
-        const methodName = json.methodname;
-        const gasLimit = json.gaslimit;
-        console.log(arg);
+        const methodName = json.methodName;
+        const gasLimit = json.gasLimit;
         const methodArguments = Object.values(arg);
-        console.log(methodName, methodArguments);
+        console.log(`calling method ${methodName} with arguments ${methodArguments}`);
         const contractInterface = new ethers.utils.Interface(bridgeArtifacts.abi);
         // Send the transaction
         const txdata = contractInterface.encodeFunctionData(methodName, methodArguments);

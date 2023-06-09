@@ -108,11 +108,10 @@ To call any method of EthErc20FastBridge use hardhat task `method`
 Run command `npx hardhat method --jsonstring <json_string_input>`
 ```
 to create `json_string_input`
-1. create json with `signature` and `arguments` properties in below example format
+1. create json with `methodName` and `arguments` properties in below example format
 
  {
-    "methodname": "setWhitelistedTokens",
-    "argcount": "2",
+    "methodName": "setWhitelistedTokens",
     "arguments": {
         "arg1": [
             "0xdAC17F958D2ee523a2206206994597C13D831ec7",
@@ -130,4 +129,4 @@ to create `json_string_input`
 2. pass below json to JSON.stringify() and use output as `json_string_input`
 
 ```
-example: to call `setWhitelistedTokens` method run command `npx hardhat method --jsonstring '{"methodname":"setWhitelistedTokens","arguments":{"arg1":["0xdAC17F958D2ee523a2206206994597C13D831ec7"],"arg2":[true]}}'`
+example: to call `setWhitelistedTokens` method run command `npx hardhat method --jsonstring '{"methodName":"setWhitelistedTokens","arguments":{"arg1":["0xdAC17F958D2ee523a2206206994597C13D831ec7"],"arg2":[true]}}'`
