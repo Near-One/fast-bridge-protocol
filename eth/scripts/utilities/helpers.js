@@ -55,7 +55,7 @@ async function getBridgeContract() {
     const network = (await ethers.getDefaultProvider().getNetwork()).name;
     const bridgeAddress = deploymentAddress[network].new.bridge;
     const bridge = await ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeAddress);
-    console.log("Connected !");
+    console.log("Connected!");
     return bridge;
 }
 

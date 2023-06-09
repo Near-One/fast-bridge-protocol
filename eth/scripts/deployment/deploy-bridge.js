@@ -8,7 +8,6 @@ async function main() {
     const network = (await ethers.getDefaultProvider().getNetwork()).name;
     const addressesPath = path.join(__dirname, "./deploymentAddresses.json");
     const saveAddress = getAddressSaver(addressesPath, network, true);
-    
     const tokensAddresses = Object.values(require("./deploymentAddresses.json").tokens);
     const whitelistedTokens = Object.values(require("./deploymentAddresses.json").whitelisted_tokens);
     const bridge = (await ethers.getContractFactory("EthErc20FastBridge")).connect(deployer);
