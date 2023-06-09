@@ -54,7 +54,7 @@ To upgrade bridge contract(using hardhat's upgrades plugin), use `fast-bridge-pr
 <!-- Before upgrading, go to file `fast-bridge-protocol/eth/scripts/EthErc20FastBridge/upgrade_bridge.js` and update current bridge proxy address at line 7. -->
 
 To execute this script => run command `yarn run upgrade:bridge -- <network-name>`
-example : to upgrade on goerli run command `yarn run deploy:verify:bridge -- goerli`
+example : to upgrade on goerli run command `yarn run upgrade:bridge -- goerli`
 
 ### Whitelisting
 To interact with EthErc20FastBridge whitelisting methods use methods defined in fast-bridge-protocol/eth/scripts/EthErc20FastBridge/whitelistTokens.js
