@@ -10,8 +10,7 @@ const { ethers } = require("ethers");
 const { task } = require("hardhat/config");
 const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
 const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
-require('hardhat-storage-layout');
-
+require("hardhat-storage-layout");
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
@@ -50,6 +49,21 @@ task("method", "Execute Fastbridge methods")
         await tx.wait();
 
         console.log("Transaction mined!");
+    });
+
+task("init-impl", "Init implementation contract")
+    .addParam("address", "Address of the implementation contract")
+    .setAction(async (taskArgs) => {
+        try {
+            const implAddress = taskArgs.address;
+            const [signer] = await hre.ethers.getSigners();
+            console.log(`Signer address: ${signer.address}`);
+            const bridge = await hre.ethers.getContractAt("EthErc20FastBridge", implAddress);
+            const initializeTx = await bridge.initialize([], []);
+            console.log("Init tx hash:", initializeTx.hash);
+        } catch (error) {
+            console.error("Failed with error :", error);
+        }
     });
 
 module.exports = {
