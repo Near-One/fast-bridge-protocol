@@ -55,7 +55,8 @@ module.exports = {
     networks: {
         testnet_aurora: {
             url: 'https://testnet.aurora.dev',
-            accounts: [`0x${AURORA_PRIVATE_KEY}`]
+            accounts: [`0x${AURORA_PRIVATE_KEY}`],
+            chainId: 1313161555
         },
         develop_aurora: {
             url: 'https://develop.rpc.testnet.aurora.dev:8545',
