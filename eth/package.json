@@ -19,6 +19,7 @@
         "deploy:verify:bridge": "npm run compile-all && npx hardhat run scripts/EthErc20FastBridge/deploy_and_verify_bridge.js --network",
         "verify:bridge": "npm run compile-all && npx hardhat run scripts/EthErc20FastBridge/verify.js --network",
         "upgrade:bridge": "npm run compile-all && npx hardhat run scripts/EthErc20FastBridge/upgrade_bridge.js --network ",
+        "interact:bridge" : "npm run interact:bridge",
         "dev:abi": "npx hardhat clear-abi && npx hardhat export-abi",
         "dev:coverage": "npx hardhat coverage",
         "docgen": "npx shx rm -rf docs && npx solidity-docgen --solc-module solc -t docgen -H docgen/helpers.js -o docs/",
