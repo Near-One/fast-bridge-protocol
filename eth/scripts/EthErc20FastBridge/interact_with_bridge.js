@@ -6,7 +6,7 @@ const {
     isTokenInWhitelist
 } = require("./whitelist_tokens");
 const { pauseTransfer, unpauseTransfer } = require("./pause_unpause");
-const { withdrawStuckTokens } = require("./withdraw_stuck_tokens");
+const { withdrawStuckTokens } = require("./withdraw_tokens_stuck");
 const prompt = require("prompt-sync")();
 
 async function main() {
