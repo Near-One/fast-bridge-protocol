@@ -4,8 +4,8 @@ const {Header, Account} = require('eth-object');
 const _utils = require('ethereumjs-util');
 const borsh = require('borsh')
 
-const provider = new ethers.providers.JsonRpcProvider('https://polygon-mumbai.g.alchemy.com/v2/r1zLtlI4VzABNRCDTlzwkUudARlrlXRV');
-const web3 = new Web3(new Web3.providers.HttpProvider('https://polygon-mumbai.g.alchemy.com/v2/r1zLtlI4VzABNRCDTlzwkUudARlrlXRV'));
+const provider = new ethers.providers.JsonRpcProvider('https://ethereum-goerli-rpc.allthatnode.com');
+const web3 = new Web3(new Web3.providers.HttpProvider('https://ethereum-goerli-rpc.allthatnode.com'));
 
 const mappingSlotNumber = 303;
 
@@ -34,8 +34,8 @@ async function get_proof_of_data(contractAddress, slotKey, blockNumber) {
     return await web3.eth.getProof(contractAddress, [slotKey], blockNumber);
 }
 
-async function get_block_data() {
-    return await web3.eth.getBlock("latest");
+async function get_block_data(blockNumber) {
+    return await web3.eth.getBlock(blockNumber);
 }
 
 async function generate_unlock_proof(getProof_response, block){
@@ -47,6 +47,9 @@ async function generate_unlock_proof(getProof_response, block){
     let account_data = (Account.fromRpc(res).serialize()).toString('hex');
     console.log("getProof_response: ", getProof_response);
     let storage_proof = getProof_response.storageProof[0].proof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));
+
+    console.log("header data:", header_rlp);
+
     const unlockProof = {
         header_data: parseHexString(header_rlp),
         account_proof: account_proof,
@@ -70,8 +73,10 @@ class Test extends Assignable { }
 async function get_unlock_proof(contractAddress, data) {
     let processHash = processedHash(data.token, data.recipient, data.nonce, data.amount);
     let slotKeyOfProcessedHash = getProcessedHashSlotKey(processHash);
-    let response_data = await get_proof_of_data(contractAddress, slotKeyOfProcessedHash, "latest");
-    let block = await get_block_data();
+    let response_data = await get_proof_of_data(contractAddress, slotKeyOfProcessedHash, 9187994);
+    let block = await get_block_data(9187994);
+    block.difficulty = web3.utils.toHex(block.difficulty);
+    console.log(block);
     let unlock_proof = await generate_unlock_proof(response_data, block);
 
     let borsh_ser = borsh.serialize(
