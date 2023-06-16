@@ -171,7 +171,7 @@ async function aurora_unlock_tokens(aurora_fast_bridge_address) {
         { token: "0x" + ETH_TOKEN_ADDRESS,
             recipient: deployerWallet.address,
             nonce: 1,
-            amount: 100});
+            amount: 100}, 9187994);
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);

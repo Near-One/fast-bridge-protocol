@@ -70,11 +70,11 @@ class Assignable {
 
 class Test extends Assignable { }
 
-async function get_unlock_proof(contractAddress, data) {
+async function get_unlock_proof(contractAddress, data, blockNumber) {
     let processHash = processedHash(data.token, data.recipient, data.nonce, data.amount);
     let slotKeyOfProcessedHash = getProcessedHashSlotKey(processHash);
-    let response_data = await get_proof_of_data(contractAddress, slotKeyOfProcessedHash, 9187994);
-    let block = await get_block_data(9187994);
+    let response_data = await get_proof_of_data(contractAddress, slotKeyOfProcessedHash, blockNumber);
+    let block = await get_block_data(blockNumber);
     block.difficulty = web3.utils.toHex(block.difficulty);
     console.log(block);
     let unlock_proof = await generate_unlock_proof(response_data, block);
