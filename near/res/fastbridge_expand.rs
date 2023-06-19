@@ -231,12 +231,14 @@ mod ft {
                     __D: near_sdk::serde::Deserializer<'de>,
                 {
                     #[allow(non_camel_case_types)]
+                    #[doc(hidden)]
                     enum __Field {
                         __field0,
                         __field1,
                         __field2,
                         __ignore,
                     }
+                    #[doc(hidden)]
                     struct __FieldVisitor;
                     impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                         type Value = __Field;
@@ -306,6 +308,7 @@ mod ft {
                             )
                         }
                     }
+                    #[doc(hidden)]
                     struct __Visitor<'de> {
                         marker: _serde::__private::PhantomData<Input>,
                         lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -515,6 +518,7 @@ mod ft {
                             })
                         }
                     }
+                    #[doc(hidden)]
                     const FIELDS: &'static [&'static str] = &[
                         "sender_id",
                         "amount",
@@ -700,11 +704,11 @@ mod lp_relayer {
                 .try_into()
                 .unwrap();
             Self {
-                eth_bridge_contract: locker_address,
+                eth_bridge_contract: EthAddress(locker_address),
                 nonce,
-                relayer,
-                token,
-                recipient,
+                relayer: EthAddress(relayer),
+                token: EthAddress(token),
+                recipient: EthAddress(recipient),
                 amount,
                 unlock_recipient,
                 transfer_id,
@@ -746,8 +750,8 @@ mod utils {
         let mut be_amount = [0u8; 32];
         amount.0.to_big_endian(&mut be_amount);
         let encoded = [
-            token.as_slice(),
-            recipient.as_slice(),
+            token.0.as_slice(),
+            recipient.0.as_slice(),
             be_nonce.as_slice(),
             be_amount.as_slice(),
         ]
@@ -828,11 +832,13 @@ mod whitelist {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __field2,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -922,6 +928,7 @@ mod whitelist {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<WhitelistMode>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -980,6 +987,7 @@ mod whitelist {
                         }
                     }
                 }
+                #[doc(hidden)]
                 const VARIANTS: &'static [&'static str] = &[
                     "Blocked",
                     "CheckToken",
@@ -1767,11 +1775,13 @@ mod whitelist {
                     __D: near_sdk::serde::Deserializer<'de>,
                 {
                     #[allow(non_camel_case_types)]
+                    #[doc(hidden)]
                     enum __Field {
                         __field0,
                         __field1,
                         __ignore,
                     }
+                    #[doc(hidden)]
                     struct __FieldVisitor;
                     impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                         type Value = __Field;
@@ -1838,6 +1848,7 @@ mod whitelist {
                             )
                         }
                     }
+                    #[doc(hidden)]
                     struct __Visitor<'de> {
                         marker: _serde::__private::PhantomData<Input>,
                         lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -1996,6 +2007,7 @@ mod whitelist {
                             })
                         }
                     }
+                    #[doc(hidden)]
                     const FIELDS: &'static [&'static str] = &["token", "mode"];
                     _serde::Deserializer::deserialize_struct(
                         __deserializer,
@@ -2045,11 +2057,13 @@ mod whitelist {
                     __D: near_sdk::serde::Deserializer<'de>,
                 {
                     #[allow(non_camel_case_types)]
+                    #[doc(hidden)]
                     enum __Field {
                         __field0,
                         __field1,
                         __ignore,
                     }
+                    #[doc(hidden)]
                     struct __FieldVisitor;
                     impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                         type Value = __Field;
@@ -2116,6 +2130,7 @@ mod whitelist {
                             )
                         }
                     }
+                    #[doc(hidden)]
                     struct __Visitor<'de> {
                         marker: _serde::__private::PhantomData<Input>,
                         lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -2278,6 +2293,7 @@ mod whitelist {
                             })
                         }
                     }
+                    #[doc(hidden)]
                     const FIELDS: &'static [&'static str] = &["token", "account"];
                     _serde::Deserializer::deserialize_struct(
                         __deserializer,
@@ -2327,11 +2343,13 @@ mod whitelist {
                     __D: near_sdk::serde::Deserializer<'de>,
                 {
                     #[allow(non_camel_case_types)]
+                    #[doc(hidden)]
                     enum __Field {
                         __field0,
                         __field1,
                         __ignore,
                     }
+                    #[doc(hidden)]
                     struct __FieldVisitor;
                     impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                         type Value = __Field;
@@ -2398,6 +2416,7 @@ mod whitelist {
                             )
                         }
                     }
+                    #[doc(hidden)]
                     struct __Visitor<'de> {
                         marker: _serde::__private::PhantomData<Input>,
                         lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -2560,6 +2579,7 @@ mod whitelist {
                             })
                         }
                     }
+                    #[doc(hidden)]
                     const FIELDS: &'static [&'static str] = &["token", "account"];
                     _serde::Deserializer::deserialize_struct(
                         __deserializer,
@@ -2607,11 +2627,13 @@ mod whitelist {
                     __D: near_sdk::serde::Deserializer<'de>,
                 {
                     #[allow(non_camel_case_types)]
+                    #[doc(hidden)]
                     enum __Field {
                         __field0,
                         __field1,
                         __ignore,
                     }
+                    #[doc(hidden)]
                     struct __FieldVisitor;
                     impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                         type Value = __Field;
@@ -2678,6 +2700,7 @@ mod whitelist {
                             )
                         }
                     }
+                    #[doc(hidden)]
                     struct __Visitor<'de> {
                         marker: _serde::__private::PhantomData<Input>,
                         lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -2838,6 +2861,7 @@ mod whitelist {
                             })
                         }
                     }
+                    #[doc(hidden)]
                     const FIELDS: &'static [&'static str] = &["token", "account"];
                     _serde::Deserializer::deserialize_struct(
                         __deserializer,
@@ -2885,10 +2909,12 @@ mod whitelist {
                     __D: near_sdk::serde::Deserializer<'de>,
                 {
                     #[allow(non_camel_case_types)]
+                    #[doc(hidden)]
                     enum __Field {
                         __field0,
                         __ignore,
                     }
+                    #[doc(hidden)]
                     struct __FieldVisitor;
                     impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                         type Value = __Field;
@@ -2952,6 +2978,7 @@ mod whitelist {
                             )
                         }
                     }
+                    #[doc(hidden)]
                     struct __Visitor<'de> {
                         marker: _serde::__private::PhantomData<Input>,
                         lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -3059,6 +3086,7 @@ mod whitelist {
                             _serde::__private::Ok(Input { enabled: __field0 })
                         }
                     }
+                    #[doc(hidden)]
                     const FIELDS: &'static [&'static str] = &["enabled"];
                     _serde::Deserializer::deserialize_struct(
                         __deserializer,
@@ -3527,6 +3555,7 @@ trait FastBridgeInterface {
         verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
+        aurora_sender: Option<EthAddress>,
     );
     fn init_transfer_callback(
         &mut self,
@@ -3696,16 +3725,19 @@ pub mod ext_self {
             self,
             nonce: U128,
             sender_id: AccountId,
+            aurora_sender: Option<EthAddress>,
         ) -> near_sdk::Promise {
             let __args = {
                 struct Input<'nearinput> {
                     nonce: &'nearinput U128,
                     sender_id: &'nearinput AccountId,
+                    aurora_sender: &'nearinput Option<EthAddress>,
                 }
                 impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
                 where
                     &'nearinput U128: borsh::ser::BorshSerialize,
                     &'nearinput AccountId: borsh::ser::BorshSerialize,
+                    &'nearinput Option<EthAddress>: borsh::ser::BorshSerialize,
                 {
                     fn serialize<W: borsh::maybestd::io::Write>(
                         &self,
@@ -3713,12 +3745,14 @@ pub mod ext_self {
                     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                         borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                        borsh::BorshSerialize::serialize(&self.aurora_sender, writer)?;
                         Ok(())
                     }
                 }
                 let __args = Input {
                     nonce: &nonce,
                     sender_id: &sender_id,
+                    aurora_sender: &aurora_sender,
                 };
                 near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                     .expect("Failed to serialize the cross contract args using Borsh.")
@@ -3947,6 +3981,7 @@ const _: () = {
             __D: _serde::Deserializer<'de>,
         {
             #[allow(non_camel_case_types)]
+            #[doc(hidden)]
             enum __Field {
                 __field0,
                 __field1,
@@ -3954,6 +3989,7 @@ const _: () = {
                 __field3,
                 __ignore,
             }
+            #[doc(hidden)]
             struct __FieldVisitor;
             impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                 type Value = __Field;
@@ -4026,6 +4062,7 @@ const _: () = {
                     )
                 }
             }
+            #[doc(hidden)]
             struct __Visitor<'de> {
                 marker: _serde::__private::PhantomData<UnlockProof>,
                 lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -4288,6 +4325,7 @@ const _: () = {
                     })
                 }
             }
+            #[doc(hidden)]
             const FIELDS: &'static [&'static str] = &[
                 "header_data",
                 "account_proof",
@@ -4394,12 +4432,14 @@ const _: () = {
             __D: near_sdk::serde::Deserializer<'de>,
         {
             #[allow(non_camel_case_types)]
+            #[doc(hidden)]
             enum __Field {
                 __field0,
                 __field1,
                 __field2,
                 __ignore,
             }
+            #[doc(hidden)]
             struct __FieldVisitor;
             impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                 type Value = __Field;
@@ -4469,6 +4509,7 @@ const _: () = {
                     )
                 }
             }
+            #[doc(hidden)]
             struct __Visitor<'de> {
                 marker: _serde::__private::PhantomData<UpdateBalance>,
                 lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -4676,6 +4717,7 @@ const _: () = {
                     })
                 }
             }
+            #[doc(hidden)]
             const FIELDS: &'static [&'static str] = &["sender_id", "token", "amount"];
             _serde::Deserializer::deserialize_struct(
                 __deserializer,
@@ -4849,11 +4891,13 @@ const _: () = {
             __D: near_sdk::serde::Deserializer<'de>,
         {
             #[allow(non_camel_case_types)]
+            #[doc(hidden)]
             enum __Field {
                 __field0,
                 __field1,
                 __ignore,
             }
+            #[doc(hidden)]
             struct __FieldVisitor;
             impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                 type Value = __Field;
@@ -4920,6 +4964,7 @@ const _: () = {
                     )
                 }
             }
+            #[doc(hidden)]
             struct __Visitor<'de> {
                 marker: _serde::__private::PhantomData<LockDuration>,
                 lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -5080,6 +5125,7 @@ const _: () = {
                     })
                 }
             }
+            #[doc(hidden)]
             const FIELDS: &'static [&'static str] = &["lock_time_min", "lock_time_max"];
             _serde::Deserializer::deserialize_struct(
                 __deserializer,
@@ -6352,6 +6398,7 @@ const _: () = {
             __D: near_sdk::serde::Deserializer<'de>,
         {
             #[allow(non_camel_case_types)]
+            #[doc(hidden)]
             enum __Field {
                 __field0,
                 __field1,
@@ -6365,6 +6412,7 @@ const _: () = {
                 __field9,
                 __field10,
             }
+            #[doc(hidden)]
             struct __FieldVisitor;
             impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                 type Value = __Field;
@@ -6482,6 +6530,7 @@ const _: () = {
                     )
                 }
             }
+            #[doc(hidden)]
             struct __Visitor<'de> {
                 marker: _serde::__private::PhantomData<Role>,
                 lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -6609,6 +6658,7 @@ const _: () = {
                     }
                 }
             }
+            #[doc(hidden)]
             const VARIANTS: &'static [&'static str] = &[
                 "PauseManager",
                 "UnrestrictedUnlock",
@@ -7193,10 +7243,12 @@ pub extern "C" fn pa_is_paused() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -7260,6 +7312,7 @@ pub extern "C" fn pa_is_paused() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -7365,6 +7418,7 @@ pub extern "C" fn pa_is_paused() {
                         _serde::__private::Ok(Input { key: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["key"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -7422,10 +7476,12 @@ pub extern "C" fn pa_pause_feature() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -7489,6 +7545,7 @@ pub extern "C" fn pa_pause_feature() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -7594,6 +7651,7 @@ pub extern "C" fn pa_pause_feature() {
                         _serde::__private::Ok(Input { key: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["key"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -7642,10 +7700,12 @@ pub extern "C" fn pa_unpause_feature() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -7709,6 +7769,7 @@ pub extern "C" fn pa_unpause_feature() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -7814,6 +7875,7 @@ pub extern "C" fn pa_unpause_feature() {
                         _serde::__private::Ok(Input { key: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["key"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -8581,10 +8643,12 @@ pub extern "C" fn up_deploy_code() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -8652,6 +8716,7 @@ pub extern "C" fn up_deploy_code() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -8767,6 +8832,7 @@ pub extern "C" fn up_deploy_code() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["function_call_args"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -8817,10 +8883,12 @@ pub extern "C" fn up_init_staging_duration() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -8888,6 +8956,7 @@ pub extern "C" fn up_init_staging_duration() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -9003,6 +9072,7 @@ pub extern "C" fn up_init_staging_duration() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["staging_duration"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -9050,10 +9120,12 @@ pub extern "C" fn up_stage_update_staging_duration() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -9121,6 +9193,7 @@ pub extern "C" fn up_stage_update_staging_duration() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -9236,6 +9309,7 @@ pub extern "C" fn up_stage_update_staging_duration() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["staging_duration"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -11364,10 +11438,12 @@ pub extern "C" fn acl_init_super_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -11431,6 +11507,7 @@ pub extern "C" fn acl_init_super_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -11540,6 +11617,7 @@ pub extern "C" fn acl_init_super_admin() {
                         _serde::__private::Ok(Input { account_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -11588,10 +11666,12 @@ pub extern "C" fn acl_add_super_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -11655,6 +11735,7 @@ pub extern "C" fn acl_add_super_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -11764,6 +11845,7 @@ pub extern "C" fn acl_add_super_admin() {
                         _serde::__private::Ok(Input { account_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -11819,10 +11901,12 @@ pub extern "C" fn acl_is_super_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -11886,6 +11970,7 @@ pub extern "C" fn acl_is_super_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -11995,6 +12080,7 @@ pub extern "C" fn acl_is_super_admin() {
                         _serde::__private::Ok(Input { account_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -12042,10 +12128,12 @@ pub extern "C" fn acl_revoke_super_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -12109,6 +12197,7 @@ pub extern "C" fn acl_revoke_super_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -12218,6 +12307,7 @@ pub extern "C" fn acl_revoke_super_admin() {
                         _serde::__private::Ok(Input { account_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -12268,10 +12358,12 @@ pub extern "C" fn acl_transfer_super_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -12335,6 +12427,7 @@ pub extern "C" fn acl_transfer_super_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -12444,6 +12537,7 @@ pub extern "C" fn acl_transfer_super_admin() {
                         _serde::__private::Ok(Input { account_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -12493,11 +12587,13 @@ pub extern "C" fn acl_add_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -12564,6 +12660,7 @@ pub extern "C" fn acl_add_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -12726,6 +12823,7 @@ pub extern "C" fn acl_add_admin() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -12772,11 +12870,13 @@ pub extern "C" fn acl_is_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -12843,6 +12943,7 @@ pub extern "C" fn acl_is_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -13005,6 +13106,7 @@ pub extern "C" fn acl_is_admin() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -13053,11 +13155,13 @@ pub extern "C" fn acl_revoke_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -13124,6 +13228,7 @@ pub extern "C" fn acl_revoke_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -13286,6 +13391,7 @@ pub extern "C" fn acl_revoke_admin() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -13334,10 +13440,12 @@ pub extern "C" fn acl_renounce_admin() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -13401,6 +13509,7 @@ pub extern "C" fn acl_renounce_admin() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -13506,6 +13615,7 @@ pub extern "C" fn acl_renounce_admin() {
                         _serde::__private::Ok(Input { role: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -13555,11 +13665,13 @@ pub extern "C" fn acl_revoke_role() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -13626,6 +13738,7 @@ pub extern "C" fn acl_revoke_role() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -13788,6 +13901,7 @@ pub extern "C" fn acl_revoke_role() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -13836,10 +13950,12 @@ pub extern "C" fn acl_renounce_role() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -13903,6 +14019,7 @@ pub extern "C" fn acl_renounce_role() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -14008,6 +14125,7 @@ pub extern "C" fn acl_renounce_role() {
                         _serde::__private::Ok(Input { role: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -14057,11 +14175,13 @@ pub extern "C" fn acl_grant_role() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -14128,6 +14248,7 @@ pub extern "C" fn acl_grant_role() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -14290,6 +14411,7 @@ pub extern "C" fn acl_grant_role() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -14336,11 +14458,13 @@ pub extern "C" fn acl_has_role() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -14407,6 +14531,7 @@ pub extern "C" fn acl_has_role() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -14569,6 +14694,7 @@ pub extern "C" fn acl_has_role() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -14614,11 +14740,13 @@ pub extern "C" fn acl_has_any_role() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -14685,6 +14813,7 @@ pub extern "C" fn acl_has_any_role() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -14847,6 +14976,7 @@ pub extern "C" fn acl_has_any_role() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["roles", "account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -14892,11 +15022,13 @@ pub extern "C" fn acl_get_super_admins() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -14963,6 +15095,7 @@ pub extern "C" fn acl_get_super_admins() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -15117,6 +15250,7 @@ pub extern "C" fn acl_get_super_admins() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["skip", "limit"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -15163,12 +15297,14 @@ pub extern "C" fn acl_get_admins() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __field2,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -15238,6 +15374,7 @@ pub extern "C" fn acl_get_admins() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -15441,6 +15578,7 @@ pub extern "C" fn acl_get_admins() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "skip", "limit"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -15487,12 +15625,14 @@ pub extern "C" fn acl_get_grantees() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __field2,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -15562,6 +15702,7 @@ pub extern "C" fn acl_get_grantees() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -15765,6 +15906,7 @@ pub extern "C" fn acl_get_grantees() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["role", "skip", "limit"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -16059,12 +16201,14 @@ impl FastBridgeExt {
         self,
         nonce: U128,
         proof: near_sdk::json_types::Base64VecU8,
+        aurora_sender: Option<String>,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
                 proof: &'nearinput near_sdk::json_types::Base64VecU8,
+                aurora_sender: &'nearinput Option<String>,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -16082,7 +16226,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1 + 1,
+                            false as usize + 1 + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -16109,6 +16253,16 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "aurora_sender",
+                            &self.aurora_sender,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -16116,6 +16270,7 @@ impl FastBridgeExt {
             let __args = Input {
                 nonce: &nonce,
                 proof: &proof,
+                aurora_sender: &aurora_sender,
             };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
@@ -16132,18 +16287,20 @@ impl FastBridgeExt {
     pub fn unlock_callback(
         self,
         nonce: U128,
-        #[allow(unused_variables)]
         sender_id: AccountId,
+        aurora_sender: Option<EthAddress>,
     ) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
                 sender_id: &'nearinput AccountId,
+                aurora_sender: &'nearinput Option<EthAddress>,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
                 &'nearinput U128: borsh::ser::BorshSerialize,
                 &'nearinput AccountId: borsh::ser::BorshSerialize,
+                &'nearinput Option<EthAddress>: borsh::ser::BorshSerialize,
             {
                 fn serialize<W: borsh::maybestd::io::Write>(
                     &self,
@@ -16151,12 +16308,14 @@ impl FastBridgeExt {
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                     borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                    borsh::BorshSerialize::serialize(&self.aurora_sender, writer)?;
                     Ok(())
                 }
             }
             let __args = Input {
                 nonce: &nonce,
                 sender_id: &sender_id,
+                aurora_sender: &aurora_sender,
             };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
@@ -17256,6 +17415,7 @@ impl FastBridge {
         &self,
         nonce: U128,
         proof: near_sdk::json_types::Base64VecU8,
+        aurora_sender: Option<String>,
     ) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
@@ -17281,6 +17441,10 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
+        let aurora_sender: Option<EthAddress> = match aurora_sender {
+            Some(aurora_str) => Some(get_eth_address(aurora_str)),
+            None => None,
+        };
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str(
                 "Invalid borsh format of the `UnlockProof`",
@@ -17301,7 +17465,7 @@ impl FastBridge {
             .verify_storage_proof(
                 proof.header_data,
                 proof.account_proof,
-                self.eth_bridge_contract.to_vec(),
+                self.eth_bridge_contract.0.to_vec(),
                 proof.account_data,
                 storage_key_hash,
                 proof.storage_proof,
@@ -17314,7 +17478,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id()),
+                    .unlock_callback(nonce, env::predecessor_account_id(), aurora_sender),
             )
     }
     /// This function finalizes the execution flow of the `unlock()` function. This function
@@ -17340,12 +17504,88 @@ impl FastBridge {
         &mut self,
         verification_result: bool,
         nonce: U128,
-        #[allow(unused_variables)]
         sender_id: AccountId,
+        aurora_sender: Option<EthAddress>,
     ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+        if true {
+            let msg: &str = &{
+                let res = ::alloc::fmt::format(
+                    ::core::fmt::Arguments::new_v1(
+                        &[
+                            "Aurora sender(",
+                            ") in unlock arg is unequal to the aurora sender(",
+                            ") in transfer data.",
+                        ],
+                        &[
+                            ::core::fmt::ArgumentV1::new_debug(&aurora_sender),
+                            ::core::fmt::ArgumentV1::new_debug(
+                                &transfer_data.aurora_sender,
+                            ),
+                        ],
+                    ),
+                );
+                res
+            };
+            if !(aurora_sender == transfer_data.aurora_sender) {
+                ::core::panicking::panic_display(&msg)
+            }
+        } else if !(aurora_sender == transfer_data.aurora_sender) {
+            ::near_sdk::env::panic_str(
+                &{
+                    let res = ::alloc::fmt::format(
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Aurora sender(",
+                                ") in unlock arg is unequal to the aurora sender(",
+                                ") in transfer data.",
+                            ],
+                            &[
+                                ::core::fmt::ArgumentV1::new_debug(&aurora_sender),
+                                ::core::fmt::ArgumentV1::new_debug(
+                                    &transfer_data.aurora_sender,
+                                ),
+                            ],
+                        ),
+                    );
+                    res
+                },
+            )
+        }
+        if let Some(_) = aurora_sender {
+            if true {
+                let msg: &str = &{
+                    let res = ::alloc::fmt::format(
+                        ::core::fmt::Arguments::new_v1(
+                            &[
+                                "Only recipient can unlock tokens for not null aurora_sender: ",
+                            ],
+                            &[::core::fmt::ArgumentV1::new_display(&sender_id)],
+                        ),
+                    );
+                    res
+                };
+                if !(recipient_id == sender_id) {
+                    ::core::panicking::panic_display(&msg)
+                }
+            } else if !(recipient_id == sender_id) {
+                ::near_sdk::env::panic_str(
+                    &{
+                        let res = ::alloc::fmt::format(
+                            ::core::fmt::Arguments::new_v1(
+                                &[
+                                    "Only recipient can unlock tokens for not null aurora_sender: ",
+                                ],
+                                &[::core::fmt::ArgumentV1::new_display(&sender_id)],
+                            ),
+                        );
+                        res
+                    },
+                )
+            }
+        }
         if true {
             let msg: &str = &"Valid time is not correct.";
             if !(block_timestamp() > transfer_data.valid_till) {
@@ -17394,7 +17634,7 @@ impl FastBridge {
         Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
-            transfer_message: transfer_data,
+            transfer_message: transfer_data.clone(),
         }
             .emit();
     }
@@ -17456,10 +17696,10 @@ impl FastBridge {
                                 ],
                                 &[
                                     ::core::fmt::ArgumentV1::new_display(
-                                        &hex::encode(parsed_proof.eth_bridge_contract),
+                                        &hex::encode(parsed_proof.eth_bridge_contract.0),
                                     ),
                                     ::core::fmt::ArgumentV1::new_display(
-                                        &hex::encode(self.eth_bridge_contract),
+                                        &hex::encode(self.eth_bridge_contract.0),
                                     ),
                                 ],
                             ),
@@ -18300,6 +18540,7 @@ pub extern "C" fn new() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
@@ -18311,6 +18552,7 @@ pub extern "C" fn new() {
                     __field7,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -18403,6 +18645,7 @@ pub extern "C" fn new() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -18885,6 +19128,7 @@ pub extern "C" fn new() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &[
                     "eth_bridge_contract",
                     "prover_account",
@@ -18966,10 +19210,12 @@ pub extern "C" fn init_transfer() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -19033,6 +19279,7 @@ pub extern "C" fn init_transfer() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -19140,6 +19387,7 @@ pub extern "C" fn init_transfer() {
                         _serde::__private::Ok(Input { msg: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["msg"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -19256,6 +19504,7 @@ pub extern "C" fn unlock() {
     struct Input {
         nonce: U128,
         proof: near_sdk::json_types::Base64VecU8,
+        aurora_sender: Option<String>,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -19270,11 +19519,14 @@ pub extern "C" fn unlock() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
+                    __field2,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -19297,6 +19549,7 @@ pub extern "C" fn unlock() {
                         match __value {
                             0u64 => _serde::__private::Ok(__Field::__field0),
                             1u64 => _serde::__private::Ok(__Field::__field1),
+                            2u64 => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -19310,6 +19563,7 @@ pub extern "C" fn unlock() {
                         match __value {
                             "nonce" => _serde::__private::Ok(__Field::__field0),
                             "proof" => _serde::__private::Ok(__Field::__field1),
+                            "aurora_sender" => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -19323,6 +19577,7 @@ pub extern "C" fn unlock() {
                         match __value {
                             b"nonce" => _serde::__private::Ok(__Field::__field0),
                             b"proof" => _serde::__private::Ok(__Field::__field1),
+                            b"aurora_sender" => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -19341,6 +19596,7 @@ pub extern "C" fn unlock() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -19377,7 +19633,7 @@ pub extern "C" fn unlock() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 2 elements",
+                                        &"struct Input with 3 elements",
                                     ),
                                 );
                             }
@@ -19395,7 +19651,25 @@ pub extern "C" fn unlock() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         1usize,
-                                        &"struct Input with 2 elements",
+                                        &"struct Input with 3 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
+                            Option<String>,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        2usize,
+                                        &"struct Input with 3 elements",
                                     ),
                                 );
                             }
@@ -19403,6 +19677,7 @@ pub extern "C" fn unlock() {
                         _serde::__private::Ok(Input {
                             nonce: __field0,
                             proof: __field1,
+                            aurora_sender: __field2,
                         })
                     }
                     #[inline]
@@ -19417,6 +19692,7 @@ pub extern "C" fn unlock() {
                         let mut __field1: _serde::__private::Option<
                             near_sdk::json_types::Base64VecU8,
                         > = _serde::__private::None;
+                        let mut __field2: _serde::__private::Option<Option<String>> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -19461,6 +19737,25 @@ pub extern "C" fn unlock() {
                                         },
                                     );
                                 }
+                                __Field::__field2 => {
+                                    if _serde::__private::Option::is_some(&__field2) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "aurora_sender",
+                                            ),
+                                        );
+                                    }
+                                    __field2 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            Option<String>,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
                                 _ => {
                                     let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
@@ -19495,13 +19790,32 @@ pub extern "C" fn unlock() {
                                 }
                             }
                         };
+                        let __field2 = match __field2 {
+                            _serde::__private::Some(__field2) => __field2,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field(
+                                    "aurora_sender",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
                         _serde::__private::Ok(Input {
                             nonce: __field0,
                             proof: __field1,
+                            aurora_sender: __field2,
                         })
                     }
                 }
-                const FIELDS: &'static [&'static str] = &["nonce", "proof"];
+                #[doc(hidden)]
+                const FIELDS: &'static [&'static str] = &[
+                    "nonce",
+                    "proof",
+                    "aurora_sender",
+                ];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -19514,12 +19828,12 @@ pub extern "C" fn unlock() {
             }
         }
     };
-    let Input { nonce, proof }: Input = near_sdk::serde_json::from_slice(
+    let Input { nonce, proof, aurora_sender }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.unlock(nonce, proof);
+    let result = contract.unlock(nonce, proof, aurora_sender);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
@@ -19556,11 +19870,13 @@ pub extern "C" fn unlock_callback() {
     struct Input {
         nonce: U128,
         sender_id: AccountId,
+        aurora_sender: Option<EthAddress>,
     }
     impl borsh::de::BorshDeserialize for Input
     where
         U128: borsh::BorshDeserialize,
         AccountId: borsh::BorshDeserialize,
+        Option<EthAddress>: borsh::BorshDeserialize,
     {
         fn deserialize(
             buf: &mut &[u8],
@@ -19568,10 +19884,11 @@ pub extern "C" fn unlock_callback() {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
                 sender_id: borsh::BorshDeserialize::deserialize(buf)?,
+                aurora_sender: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce, sender_id, aurora_sender }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -19584,7 +19901,7 @@ pub extern "C" fn unlock_callback() {
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.unlock_callback(verification_result, nonce, sender_id);
+    contract.unlock_callback(verification_result, nonce, sender_id, aurora_sender);
     near_sdk::env::state_write(&contract);
 }
 /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
@@ -19627,10 +19944,12 @@ pub extern "C" fn lp_unlock() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -19694,6 +20013,7 @@ pub extern "C" fn lp_unlock() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -19799,6 +20119,7 @@ pub extern "C" fn lp_unlock() {
                         _serde::__private::Ok(Input { proof: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["proof"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -19862,11 +20183,13 @@ pub extern "C" fn unlock_stuck_transfer() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -19933,6 +20256,7 @@ pub extern "C" fn unlock_stuck_transfer() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -20093,6 +20417,7 @@ pub extern "C" fn unlock_stuck_transfer() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["nonce", "recipient_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -20206,11 +20531,13 @@ pub extern "C" fn get_user_balance() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -20277,6 +20604,7 @@ pub extern "C" fn get_user_balance() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -20439,6 +20767,7 @@ pub extern "C" fn get_user_balance() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id", "token_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -20503,11 +20832,13 @@ pub extern "C" fn withdraw() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -20574,6 +20905,7 @@ pub extern "C" fn withdraw() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -20734,6 +21066,7 @@ pub extern "C" fn withdraw() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["token_id", "amount"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -20803,12 +21136,14 @@ pub extern "C" fn withdraw_callback() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __field2,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -20878,6 +21213,7 @@ pub extern "C" fn withdraw_callback() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -21089,6 +21425,7 @@ pub extern "C" fn withdraw_callback() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &[
                     "token_id",
                     "amount",
@@ -21145,10 +21482,12 @@ pub extern "C" fn set_prover_account() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -21212,6 +21551,7 @@ pub extern "C" fn set_prover_account() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -21321,6 +21661,7 @@ pub extern "C" fn set_prover_account() {
                         _serde::__private::Ok(Input { prover_account: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["prover_account"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -21370,10 +21711,12 @@ pub extern "C" fn set_eth_client_account() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -21437,6 +21780,7 @@ pub extern "C" fn set_eth_client_account() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -21544,6 +21888,7 @@ pub extern "C" fn set_eth_client_account() {
                         _serde::__private::Ok(Input { account_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["account_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -21599,10 +21944,12 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -21666,6 +22013,7 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -21773,6 +22121,7 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                         _serde::__private::Ok(Input { address: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["address"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -21836,10 +22185,12 @@ pub extern "C" fn get_pending_balance() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -21903,6 +22254,7 @@ pub extern "C" fn get_pending_balance() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -22010,6 +22362,7 @@ pub extern "C" fn get_pending_balance() {
                         _serde::__private::Ok(Input { token_id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["token_id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -22071,11 +22424,13 @@ pub extern "C" fn get_pending_transfers() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -22142,6 +22497,7 @@ pub extern "C" fn get_pending_transfers() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -22302,6 +22658,7 @@ pub extern "C" fn get_pending_transfers() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["from_index", "limit"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -22356,10 +22713,12 @@ pub extern "C" fn get_pending_transfer() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -22423,6 +22782,7 @@ pub extern "C" fn get_pending_transfer() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -22528,6 +22888,7 @@ pub extern "C" fn get_pending_transfer() {
                         _serde::__private::Ok(Input { id: __field0 })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &["id"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
@@ -22589,11 +22950,13 @@ pub extern "C" fn set_lock_time() {
                 __D: near_sdk::serde::Deserializer<'de>,
             {
                 #[allow(non_camel_case_types)]
+                #[doc(hidden)]
                 enum __Field {
                     __field0,
                     __field1,
                     __ignore,
                 }
+                #[doc(hidden)]
                 struct __FieldVisitor;
                 impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
                     type Value = __Field;
@@ -22660,6 +23023,7 @@ pub extern "C" fn set_lock_time() {
                         )
                     }
                 }
+                #[doc(hidden)]
                 struct __Visitor<'de> {
                     marker: _serde::__private::PhantomData<Input>,
                     lifetime: _serde::__private::PhantomData<&'de ()>,
@@ -22826,6 +23190,7 @@ pub extern "C" fn set_lock_time() {
                         })
                     }
                 }
+                #[doc(hidden)]
                 const FIELDS: &'static [&'static str] = &[
                     "lock_time_min",
                     "lock_time_max",
