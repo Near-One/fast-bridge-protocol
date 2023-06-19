@@ -388,7 +388,12 @@ impl FastBridge {
     /// * `nonce` - A unique identifier of the transfer.
     /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8, aurora_sender: Option<String>) -> Promise {
+    pub fn unlock(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        aurora_sender: Option<String>,
+    ) -> Promise {
         let aurora_sender: Option<EthAddress> = match aurora_sender {
             Some(aurora_str) => Some(get_eth_address(aurora_str)),
             None => None,
@@ -424,7 +429,8 @@ impl FastBridge {
                 transfer_data.valid_till_block_height,
                 None,
                 false,
-            ).then(
+            )
+            .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
@@ -473,7 +479,11 @@ impl FastBridge {
         if let Some(_) = aurora_sender {
             require!(
                 recipient_id == sender_id,
-                format!("Only recipient can unlock tokens for not null aurora_sender: {}", sender_id));
+                format!(
+                    "Only recipient can unlock tokens for not null aurora_sender: {}",
+                    sender_id
+                )
+            );
         }
 
         require!(
