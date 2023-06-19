@@ -17441,10 +17441,7 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        let aurora_sender: Option<EthAddress> = match aurora_sender {
-            Some(aurora_str) => Some(get_eth_address(aurora_str)),
-            None => None,
-        };
+        let aurora_sender: Option<EthAddress> = aurora_sender.map(get_eth_address);
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str(
                 "Invalid borsh format of the `UnlockProof`",
@@ -17554,7 +17551,7 @@ impl FastBridge {
                 },
             )
         }
-        if let Some(_) = aurora_sender {
+        if aurora_sender.is_some() {
             if true {
                 let msg: &str = &{
                     let res = ::alloc::fmt::format(
