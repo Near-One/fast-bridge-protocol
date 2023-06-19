@@ -31,6 +31,7 @@ mod integration_tests {
         lock_time_max: String,
         eth_block_time: near_sdk::Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     }
 
     struct TestData {
@@ -230,6 +231,7 @@ mod integration_tests {
                 lock_time_max: "10h".to_owned(),
                 eth_block_time: 0,
                 whitelist_mode: false,
+                start_nonce: U128(0),
             },
             BRIDGE_WASM_FILEPATH,
         )
@@ -281,7 +283,7 @@ mod integration_tests {
 
         // Call withdraw multiple time with batch transaction
         let withdrawals_batch_size = 3u32;
-        let _result = withdraw_tokens(
+        let result = withdraw_tokens(
             test_data.bridge.id(),
             alice,
             test_data.token.id(),
@@ -289,6 +291,8 @@ mod integration_tests {
             withdrawals_batch_size,
         )
         .await?;
+        assert!(result.is_failure());
+        assert_eq!(result.logs().len(), 0);
 
         // Check account balance after withdraw batch calls
         assert_eq!(
@@ -305,7 +309,7 @@ mod integration_tests {
 
         // Withdraw once
         let withdrawals_batch_size = 1u32;
-        let _result = withdraw_tokens(
+        let result = withdraw_tokens(
             test_data.bridge.id(),
             alice,
             test_data.token.id(),
@@ -313,6 +317,10 @@ mod integration_tests {
             withdrawals_batch_size,
         )
         .await?;
+        assert!(result.is_success());
+        assert_eq!(result.logs().len(), 2);
+        assert!(result.logs()[1]
+            .contains(r#"EVENT_JSON:{"data":{"amount":"10","recipient_id":"alice.test.near""#));
 
         // Check acoount balance after withdraw call
         assert_eq!(
@@ -384,6 +392,7 @@ mod integration_tests {
                 lock_time_max: "10h".to_owned(),
                 eth_block_time: 12000000000,
                 whitelist_mode: false,
+                start_nonce: U128(0),
             },
             BRIDGE_WASM_FILEPATH,
         )
@@ -445,10 +454,14 @@ mod integration_tests {
 
         // Call unlock multiple time with batch transaction
         let unlock_tokens_batch_size = 2u32;
-        let _result =
+        let result =
             unlock_tokens(test_data.bridge.id(), alice, 1, unlock_tokens_batch_size).await?;
 
-        // Check account balance after unlock batch calls
+        assert!(result.is_failure());
+        assert_eq!(result.logs().len(), 1);
+        assert!(result.logs()[0]
+            .contains(r#"EVENT_JSON:{"data":{"nonce":"1","recipient_id":"alice.test.near""#));
+
         assert_eq!(
             get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
                 .await?

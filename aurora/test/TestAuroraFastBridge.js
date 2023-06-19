@@ -98,12 +98,15 @@ async function deploy_fast_bridge() {
 
     await near_fast_bridge_contract.new({args: {
             eth_bridge_contract: "DBE11ADC5F9c821341A837f4810123f495fBFd44",
-            prover_account: "dev-1686914396147-58513449591656",//"prover.goerli.testnet",
+            //https://github.com/aurora-is-near/rainbow-bridge/blob/master/contracts/near/eth-prover/src/lib.rs
+            //"prover.goerli.testnet" -- is a old version
+            prover_account: "dev-1686914396147-58513449591656",
             eth_client_account: ETH_CLIENT_ACCOUNT,
             lock_time_min: "1s",
             lock_time_max: "24h",
             eth_block_time: 12000000000,
-            whitelist_mode: true
+            whitelist_mode: true,
+            start_nonce: "0",
         }, gas: "300000000000000"});
 
     await near_fast_bridge_contract.acl_grant_role({

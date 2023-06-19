@@ -1,7 +1,9 @@
 use crate::lp_relayer::EthTransferEvent;
 use fast_bridge_common::*;
-use near_plugins::{access_control, AccessControlRole, AccessControllable, Pausable};
-use near_plugins_derive::{access_control_any, pause};
+use near_plugins::{
+    access_control, access_control_any, pause, AccessControlRole, AccessControllable, Pausable,
+    Upgradable,
+};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::{block_timestamp, current_account_id};
@@ -27,6 +29,7 @@ mod whitelist;
 mod tests;
 
 pub const NO_DEPOSIT: u128 = 0;
+pub const MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS: u64 = 604800000000000; // 7 days
 
 #[ext_contract(ext_prover)]
 pub trait Prover {
@@ -71,7 +74,7 @@ trait NEP141Token {
 
 #[ext_contract(ext_self)]
 trait FastBridgeInterface {
-    fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, sender_id: AccountId);
+    fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, recipient_id: AccountId);
     fn verify_log_entry_callback(
         &mut self,
         #[callback]
@@ -117,8 +120,8 @@ pub struct UpdateBalance {
 #[derive(BorshSerialize, BorshStorageKey)]
 enum StorageKey {
     PendingTransfers,
-    UserBalances,
-    UserBalancePrefix,
+    TokenBalances,
+    TokenBalancePrefix,
     WhitelistTokens,
     WhitelistAccounts,
     PendingTransfersBalances,
@@ -144,15 +147,27 @@ pub enum Role {
     UnrestrictedWithdraw,
     WhitelistManager,
     ConfigManager,
+    UnlockManager,
+    DAO,
+    CodeStager,
+    CodeDeployer,
+    DurationManager,
 }
 
 #[access_control(role_type(Role))]
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable)]
-#[pausable(manager_roles(Role::PauseManager))]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Pausable, Upgradable)]
+#[pausable(manager_roles(Role::PauseManager, Role::DAO))]
+#[upgradable(access_control_roles(
+    code_stagers(Role::CodeStager, Role::DAO),
+    code_deployers(Role::CodeDeployer, Role::DAO),
+    duration_initializers(Role::DurationManager, Role::DAO),
+    duration_update_stagers(Role::DurationManager, Role::DAO),
+    duration_update_appliers(Role::DurationManager, Role::DAO),
+))]
 pub struct FastBridge {
     pending_transfers: UnorderedMap<String, (AccountId, TransferMessage)>,
-    user_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
+    token_balances: LookupMap<AccountId, LookupMap<AccountId, u128>>,
     nonce: u128,
     prover_account: AccountId,
     eth_client_account: AccountId,
@@ -180,6 +195,7 @@ impl FastBridge {
         lock_time_max: String,
         eth_block_time: Duration,
         whitelist_mode: bool,
+        start_nonce: U128,
     ) -> Self {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
@@ -200,8 +216,8 @@ impl FastBridge {
         let mut contract = Self {
             pending_transfers: UnorderedMap::new(StorageKey::PendingTransfers),
             pending_transfers_balances: UnorderedMap::new(StorageKey::PendingTransfersBalances),
-            user_balances: LookupMap::new(StorageKey::UserBalances),
-            nonce: 0,
+            token_balances: LookupMap::new(StorageKey::TokenBalances),
+            nonce: start_nonce.0,
             prover_account,
             eth_client_account,
             eth_bridge_contract: get_eth_address(eth_bridge_contract),
@@ -213,7 +229,6 @@ impl FastBridge {
             whitelist_tokens: UnorderedMap::new(StorageKey::WhitelistTokens),
             whitelist_accounts: UnorderedSet::new(StorageKey::WhitelistAccounts),
             is_whitelist_mode_enabled: whitelist_mode,
-            __acl: Default::default(),
         };
 
         near_sdk::require!(
@@ -313,24 +328,11 @@ impl FastBridge {
 
         self.validate_transfer_message(&transfer_message, &sender_id);
 
-        let user_token_balance = self.user_balances.get(&sender_id).unwrap_or_else(|| {
-            panic!(
-                "Balance in {} for user {} not found",
-                transfer_message.transfer.token_near, sender_id
-            )
-        });
-
-        let token_transfer_balance = user_token_balance
-            .get(&transfer_message.transfer.token_near)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Balance for token transfer: {} not found",
-                    &transfer_message.transfer.token_near
-                )
-            });
+        let token_transfer_balance =
+            self.get_user_balance(&sender_id, &transfer_message.transfer.token_near);
 
         require!(
-            token_transfer_balance >= transfer_message.transfer.amount.0,
+            token_transfer_balance >= transfer_message.transfer.amount,
             "Not enough transfer token balance."
         );
 
@@ -340,17 +342,10 @@ impl FastBridge {
             &transfer_message.transfer.amount.0,
         );
 
-        let token_fee_balance = user_token_balance
-            .get(&transfer_message.fee.token)
-            .unwrap_or_else(|| {
-                panic!(
-                    "Balance for token fee: {} not found",
-                    &transfer_message.transfer.token_near
-                )
-            });
+        let token_fee_balance = self.get_user_balance(&sender_id, &transfer_message.fee.token);
 
         require!(
-            token_fee_balance >= transfer_message.fee.amount.0,
+            token_fee_balance >= transfer_message.fee.amount,
             "Not enough fee token balance."
         );
 
@@ -384,8 +379,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully only if called either by the original creator of the transfer
-    /// or by the account that has the `UnrestrictedUnlock` role.
+    /// The function could be executed successfully by any account that provides proof.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlock` role is allowed to perform an unlock.
     ///
@@ -455,9 +449,8 @@ impl FastBridge {
     ///
     /// # Panics
     ///
-    /// This function panics if the transfer specified by the nonce is not found; if the sender ID
-    /// is not authorized to unlock the transfer; if the valid time of the transfer is incorrect;
-    /// or if the verification of the unlock proof fails.
+    /// This function panics if the transfer specified by the nonce is not found;
+    /// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
     #[private]
     #[result_serializer(borsh)]
     pub fn unlock_callback(
@@ -468,7 +461,7 @@ impl FastBridge {
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] aurora_sender: Option<EthAddress>,
-    ) -> TransferMessage {
+    ) {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
@@ -477,13 +470,12 @@ impl FastBridge {
                  format!("Aurora sender({:?}) in unlock arg is unequal to the aurora sender({:?}) in transfer data.",
                  aurora_sender, transfer_data.aurora_sender));
 
-        let is_unlock_allowed = recipient_id == sender_id
-            || self.acl_has_role("UnrestrictedUnlock".to_string(), sender_id.clone());
+        if let Some(_) = aurora_sender {
+            require!(
+                recipient_id == sender_id,
+                format!("Only recipient can unlock tokens for not null aurora_sender: {}", sender_id));
+        }
 
-        require!(
-            is_unlock_allowed,
-            format!("Permission denied for account: {}", sender_id)
-        );
         require!(
             block_timestamp() > transfer_data.valid_till,
             "Valid time is not correct."
@@ -512,8 +504,6 @@ impl FastBridge {
             transfer_message: transfer_data.clone(),
         }
         .emit();
-
-        transfer_data
     }
 
     /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
@@ -561,6 +551,58 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .verify_log_entry_callback(parsed_proof),
             )
+    }
+
+    /// Force unlocks tokens that were transferred on the Ethereum. The function increases the balance
+    /// of the transfer token and transfer fee token for the relayer account on NEAR side.
+    ///
+    /// The function is allowed to be called only by accounts that have `UnlockManager` role.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - The nonce of the transfer to be unlocked.
+    /// * `recipient_id` - The account ID that receive the unlocked tokens.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if the transfer is still active or the time has not yet passed to force unlock.
+    ///
+    #[access_control_any(roles(Role::UnlockManager, Role::DAO))]
+    pub fn unlock_stuck_transfer(&mut self, nonce: U128, recipient_id: AccountId) {
+        let nonce_str = nonce.0.to_string();
+
+        let (_, transfer_data) = self
+            .pending_transfers
+            .get(&nonce_str)
+            .unwrap_or_else(|| env::panic_str("Transaction not found"));
+
+        let over_timeout_duration = env::block_timestamp()
+            .checked_sub(transfer_data.valid_till)
+            .unwrap_or_else(|| env::panic_str("Can't unlock active transfer"));
+
+        require!(
+            over_timeout_duration >= MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS,
+            "Force unlock isn't allowed yet"
+        );
+
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.transfer.token_near,
+            &transfer_data.transfer.amount.0,
+        );
+        self.increase_balance(
+            &recipient_id,
+            &transfer_data.fee.token,
+            &transfer_data.fee.amount.0,
+        );
+        self.remove_transfer(&nonce_str, &transfer_data);
+
+        Event::FastBridgeLpUnlockEvent {
+            nonce,
+            recipient_id,
+            transfer_message: transfer_data,
+        }
+        .emit();
     }
 
     /// Checks whether the verification of proof was successful and finalizes the execution flow of the `lp_unlock()` function.
@@ -650,50 +692,38 @@ impl FastBridge {
     /// * `account_id` - The account ID for which to retrieve the balance.
     /// * `token_id` - The token ID for which to retrieve the balance.
     ///
-    /// # Panics
-    ///
-    /// If the user does not have any balance for the specified token, or if the specified user account does not exist.
-    ///
     /// # Returns
     ///
     /// The balance of the specified token for the specified account.
     pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
-        let user_balance = self
-            .user_balances
-            .get(account_id)
-            .unwrap_or_else(|| panic!("{}", "User doesn't have balance".to_string()));
-
-        user_balance
-            .get(token_id)
-            .unwrap_or_else(|| panic!("User token: {} , balance is 0", token_id))
-            .into()
+        let Some(token_balance) = self.token_balances.get(token_id) else { return U128(0) };
+        token_balance.get(account_id).unwrap_or(0).into()
     }
 
-    fn decrease_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        let mut user_token_balance = self.user_balances.get(user).unwrap();
-        let balance = user_token_balance.get(token_id).unwrap() - amount;
-        user_token_balance.insert(token_id, &balance);
-        self.user_balances.insert(user, &user_token_balance);
+    fn decrease_balance(&mut self, account_id: &AccountId, token_id: &AccountId, amount: &u128) {
+        let mut token_balance = self.token_balances.get(token_id).unwrap();
+        let balance = token_balance.get(account_id).unwrap() - amount;
+        token_balance.insert(account_id, &balance);
     }
 
-    fn increase_balance(&mut self, user: &AccountId, token_id: &AccountId, amount: &u128) {
-        if let Some(mut user_balances) = self.user_balances.get(user) {
-            user_balances.insert(
-                token_id,
-                &(user_balances.get(token_id).unwrap_or(0) + amount),
+    fn increase_balance(&mut self, account_id: &AccountId, token_id: &AccountId, amount: &u128) {
+        if let Some(mut token_balance) = self.token_balances.get(token_id) {
+            token_balance.insert(
+                account_id,
+                &(token_balance.get(account_id).unwrap_or(0) + amount),
             );
         } else {
             let storage_key = [
-                StorageKey::UserBalancePrefix
+                StorageKey::TokenBalancePrefix
                     .try_to_vec()
                     .unwrap()
                     .as_slice(),
-                user.try_to_vec().unwrap().as_slice(),
+                token_id.try_to_vec().unwrap().as_slice(),
             ]
             .concat();
-            let mut token_balance = LookupMap::new(storage_key);
-            token_balance.insert(token_id, amount);
-            self.user_balances.insert(user, &token_balance);
+            let mut user_balance = LookupMap::new(storage_key);
+            user_balance.insert(account_id, amount);
+            self.token_balances.insert(token_id, &user_balance);
         }
     }
 
@@ -840,12 +870,21 @@ impl FastBridge {
     }
 
     /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
-    /// The function is allowed to be called only by accounts that have `ConfigManager` role.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
     /// # Arguments
     /// * `prover_account`: An `AccountId` representing the `EthProver` account to use.
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_prover_account(&mut self, prover_account: AccountId) {
         self.prover_account = prover_account;
+    }
+
+    /// Sets the eth client account. `EthClient` is a contract that provide the last block number.
+    /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
+    /// # Arguments
+    /// * `account_id`: An `AccountId` representing the `EthClient` account to use.
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
+    pub fn set_eth_client_account(&mut self, account_id: AccountId) {
+        self.eth_client_account = account_id;
     }
 
     /// Sets the Ethereum Fast Bridge contract address.
@@ -856,7 +895,7 @@ impl FastBridge {
     /// # Arguments
     ///
     /// * `address`: a hex-encoded string representing the address of the Fast Bridge contract on Ethereum.
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_eth_bridge_contract_address(&mut self, address: String) {
         self.eth_bridge_contract = fast_bridge_common::get_eth_address(address);
     }
@@ -935,7 +974,7 @@ impl FastBridge {
     ///
     /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
     ///
-    #[access_control_any(roles(Role::ConfigManager))]
+    #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
     pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
         let lock_time_min: u64 = parse(lock_time_min.as_str())
             .unwrap()
@@ -1141,6 +1180,7 @@ mod unit_tests {
             config.lock_time_max.unwrap_or_else(|| "24h".to_string()),
             12_000_000_000,
             true,
+            U128(0),
         );
 
         contract.acl_grant_role("WhitelistManager".to_string(), "alice".parse().unwrap());
@@ -1382,8 +1422,9 @@ mod unit_tests {
         let balance = U128(100);
 
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let amount = user_balance.get(&transfer_token).unwrap();
+        let amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(100, amount);
     }
 
@@ -1398,13 +1439,15 @@ mod unit_tests {
         let balance = U128(100);
 
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let amount = user_balance.get(&transfer_token).unwrap();
+        let amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(100, amount);
 
         contract.decrease_balance(&signer_account_id(), &transfer_token, &balance.0);
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let amount = user_balance.get(&transfer_token).unwrap();
+        let amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(0, amount);
     }
 
@@ -1419,8 +1462,9 @@ mod unit_tests {
 
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1445,9 +1489,186 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(0, transfer_token_amount);
+    }
+
+    fn init_transfer_for_unlock_stuck_transfer(
+        force_unlock_account: &AccountId,
+        transfer_token: &AccountId,
+        transfer_account: &AccountId,
+        balance: U128,
+    ) -> (FastBridge, u64) {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        contract.acl_grant_role("UnlockManager".to_string(), force_unlock_account.clone());
+
+        contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
+
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
+        assert_eq!(transfer_token_amount, balance.0);
+
+        let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
+        let msg = json!({
+            "valid_till": current_timestamp,
+            "transfer": {
+                "token_near": "token_near",
+                "token_eth": eth_token_address(),
+                "amount": "100"
+            },
+            "fee": {
+                "token": "token_near",
+                "amount": "100"
+            },
+             "recipient": eth_recipient_address()
+        });
+
+        contract.init_transfer_callback(
+            10,
+            serde_json::from_value(msg).unwrap(),
+            signer_account_id(),
+            None,
+        );
+
+        assert_eq!(
+            contract
+                .get_user_balance(&transfer_account, &transfer_token)
+                .0,
+            0
+        );
+        (contract, current_timestamp)
+    }
+
+    #[test]
+    fn test_unlock_stuck_transfer() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock is passed (strictly passed)
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+
+        assert_eq!(
+            contract.get_user_balance(&transfer_account, &transfer_token),
+            U128(0)
+        );
+        assert_eq!(
+            contract.get_user_balance(&recipient_id, &transfer_token),
+            balance
+        );
+    }
+
+    #[test]
+    fn test_unlock_stuck_transfer_strictly_bigger_timestamp() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock is passed (strictly bigger passed)
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS + 1;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+
+        assert_eq!(
+            contract.get_user_balance(&transfer_account, &transfer_token),
+            U128(0)
+        );
+        assert_eq!(
+            contract.get_user_balance(&recipient_id, &transfer_token),
+            balance
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Force unlock isn't allowed yet")]
+    fn test_unlock_stuck_transfer_is_not_allowed() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock isn't passed
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp + MIN_DURATION_ALLOWED_TO_FORCE_UNLOCK_NS - 1;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+    }
+
+    #[test]
+    #[should_panic(expected = "Can't unlock active transfer")]
+    fn test_unlock_stuck_transfer_for_active_transfer() {
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        let transfer_token: AccountId = "token_near".parse().unwrap();
+        let transfer_account: AccountId = "bob_near".parse().unwrap();
+        let balance = U128(200);
+        let (mut contract, current_timestamp) = init_transfer_for_unlock_stuck_transfer(
+            &force_unlock_account,
+            &transfer_token,
+            &transfer_account,
+            balance,
+        );
+        // Unlock when the minimum time for the force unlock isn't passed
+        let mut context = get_context(false);
+        context.block_timestamp = current_timestamp - 1;
+        context.predecessor_account_id = force_unlock_account;
+        testing_env!(context);
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        let nonce = U128(1);
+        contract.unlock_stuck_transfer(nonce, recipient_id.clone());
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "Insufficient permissions for method unlock_stuck_transfer restricted by access control"
+    )]
+    fn test_only_unlock_manager_can_unlock_stuck_transfer() {
+        let context = get_context(false);
+        testing_env!(context);
+        let mut contract = get_bridge_contract(None);
+        let force_unlock_account: AccountId = "unlocker".parse().unwrap();
+        contract.acl_grant_role("UnlockManager".to_string(), force_unlock_account.clone());
+
+        let recipient_id: AccountId = "relayer.near".parse().unwrap();
+        contract.unlock_stuck_transfer(U128(1), recipient_id.clone());
     }
 
     #[test]
@@ -1498,8 +1719,9 @@ mod unit_tests {
             "".to_string(),
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let user_balance_for_transfer_token = user_balance.get(&transfer_token).unwrap();
+        let user_balance_for_transfer_token = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(transfer_token_amount, user_balance_for_transfer_token);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1537,8 +1759,9 @@ mod unit_tests {
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1562,16 +1785,20 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(50, transfer_token_amount);
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
+
         contract.unlock_callback(true, nonce, signer_account_id(), None);
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
     }
 
@@ -1587,8 +1814,9 @@ mod unit_tests {
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
         contract.ft_on_transfer(transfer_account.clone(), balance, "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(400, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 1;
@@ -1612,8 +1840,9 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(0, transfer_token_amount);
 
         let context = get_context_for_unlock(false);
@@ -1621,14 +1850,15 @@ mod unit_tests {
 
         let nonce = U128(1);
         contract.unlock_callback(true, nonce, signer_account_id());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(400, transfer_token_amount); //user get the all 400 tokens back after successfull valid proof submition
     }
 
     //audit tests
     #[test]
-    #[should_panic(expected = r#"Balance in token_near for user bob_near not found"#)]
+    #[should_panic(expected = r#"Not enough transfer token balance"#)]
     fn test_lock_no_balance() {
         let context = get_context(false);
         testing_env!(context);
@@ -1741,8 +1971,9 @@ mod unit_tests {
 
         contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
 
         let current_timestamp = block_timestamp() + contract.lock_duration.lock_time_min + 20;
@@ -1766,26 +1997,19 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(50, transfer_token_amount);
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(9);
         contract.unlock_callback(true, nonce, signer_account_id(), None);
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
-    }
-
-    #[test]
-    #[should_panic(expected = "Permission denied for account:")]
-    fn test_unlock_invalid_account() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = get_bridge_contract(Some(get_bridge_config_v1()));
-        test_unlock(&mut contract);
     }
 
     #[test]
@@ -1810,16 +2034,18 @@ mod unit_tests {
         let context = get_context_dex(false);
         testing_env!(context);
         contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
-        let user_balance = contract.user_balances.get(&signer_account_id()).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
 
         assert_eq!(100, transfer_token_amount);
 
         let context = get_context(false);
         testing_env!(context);
         contract.ft_on_transfer(signer_account_id(), U128(balance), "".to_string());
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
 
         assert_eq!(200, transfer_token_amount);
 
@@ -1844,21 +2070,23 @@ mod unit_tests {
             None,
         );
 
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(50, transfer_token_amount);
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
         contract.unlock_callback(true, nonce, signer_account_id(), None);
-        let user_balance = contract.user_balances.get(&transfer_account).unwrap();
-        let transfer_token_amount = user_balance.get(&transfer_token).unwrap();
+        let transfer_token_amount = contract
+            .get_user_balance(&transfer_account, &transfer_token)
+            .0;
         assert_eq!(200, transfer_token_amount);
     }
 
     #[test]
-    #[should_panic(expected = r#"User doesn't have balance"#)]
+    #[should_panic(expected = r#"Insufficient user balance"#)]
     fn test_withdraw_no_balance() {
         let context = get_context(false);
         testing_env!(context);
@@ -1869,7 +2097,7 @@ mod unit_tests {
     }
 
     #[test]
-    #[should_panic(expected = r#"User doesn't have balance"#)]
+    #[should_panic(expected = r#"Insufficient user balance"#)]
     fn test_withdraw_wrong_balance() {
         let context = get_context(false);
         testing_env!(context);
