@@ -5,11 +5,15 @@ const { expect } = require("chai");
 const { keyStores, connect, KeyPair, Contract} = require("near-api-js");
 const fs = require('fs');
 const {get_unlock_proof} = require("./UnlockProof");
+const borsh = require("borsh");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
-const NEAR_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
+const NEAR_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet";
 const ETH_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f";
-const AURORA_TOKEN_ADDRESS="0x901fb725c106E182614105335ad0E230c91B67C8"
+const AURORA_TOKEN_ADDRESS="0x901fb725c106E182614105335ad0E230c91B67C8";
+const ETH_CLIENT_ACCOUNT="client-eth2.goerli.testnet";
+
+const ETH_BLOCK_TIME = 12000000000;
 
 const homedir = require("os").homedir();
 const CREDENTIALS_DIR = ".near-credentials";
@@ -27,6 +31,42 @@ const connectionConfig = {
 
 const master_account_str = process.env.MASTER_ACCOUNT;
 const near_fast_bridge_account_str = "fb-aurora-to-eth-test." + master_account_str;
+
+class Assignable {
+    constructor(properties) {
+        Object.keys(properties).map((key) => {
+            this[key] = properties[key];
+        });
+    }
+}
+
+class BorshStruct extends Assignable { }
+
+async function get_last_block_number() {
+    const nearConnection = await connect(connectionConfig);
+    const master_account = await nearConnection.account(master_account_str);
+    const eth_client_on_near_contract = await new Contract(
+        master_account,
+        ETH_CLIENT_ACCOUNT,
+        {
+            changeMethods: ["last_block_number"],
+        }
+    );
+
+    const result = await
+        master_account.connection.provider.query({
+            request_type: 'call_function',
+            finality: 'final',
+            account_id: ETH_CLIENT_ACCOUNT,
+            method_name: "last_block_number",
+            args_base64: ''
+        });
+
+    const schema = new Map([[BorshStruct, { kind: 'struct', fields: [['x', 'u64']]}]]);
+    const newValue = borsh.deserialize(schema, BorshStruct, Buffer.from(result.result));
+    return Number(newValue.x);
+}
+
 
 async function deploy_fast_bridge() {
     const nearConnection = await connect(connectionConfig);
@@ -58,7 +98,7 @@ async function deploy_fast_bridge() {
     await near_fast_bridge_contract.new({args: {
             eth_bridge_contract: "DBE11ADC5F9c821341A837f4810123f495fBFd44",
             prover_account: "dev-1686914396147-58513449591656",//"prover.goerli.testnet",
-            eth_client_account: "client-eth2.goerli.testnet",
+            eth_client_account: ETH_CLIENT_ACCOUNT,
             lock_time_min: "1s",
             lock_time_max: "24h",
             eth_block_time: 12000000000,
@@ -133,7 +173,8 @@ async function deploy_aurora_fast_bridge_and_init_transfer() {
     const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
     await usdc.approve(fastbridge.address, "2000000000000000000000000");
 
-    const valid_till = Date.now() * 1000000 + 50000000000;
+    let lock_period = 50000000000;
+    const valid_till = Date.now() * 1000000 + lock_period;
     const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"" + NEAR_TOKEN_ADDRESS + "\",\"token_eth\":\"" + ETH_TOKEN_ADDRESS + "\",\"amount\":\"100\"},\"fee\":{\"token\":\"" + NEAR_TOKEN_ADDRESS + "\",\"amount\":\"100\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
     const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
@@ -141,6 +182,9 @@ async function deploy_aurora_fast_bridge_and_init_transfer() {
     const balance_before = await usdc.balanceOf(deployerWallet.address);
     const transfer_msg_hex = "0x" + output.split(/\r?\n/)[1].slice(1, -1);
     await fastbridge.init_token_transfer(transfer_msg_hex, options);
+
+    const last_block_height = await get_last_block_number();
+    const valid_till_block_height = Math.ceil((last_block_height + lock_period / ETH_BLOCK_TIME));
 
     await sleep(20000);
     const balance_after_init_transfer = await usdc.balanceOf(deployerWallet.address);
@@ -151,10 +195,10 @@ async function deploy_aurora_fast_bridge_and_init_transfer() {
     const balance_after_withdraw = await usdc.balanceOf(deployerWallet.address);
     expect(balance_after_init_transfer).to.equals(balance_after_withdraw);
 
-    return fastbridge.address;
+    return [fastbridge.address, valid_till_block_height];
 }
 
-async function aurora_unlock_tokens(aurora_fast_bridge_address) {
+async function aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block_height) {
     const provider = hre.ethers.provider;
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
     const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
@@ -171,21 +215,34 @@ async function aurora_unlock_tokens(aurora_fast_bridge_address) {
         { token: "0x" + ETH_TOKEN_ADDRESS,
             recipient: deployerWallet.address,
             nonce: 1,
-            amount: 100}, 9187994);
+            amount: 100}, valid_till_block_height);
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);
-    const options = { gasLimit: 6000000 };
-    await fastbridge.unlock(1, proof, options);
 
+    const options = { gasLimit: 6000000 };
+    console.log("Unlock");
+    await fastbridge.unlock(1, proof, options);
     await sleep(15000);
 
+    console.log("Withdraw from near");
     await fastbridge.withdraw_from_near(NEAR_TOKEN_ADDRESS, 200, options);
     await sleep(15000);
+
+    console.log("Withdraw");
     await fastbridge.withdraw(NEAR_TOKEN_ADDRESS, options);
     await sleep(150000);
     const balance_after_unlock = await usdc.balanceOf(deployerWallet.address);
     expect(balance_before).to.equals(balance_after_unlock);
+}
+
+async function wait_for_block_height(block_height) {
+    let current_block_number = await get_last_block_number();
+    while (current_block_number < block_height) {
+        current_block_number = await get_last_block_number();
+        console.log("Current block number = ", current_block_number, "; wait for = ",block_height);
+        await sleep(10000);
+    }
 }
 
 describe("Aurora Fast Bridge", function () {
@@ -193,11 +250,12 @@ describe("Aurora Fast Bridge", function () {
         await deploy_fast_bridge();
         console.log("Near fast bridge account: " + near_fast_bridge_account_str);
 
-        let aurora_fast_bridge_address = await deploy_aurora_fast_bridge_and_init_transfer();
-        await sleep(500000);
+        let [aurora_fast_bridge_address, valid_till_block_height] = await deploy_aurora_fast_bridge_and_init_transfer();
+        console.log("Valid till block height: ", valid_till_block_height);
 
-        await aurora_unlock_tokens(aurora_fast_bridge_address);
+        await wait_for_block_height(valid_till_block_height);
 
+        await aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block_height);
     });
 
     afterEach(async function() {

@@ -73,6 +73,8 @@ For running tests you will need
 * set up env variable `AURORA_PRIVATE_KEY` with your aurora private key for testnet.
 * `MASTER_ACCOUNT` should have at least 4.25 NEAR tokens.
 * Your aurora account should have at least 2.125 wNEAR and 1 USDC and 0.01 AuroraETH
+* `eth-object` lib is used in tests. You will need make sure, that you have a correct library version. `node_modules/eth-object/src/header.js` should contain `withdrawalsRoot` field.
+* Test takes ~20 minutes.
 
 Command for running test: 
 ```bash
