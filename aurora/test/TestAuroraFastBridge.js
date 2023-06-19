@@ -5,6 +5,7 @@ const { expect } = require("chai");
 const { keyStores, connect, KeyPair, Contract} = require("near-api-js");
 const fs = require('fs');
 const {get_unlock_proof} = require("./UnlockProof");
+const {encode_init_msg_to_borsh} = require("./EncodeInitMsgToBorsh");
 const borsh = require("borsh");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
@@ -175,12 +176,12 @@ async function deploy_aurora_fast_bridge_and_init_transfer() {
 
     let lock_period = 50000000000;
     const valid_till = Date.now() * 1000000 + lock_period;
-    const transfer_msg_json = "{\"valid_till\":" + valid_till + ",\"transfer\":{\"token_near\":\"" + NEAR_TOKEN_ADDRESS + "\",\"token_eth\":\"" + ETH_TOKEN_ADDRESS + "\",\"amount\":\"100\"},\"fee\":{\"token\":\"" + NEAR_TOKEN_ADDRESS + "\",\"amount\":\"100\"},\"recipient\":\"" + deployerWallet.address + "\",\"valid_till_block_height\":null,\"aurora_sender\":\"" + deployerWallet.address + "\"}";
-    const output = execSync('cargo run --manifest-path ../near/utils/Cargo.toml -- encode-transfer-msg -m \'' + transfer_msg_json + '\'', { encoding: 'utf-8' });  // the default is 'buffer'
 
     await sleep(15000);
     const balance_before = await usdc.balanceOf(deployerWallet.address);
-    const transfer_msg_hex = "0x" + output.split(/\r?\n/)[1].slice(1, -1);
+    const transfer_msg_hex = encode_init_msg_to_borsh(valid_till, NEAR_TOKEN_ADDRESS, ETH_TOKEN_ADDRESS,
+        100, 100, deployerWallet.address, deployerWallet.address);
+
     await fastbridge.init_token_transfer(transfer_msg_hex, options);
 
     const last_block_height = await get_last_block_number();
