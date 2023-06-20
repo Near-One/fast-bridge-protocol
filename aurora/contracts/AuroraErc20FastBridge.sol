@@ -10,9 +10,10 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-uint64 constant BASE_NEAR_GAS = 50_000_000_000_000;
+uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
+uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
 uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
-uint64 constant UNLOCK_NEAR_GAS = 200_000_000_000_000;
+uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
 contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
@@ -205,8 +206,6 @@ contract AuroraErc20FastBridge is AccessControl {
                 Strings.toString(nonce),
                 '", "proof": "',
                 proof,
-                '", "aurora_sender": "',
-                address_to_string(msg.sender),
                 '"}'
             )
         );
@@ -244,7 +243,7 @@ contract AuroraErc20FastBridge is AccessControl {
         bytes memory args = bytes(
             string.concat('{"token_id": "', token_id, '", "amount": "', Strings.toString(amount), '"}')
         );
-        PromiseCreateArgs memory call_withdraw = near.call(bridge_address_on_near, "withdraw", args, 1, BASE_NEAR_GAS);
+        PromiseCreateArgs memory call_withdraw = near.call(bridge_address_on_near, "withdraw", args, 1, WITHDRAW_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.withdraw_from_near_callback.selector, token_id, amount);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 
@@ -270,7 +269,7 @@ contract AuroraErc20FastBridge is AccessControl {
                 '"}'
             )
         );
-        PromiseCreateArgs memory call_withdraw = near.call(token, "ft_transfer_call", args, 1, BASE_NEAR_GAS);
+        PromiseCreateArgs memory call_withdraw = near.call(token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
         bytes memory callback_arg = abi.encodeWithSelector(this.withdraw_callback.selector, msg.sender, token);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
 

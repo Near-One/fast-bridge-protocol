@@ -199,10 +199,10 @@ async function deploy_aurora_fast_bridge_and_init_transfer() {
     const balance_after_withdraw = await usdc.balanceOf(deployerWallet.address);
     expect(balance_after_init_transfer).to.equals(balance_after_withdraw);
 
-    return [fastbridge.address, valid_till_block_height];
+    return [fastbridge.address, valid_till_block_height, balance_before];
 }
 
-async function aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block_height) {
+async function aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block_height, balance_before) {
     const provider = hre.ethers.provider;
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
     const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
@@ -236,6 +236,7 @@ async function aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block
     console.log("Withdraw");
     await fastbridge.withdraw(NEAR_TOKEN_ADDRESS, options);
     await sleep(150000);
+    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
     const balance_after_unlock = await usdc.balanceOf(deployerWallet.address);
     expect(balance_before).to.equals(balance_after_unlock);
 }
@@ -254,12 +255,12 @@ describe("Aurora Fast Bridge", function () {
         await deploy_fast_bridge();
         console.log("Near fast bridge account: " + near_fast_bridge_account_str);
 
-        let [aurora_fast_bridge_address, valid_till_block_height] = await deploy_aurora_fast_bridge_and_init_transfer();
+        let [aurora_fast_bridge_address, valid_till_block_height, balance_before] = await deploy_aurora_fast_bridge_and_init_transfer();
         console.log("Valid till block height: ", valid_till_block_height);
 
         await wait_for_block_height(valid_till_block_height);
 
-        await aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block_height);
+        await aurora_unlock_tokens(aurora_fast_bridge_address, valid_till_block_height, balance_before);
     });
 
     afterEach(async function() {

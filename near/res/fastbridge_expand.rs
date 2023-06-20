@@ -3555,7 +3555,6 @@ trait FastBridgeInterface {
         verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
-        aurora_sender: Option<EthAddress>,
     );
     fn init_transfer_callback(
         &mut self,
@@ -3725,19 +3724,16 @@ pub mod ext_self {
             self,
             nonce: U128,
             sender_id: AccountId,
-            aurora_sender: Option<EthAddress>,
         ) -> near_sdk::Promise {
             let __args = {
                 struct Input<'nearinput> {
                     nonce: &'nearinput U128,
                     sender_id: &'nearinput AccountId,
-                    aurora_sender: &'nearinput Option<EthAddress>,
                 }
                 impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
                 where
                     &'nearinput U128: borsh::ser::BorshSerialize,
                     &'nearinput AccountId: borsh::ser::BorshSerialize,
-                    &'nearinput Option<EthAddress>: borsh::ser::BorshSerialize,
                 {
                     fn serialize<W: borsh::maybestd::io::Write>(
                         &self,
@@ -3745,14 +3741,12 @@ pub mod ext_self {
                     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                         borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
-                        borsh::BorshSerialize::serialize(&self.aurora_sender, writer)?;
                         Ok(())
                     }
                 }
                 let __args = Input {
                     nonce: &nonce,
                     sender_id: &sender_id,
-                    aurora_sender: &aurora_sender,
                 };
                 near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                     .expect("Failed to serialize the cross contract args using Borsh.")
@@ -16201,14 +16195,12 @@ impl FastBridgeExt {
         self,
         nonce: U128,
         proof: near_sdk::json_types::Base64VecU8,
-        aurora_sender: Option<String>,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
                 proof: &'nearinput near_sdk::json_types::Base64VecU8,
-                aurora_sender: &'nearinput Option<String>,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -16226,7 +16218,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1 + 1 + 1,
+                            false as usize + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -16253,16 +16245,6 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
-                        match _serde::ser::SerializeStruct::serialize_field(
-                            &mut __serde_state,
-                            "aurora_sender",
-                            &self.aurora_sender,
-                        ) {
-                            _serde::__private::Ok(__val) => __val,
-                            _serde::__private::Err(__err) => {
-                                return _serde::__private::Err(__err);
-                            }
-                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -16270,7 +16252,6 @@ impl FastBridgeExt {
             let __args = Input {
                 nonce: &nonce,
                 proof: &proof,
-                aurora_sender: &aurora_sender,
             };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
@@ -16288,19 +16269,16 @@ impl FastBridgeExt {
         self,
         nonce: U128,
         sender_id: AccountId,
-        aurora_sender: Option<EthAddress>,
     ) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
                 sender_id: &'nearinput AccountId,
-                aurora_sender: &'nearinput Option<EthAddress>,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
                 &'nearinput U128: borsh::ser::BorshSerialize,
                 &'nearinput AccountId: borsh::ser::BorshSerialize,
-                &'nearinput Option<EthAddress>: borsh::ser::BorshSerialize,
             {
                 fn serialize<W: borsh::maybestd::io::Write>(
                     &self,
@@ -16308,14 +16286,12 @@ impl FastBridgeExt {
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
                     borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
-                    borsh::BorshSerialize::serialize(&self.aurora_sender, writer)?;
                     Ok(())
                 }
             }
             let __args = Input {
                 nonce: &nonce,
                 sender_id: &sender_id,
-                aurora_sender: &aurora_sender,
             };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
@@ -17415,7 +17391,6 @@ impl FastBridge {
         &self,
         nonce: U128,
         proof: near_sdk::json_types::Base64VecU8,
-        aurora_sender: Option<String>,
     ) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
@@ -17441,7 +17416,6 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        let aurora_sender: Option<EthAddress> = aurora_sender.map(get_eth_address);
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str(
                 "Invalid borsh format of the `UnlockProof`",
@@ -17475,7 +17449,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id(), aurora_sender),
+                    .unlock_callback(nonce, env::predecessor_account_id()),
             )
     }
     /// This function finalizes the execution flow of the `unlock()` function. This function
@@ -17502,86 +17476,19 @@ impl FastBridge {
         verification_result: bool,
         nonce: U128,
         sender_id: AccountId,
-        aurora_sender: Option<EthAddress>,
-    ) {
+    ) -> TransferMessage {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
         if true {
-            let msg: &str = &{
-                let res = ::alloc::fmt::format(
-                    ::core::fmt::Arguments::new_v1(
-                        &[
-                            "Aurora sender(",
-                            ") in unlock arg is unequal to the aurora sender(",
-                            ") in transfer data.",
-                        ],
-                        &[
-                            ::core::fmt::ArgumentV1::new_debug(&aurora_sender),
-                            ::core::fmt::ArgumentV1::new_debug(
-                                &transfer_data.aurora_sender,
-                            ),
-                        ],
-                    ),
-                );
-                res
-            };
-            if !(aurora_sender == transfer_data.aurora_sender) {
+            let msg: &str = &"Only the transfer originator can perform the unlock";
+            if !(transfer_data.aurora_sender.is_none() || recipient_id == sender_id) {
                 ::core::panicking::panic_display(&msg)
             }
-        } else if !(aurora_sender == transfer_data.aurora_sender) {
+        } else if !(transfer_data.aurora_sender.is_none() || recipient_id == sender_id) {
             ::near_sdk::env::panic_str(
-                &{
-                    let res = ::alloc::fmt::format(
-                        ::core::fmt::Arguments::new_v1(
-                            &[
-                                "Aurora sender(",
-                                ") in unlock arg is unequal to the aurora sender(",
-                                ") in transfer data.",
-                            ],
-                            &[
-                                ::core::fmt::ArgumentV1::new_debug(&aurora_sender),
-                                ::core::fmt::ArgumentV1::new_debug(
-                                    &transfer_data.aurora_sender,
-                                ),
-                            ],
-                        ),
-                    );
-                    res
-                },
+                &"Only the transfer originator can perform the unlock",
             )
-        }
-        if aurora_sender.is_some() {
-            if true {
-                let msg: &str = &{
-                    let res = ::alloc::fmt::format(
-                        ::core::fmt::Arguments::new_v1(
-                            &[
-                                "Only recipient can unlock tokens for not null aurora_sender: ",
-                            ],
-                            &[::core::fmt::ArgumentV1::new_display(&sender_id)],
-                        ),
-                    );
-                    res
-                };
-                if !(recipient_id == sender_id) {
-                    ::core::panicking::panic_display(&msg)
-                }
-            } else if !(recipient_id == sender_id) {
-                ::near_sdk::env::panic_str(
-                    &{
-                        let res = ::alloc::fmt::format(
-                            ::core::fmt::Arguments::new_v1(
-                                &[
-                                    "Only recipient can unlock tokens for not null aurora_sender: ",
-                                ],
-                                &[::core::fmt::ArgumentV1::new_display(&sender_id)],
-                            ),
-                        );
-                        res
-                    },
-                )
-            }
         }
         if true {
             let msg: &str = &"Valid time is not correct.";
@@ -17634,6 +17541,7 @@ impl FastBridge {
             transfer_message: transfer_data.clone(),
         }
             .emit();
+        transfer_data
     }
     /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
     /// of the transfer token and transfer fee token for the relayer account on NEAR side, which is obtained
@@ -19501,7 +19409,6 @@ pub extern "C" fn unlock() {
     struct Input {
         nonce: U128,
         proof: near_sdk::json_types::Base64VecU8,
-        aurora_sender: Option<String>,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -19520,7 +19427,6 @@ pub extern "C" fn unlock() {
                 enum __Field {
                     __field0,
                     __field1,
-                    __field2,
                     __ignore,
                 }
                 #[doc(hidden)]
@@ -19546,7 +19452,6 @@ pub extern "C" fn unlock() {
                         match __value {
                             0u64 => _serde::__private::Ok(__Field::__field0),
                             1u64 => _serde::__private::Ok(__Field::__field1),
-                            2u64 => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -19560,7 +19465,6 @@ pub extern "C" fn unlock() {
                         match __value {
                             "nonce" => _serde::__private::Ok(__Field::__field0),
                             "proof" => _serde::__private::Ok(__Field::__field1),
-                            "aurora_sender" => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -19574,7 +19478,6 @@ pub extern "C" fn unlock() {
                         match __value {
                             b"nonce" => _serde::__private::Ok(__Field::__field0),
                             b"proof" => _serde::__private::Ok(__Field::__field1),
-                            b"aurora_sender" => _serde::__private::Ok(__Field::__field2),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -19630,7 +19533,7 @@ pub extern "C" fn unlock() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 3 elements",
+                                        &"struct Input with 2 elements",
                                     ),
                                 );
                             }
@@ -19648,25 +19551,7 @@ pub extern "C" fn unlock() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         1usize,
-                                        &"struct Input with 3 elements",
-                                    ),
-                                );
-                            }
-                        };
-                        let __field2 = match match _serde::de::SeqAccess::next_element::<
-                            Option<String>,
-                        >(&mut __seq) {
-                            _serde::__private::Ok(__val) => __val,
-                            _serde::__private::Err(__err) => {
-                                return _serde::__private::Err(__err);
-                            }
-                        } {
-                            _serde::__private::Some(__value) => __value,
-                            _serde::__private::None => {
-                                return _serde::__private::Err(
-                                    _serde::de::Error::invalid_length(
-                                        2usize,
-                                        &"struct Input with 3 elements",
+                                        &"struct Input with 2 elements",
                                     ),
                                 );
                             }
@@ -19674,7 +19559,6 @@ pub extern "C" fn unlock() {
                         _serde::__private::Ok(Input {
                             nonce: __field0,
                             proof: __field1,
-                            aurora_sender: __field2,
                         })
                     }
                     #[inline]
@@ -19689,7 +19573,6 @@ pub extern "C" fn unlock() {
                         let mut __field1: _serde::__private::Option<
                             near_sdk::json_types::Base64VecU8,
                         > = _serde::__private::None;
-                        let mut __field2: _serde::__private::Option<Option<String>> = _serde::__private::None;
                         while let _serde::__private::Some(__key)
                             = match _serde::de::MapAccess::next_key::<
                                 __Field,
@@ -19734,25 +19617,6 @@ pub extern "C" fn unlock() {
                                         },
                                     );
                                 }
-                                __Field::__field2 => {
-                                    if _serde::__private::Option::is_some(&__field2) {
-                                        return _serde::__private::Err(
-                                            <__A::Error as _serde::de::Error>::duplicate_field(
-                                                "aurora_sender",
-                                            ),
-                                        );
-                                    }
-                                    __field2 = _serde::__private::Some(
-                                        match _serde::de::MapAccess::next_value::<
-                                            Option<String>,
-                                        >(&mut __map) {
-                                            _serde::__private::Ok(__val) => __val,
-                                            _serde::__private::Err(__err) => {
-                                                return _serde::__private::Err(__err);
-                                            }
-                                        },
-                                    );
-                                }
                                 _ => {
                                     let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
@@ -19787,32 +19651,14 @@ pub extern "C" fn unlock() {
                                 }
                             }
                         };
-                        let __field2 = match __field2 {
-                            _serde::__private::Some(__field2) => __field2,
-                            _serde::__private::None => {
-                                match _serde::__private::de::missing_field(
-                                    "aurora_sender",
-                                ) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                }
-                            }
-                        };
                         _serde::__private::Ok(Input {
                             nonce: __field0,
                             proof: __field1,
-                            aurora_sender: __field2,
                         })
                     }
                 }
                 #[doc(hidden)]
-                const FIELDS: &'static [&'static str] = &[
-                    "nonce",
-                    "proof",
-                    "aurora_sender",
-                ];
+                const FIELDS: &'static [&'static str] = &["nonce", "proof"];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -19825,12 +19671,12 @@ pub extern "C" fn unlock() {
             }
         }
     };
-    let Input { nonce, proof, aurora_sender }: Input = near_sdk::serde_json::from_slice(
+    let Input { nonce, proof }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.unlock(nonce, proof, aurora_sender);
+    let result = contract.unlock(nonce, proof);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
@@ -19867,13 +19713,11 @@ pub extern "C" fn unlock_callback() {
     struct Input {
         nonce: U128,
         sender_id: AccountId,
-        aurora_sender: Option<EthAddress>,
     }
     impl borsh::de::BorshDeserialize for Input
     where
         U128: borsh::BorshDeserialize,
         AccountId: borsh::BorshDeserialize,
-        Option<EthAddress>: borsh::BorshDeserialize,
     {
         fn deserialize(
             buf: &mut &[u8],
@@ -19881,11 +19725,10 @@ pub extern "C" fn unlock_callback() {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
                 sender_id: borsh::BorshDeserialize::deserialize(buf)?,
-                aurora_sender: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, sender_id, aurora_sender }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -19898,7 +19741,10 @@ pub extern "C" fn unlock_callback() {
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    contract.unlock_callback(verification_result, nonce, sender_id, aurora_sender);
+    let result = contract.unlock_callback(verification_result, nonce, sender_id);
+    let result = near_sdk::borsh::BorshSerialize::try_to_vec(&result)
+        .expect("Failed to serialize the return value using Borsh.");
+    near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
 /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance

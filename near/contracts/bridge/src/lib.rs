@@ -89,7 +89,6 @@ trait FastBridgeInterface {
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
     );
     fn init_transfer_callback(
         &mut self,
@@ -388,14 +387,7 @@ impl FastBridge {
     /// * `nonce` - A unique identifier of the transfer.
     /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
-    pub fn unlock(
-        &self,
-        nonce: U128,
-        proof: near_sdk::json_types::Base64VecU8,
-        aurora_sender: Option<String>,
-    ) -> Promise {
-        let aurora_sender: Option<EthAddress> = aurora_sender.map(get_eth_address);
-
+    pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8) -> Promise {
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `UnlockProof`"));
 
@@ -431,7 +423,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(50))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id(), aurora_sender),
+                    .unlock_callback(nonce, env::predecessor_account_id()),
             )
     }
 
@@ -463,25 +455,15 @@ impl FastBridge {
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
         #[serializer(borsh)] sender_id: AccountId,
-        #[serializer(borsh)] aurora_sender: Option<EthAddress>,
-    ) {
+    ) -> TransferMessage {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
 
-        require!(aurora_sender == transfer_data.aurora_sender,
-                 format!("Aurora sender({:?}) in unlock arg is unequal to the aurora sender({:?}) in transfer data.",
-                 aurora_sender, transfer_data.aurora_sender));
-
-        if aurora_sender.is_some() {
-            require!(
-                recipient_id == sender_id,
-                format!(
-                    "Only recipient can unlock tokens for not null aurora_sender: {}",
-                    sender_id
-                )
-            );
-        }
+        require!(
+            transfer_data.aurora_sender.is_none() || recipient_id == sender_id,
+            "Only the transfer originator can perform the unlock"
+        );
 
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -511,6 +493,8 @@ impl FastBridge {
             transfer_message: transfer_data.clone(),
         }
         .emit();
+
+        transfer_data
     }
 
     /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
