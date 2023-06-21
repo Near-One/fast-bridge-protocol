@@ -10,8 +10,8 @@ const { ethers } = require("ethers");
 const { task } = require("hardhat/config");
 const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
 const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
-require('hardhat-storage-layout');
-
+const { boolean } = require("hardhat/internal/core/params/argumentTypes");
+require("hardhat-storage-layout");
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
@@ -50,6 +50,14 @@ task("method", "Execute Fastbridge methods")
         await tx.wait();
 
         console.log("Transaction mined!");
+    });
+
+task("deploy_fastbridge", "Deploys Eth-Erc20 Fastbridge and whitelists tokens in deploymentAddress.json")
+    .addParam("verification", "Verify the deployed fastbridge on same network", false, boolean)
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const deploy_fast_bridge = require("./scripts/deployment/deploy-bridge.js");
+        await deploy_fast_bridge(taskArgs.verification);
     });
 
 module.exports = {
@@ -97,6 +105,12 @@ module.exports = {
                 ? `https://goerli.infura.io/v3/${INFURA_API_KEY}`
                 : `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
             accounts: [`${PRIVATE_KEY}`]
+        },
+        mumbai: {
+            url: INFURA_API_KEY
+                ? `https://mumbai.infura.io/v3/${INFURA_API_KEY}`
+                : `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+            accounts: [`${PRIVATE_KEY}`]
         }
     },
     gasReporter: {
@@ -120,5 +134,4 @@ module.exports = {
 if (process.env.FORKING_BLOCK_NUMBER)
     module.exports.networks.hardhat.forking.blockNumber = +process.env.FORKING_BLOCK_NUMBER;
 
-if (process.env.HARDFORK)
-    module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
+if (process.env.HARDFORK) module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
