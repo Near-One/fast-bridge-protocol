@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const fs = require("fs");
 const { ethers } = hre;
+const deploymentAddress = require("../deploymentAddresses.json");
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -51,6 +52,16 @@ function getAddressSaver(path, network, isLog) {
     return saveAddress;
 }
 
+async function getBridgeContract() {
+    console.log("Connecting with bridge...");
+    const network = (await ethers.getDefaultProvider().getNetwork()).name;
+    const bridgeAddress = deploymentAddress[network].new.bridge_proxy;
+    const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeAddress);
+    console.log("Connected !");
+    return bridge;
+}
+
 exports.sleep = sleep;
 exports.verify = verify;
 exports.getAddressSaver = getAddressSaver;
+exports.getBridgeContract = getBridgeContract;

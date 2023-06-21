@@ -6,7 +6,6 @@ require("@nomicfoundation/hardhat-network-helpers");
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
-const { ethers } = require("ethers");
 const { task } = require("hardhat/config");
 const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
 const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
@@ -25,7 +24,9 @@ const OPTIMIZER_RUNS = 200;
 
 task("method", "Execute Fastbridge methods")
     .addParam("jsonstring", "JSON string with function signature and arguments")
+    .addParam("gasLimit", "gas-limit for sending transaction")
     .setAction(async (taskArgs) => {
+        const { ethers } = require("hardhat");
         const network = (await ethers.getDefaultProvider().getNetwork()).name;
         const bridgeAddress = deploymentAddress[network].new.bridge;
         const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_TASK);
@@ -44,7 +45,7 @@ task("method", "Execute Fastbridge methods")
         const tx = await signer.sendTransaction({
             to: bridgeAddress,
             data: txdata,
-            gasLimit: 999999
+            gasLimit: taskArgs.gasLimit
         });
         console.log(tx);
         await tx.wait();
@@ -58,6 +59,13 @@ task("deploy_fastbridge", "Deploys Eth-Erc20 Fastbridge and whitelists tokens in
         await hre.run("compile");
         const deploy_fast_bridge = require("./scripts/deployment/deploy-bridge.js");
         await deploy_fast_bridge(taskArgs.verification);
+    });
+
+task("verify_bridge", "verifies the already deployed contract on same network")
+    .addParam("proxyAddress", "Proxy address of already deployed fast-bridge contract")
+    .setAction(async (taskArgs) => {
+        const { verify } = require("./scripts/deployment/utilities/helpers.js");
+        await verify(taskArgs.proxyAddress, []);
     });
 
 module.exports = {

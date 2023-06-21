@@ -1,4 +1,4 @@
-const { getBridgeContract } = require("./whitelistTokens");
+const { getBridgeContract } = require("../deployment/utilities/helpers.js");
 
 async function pauseTransfer(signer) {
     let bridge;

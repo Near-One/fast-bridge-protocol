@@ -19,9 +19,12 @@ async function main() {
                 // Perform the upgrade
                 console.log("Performing the upgrade...");
                 if (process.env.FORCE_IMPORT_PROXY) {
-                    // FORCE_IMPORT_PROXY must be the contract factory of the current implementation 
+                    // FORCE_IMPORT_PROXY must be the contract factory of the current implementation
                     // contract version that is being used, not the version that you are planning to upgrade to.
-                    const EthErc20FastBridgeV1 = await ethers.getContractFactory(process.env.FORCE_IMPORT_PROXY, deployer);
+                    const EthErc20FastBridgeV1 = await ethers.getContractFactory(
+                        process.env.FORCE_IMPORT_PROXY,
+                        deployer
+                    );
                     await upgrades.forceImport(bridgeProxyAddress, EthErc20FastBridgeV1);
                 }
                 const proxy = await upgrades.upgradeProxy(

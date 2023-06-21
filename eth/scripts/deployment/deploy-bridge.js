@@ -7,7 +7,6 @@ async function deploy_fast_bridge(verification) {
     const [deployer] = await ethers.getSigners();
     const network_name = network.name;
 
-    console.log("NETWORK IS : ", network_name);
     const addressesPath = path.join(__dirname, "./deploymentAddresses.json");
     const saveAddress = getAddressSaver(addressesPath, network_name, true);
 
@@ -19,7 +18,7 @@ async function deploy_fast_bridge(verification) {
     });
     await proxy.deployed();
 
-    saveAddress("bridge", proxy.address);
+    saveAddress("bridge_proxy", proxy.address);
     console.log("Deployment is completed.");
     const currentImplAddress = await getImplementationAddress(ethers.provider, proxy.address);
     saveAddress("bridge_Implementation", currentImplAddress); // save implementation address
