@@ -25,14 +25,14 @@ contract AuroraErc20FastBridge is AccessControl {
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
 
     NEAR public near;
-    string bridge_address_on_near;
+    string bridgeAddressOnNear;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
-    mapping(address => bool) whitelisted_users;
+    mapping(address => bool) whitelistedUsers;
 
     //By the token address on near returns correspondent ERC20 Aurora token.
     //[token_address_on_near] => aurora_erc20_token
-    mapping(string => EvmErc20) registered_tokens;
+    mapping(string => EvmErc20) registeredTokens;
 
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_address_on_near][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
@@ -41,162 +41,160 @@ contract AuroraErc20FastBridge is AccessControl {
     event Unlock(
         uint128 nonce,
         address sender,
-        string transfer_token,
-        uint128 transfer_amount,
-        string fee_token,
-        uint128 fee_amount
+        string transferToken,
+        uint128 transferAmount,
+        string feeToken,
+        uint128 feeAmount
     );
     event SetWhitelistedUsers(address[] users, bool[] states);
-    event TokenRegistered(address aurora_address, string near_address);
+    event TokenRegistered(address auroraAddress, string nearAddress);
     event Withdraw(address recipient, string token, uint128 amount);
     event WithdrawFromNear(string token, uint128 amount);
     event InitTokenTransfer(
         address sender,
-        string init_transfer_arg,
+        string initTransferArg,
         string token,
-        uint128 transfer_amount,
-        uint128 fee_amount,
+        uint128 transferAmount,
+        uint128 feeAmount,
         address recipient,
-        bool is_successful
+        bool isSuccessful
     );
 
     struct TransferMessage {
-        uint64 valid_till;
-        string transfer_token_address_on_near;
-        address transfer_token_address_on_eth;
-        uint128 transfer_token_amount;
-        string fee_token_address_on_near;
-        uint128 fee_token_amount;
+        uint64 validTill;
+        string transferTokenAddressOnNear;
+        address transferTokenAddressOnEth;
+        uint128 transferTokenAmount;
+        string feeTokenAddressOnNear;
+        uint128 feeTokenAmount;
         address recipient;
-        uint64 valid_till_block_height;
-        address aurora_sender;
+        uint64 validTillBlockHeight;
+        address auroraSender;
     }
 
-    constructor(address wnear_address, string memory bridge_address) {
-        near = AuroraSdk.initNear(IERC20_NEAR(wnear_address));
-        bridge_address_on_near = bridge_address;
+    constructor(address wnearAddress, string memory bridgeAddress) {
+        near = AuroraSdk.initNear(IERC20_NEAR(wnearAddress));
+        bridgeAddressOnNear = bridgeAddress;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(ADMIN, msg.sender);
 
-        whitelisted_users[msg.sender] = true;
+        whitelistedUsers[msg.sender] = true;
     }
 
     function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(ADMIN) {
         require(users.length == states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < users.length; i++) {
-            whitelisted_users[users[i]] = states[i];
+            whitelistedUsers[users[i]] = states[i];
         }
 
         emit SetWhitelistedUsers(users, states);
     }
 
 
-    function tokens_registration(
-        address aurora_token_address,
-        string memory near_token_address
+    function tokensRegistration(
+        address auroraTokenAddress,
+        string memory nearTokenAddress
     ) public onlyRole(ADMIN) {
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(
-            string.concat('{"account_id": "', get_near_address(), '", "registration_only": true }')
+            string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
         );
 
-        PromiseCreateArgs memory callTr = near.call(
-            near_token_address,
+        PromiseCreateArgs memory callStorageDeposit = near.call(
+            nearTokenAddress,
             "storage_deposit",
             args,
             deposit,
             BASE_NEAR_GAS
         );
-        callTr.transact();
+        callStorageDeposit.transact();
 
-        registered_tokens[near_token_address] = EvmErc20(aurora_token_address);
-        emit TokenRegistered(aurora_token_address, near_token_address);
+        registeredTokens[nearTokenAddress] = EvmErc20(auroraTokenAddress);
+        emit TokenRegistered(auroraTokenAddress, nearTokenAddress);
     }
 
-    function init_token_transfer(bytes memory init_transfer_args) public {
-        require(whitelisted_users[address(msg.sender)], "Sender not whitelisted!");
-        TransferMessage memory transfer_message = decode_transfer_message_from_borsh(init_transfer_args);
+    function initTokenTransfer(bytes memory initTransferArgs) public {
+        require(whitelistedUsers[address(msg.sender)], "Sender not whitelisted!");
+        TransferMessage memory transferMessage = decodeTransferMessageFromBorsh(initTransferArgs);
         require(
-            transfer_message.aurora_sender == msg.sender,
+            transferMessage.auroraSender == msg.sender,
             "Aurora sender in transfer message doesn't equal to signer"
         );
         require(
-            keccak256(abi.encodePacked(transfer_message.transfer_token_address_on_near)) ==
-                keccak256(abi.encodePacked(transfer_message.fee_token_address_on_near))
+            keccak256(abi.encodePacked(transferMessage.transferTokenAddressOnNear)) ==
+                keccak256(abi.encodePacked(transferMessage.feeTokenAddressOnNear))
         );
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
-        uint256 total_token_amount = uint256(
-            transfer_message.transfer_token_amount + transfer_message.fee_token_amount
+        uint256 totalTokenAmount = uint256(
+            transferMessage.transferTokenAmount + transferMessage.feeTokenAmount
         );
 
-        EvmErc20 token = registered_tokens[transfer_message.transfer_token_address_on_near];
+        EvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
 
-        token.transferFrom(msg.sender, address(this), total_token_amount);
-        token.withdrawToNear(bytes(get_near_address()), total_token_amount);
+        token.transferFrom(msg.sender, address(this), totalTokenAmount);
+        token.withdrawToNear(bytes(getNearAddress()), totalTokenAmount);
 
-        string memory init_args_base64 = Base64.encode(init_transfer_args);
+        string memory initArgsBase64 = Base64.encode(initTransferArgs);
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id": "',
-                bridge_address_on_near,
+                bridgeAddressOnNear,
                 '", "amount": "',
-                Strings.toString(total_token_amount),
+                Strings.toString(totalTokenAmount),
                 '", "msg": "',
-                init_args_base64,
+                initArgsBase64,
                 '"}'
             )
         );
 
-        PromiseCreateArgs memory callTr = near.call(
-            transfer_message.transfer_token_address_on_near,
+        PromiseCreateArgs memory callFtTransfer = near.call(
+            transferMessage.transferTokenAddressOnNear,
             "ft_transfer_call",
             args,
             1,
             INIT_TRANSFER_NEAR_GAS
         );
-        bytes memory callback_arg = abi.encodeWithSelector(
-            this.init_token_transfer_callback.selector,
+        bytes memory callbackArg = abi.encodeWithSelector(
+            this.initTokenTransferCallback.selector,
             msg.sender,
-            init_transfer_args
+            initTransferArgs
         );
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
 
-        callTr.then(callback).transact();
+        callFtTransfer.then(callback).transact();
     }
 
-    function init_token_transfer_callback(
+    function initTokenTransferCallback(
         address signer,
-        bytes memory init_transfer_args
+        bytes memory initTransferArgs
     ) public onlyRole(CALLBACK_ROLE) {
-        uint128 transferred_amount = 0;
+        uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferred_amount = stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
-        TransferMessage memory transfer_message = decode_transfer_message_from_borsh(init_transfer_args);
+        TransferMessage memory transferMessage = decodeTransferMessageFromBorsh(initTransferArgs);
 
-        balance[transfer_message.transfer_token_address_on_near][signer] += (transfer_message.transfer_token_amount +
-            transfer_message.fee_token_amount -
-            transferred_amount);
+        balance[transferMessage.transferTokenAddressOnNear][signer] += (transferMessage.transferTokenAmount +
+            transferMessage.feeTokenAmount - transferredAmount);
 
-        string memory init_args_base64 = Base64.encode(init_transfer_args);
-        bool is_successful = (transferred_amount != 0);
-        emit InitTokenTransfer(
-                signer,
-                init_args_base64,
-                transfer_message.transfer_token_address_on_near,
-                transfer_message.transfer_token_amount,
-                transfer_message.fee_token_amount,
-                transfer_message.recipient,
-                is_successful
-            );
+        string memory initArgsBase64 = Base64.encode(initTransferArgs);
+        bool isSuccessful = (transferredAmount != 0);
+        emit InitTokenTransfer(signer,
+            initArgsBase64,
+            transferMessage.transferTokenAddressOnNear,
+            transferMessage.transferTokenAmount,
+            transferMessage.feeTokenAmount,
+            transferMessage.recipient,
+            isSuccessful
+        );
     }
 
     function unlock(uint128 nonce, string memory proof) public {
@@ -210,123 +208,123 @@ contract AuroraErc20FastBridge is AccessControl {
             )
         );
 
-        PromiseCreateArgs memory callTr = near.call(bridge_address_on_near, "unlock", args, 0, UNLOCK_NEAR_GAS);
-        bytes memory callback_arg = abi.encodeWithSelector(this.unlock_callback.selector, msg.sender, nonce);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callUnlock = near.call(bridgeAddressOnNear, "unlock", args, 0, UNLOCK_NEAR_GAS);
+        bytes memory callbackArg = abi.encodeWithSelector(this.unlockCallback.selector, msg.sender, nonce);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
 
-        callTr.then(callback).transact();
+        callUnlock.then(callback).transact();
     }
 
-    function unlock_callback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
+    function unlockCallback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            TransferMessage memory transfer_message = decode_transfer_message_from_borsh(
+            TransferMessage memory transferMessage = decodeTransferMessageFromBorsh(
                 AuroraSdk.promiseResult(0).output
             );
 
-            balance[transfer_message.transfer_token_address_on_near][signer] += transfer_message.transfer_token_amount;
-            balance[transfer_message.fee_token_address_on_near][signer] += transfer_message.fee_token_amount;
+            balance[transferMessage.transferTokenAddressOnNear][signer] += transferMessage.transferTokenAmount;
+            balance[transferMessage.feeTokenAddressOnNear][signer] += transferMessage.feeTokenAmount;
 
             emit Unlock(
                 nonce,
                 signer,
-                transfer_message.transfer_token_address_on_near,
-                transfer_message.transfer_token_amount,
-                transfer_message.fee_token_address_on_near,
-                transfer_message.fee_token_amount
+                transferMessage.transferTokenAddressOnNear,
+                transferMessage.transferTokenAmount,
+                transferMessage.feeTokenAddressOnNear,
+                transferMessage.feeTokenAmount
             );
         }
     }
 
-    function withdraw_from_near(string memory token_id, uint128 amount) public {
+    function withdrawFromNear(string memory tokenId, uint128 amount) public {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         bytes memory args = bytes(
-            string.concat('{"token_id": "', token_id, '", "amount": "', Strings.toString(amount), '"}')
+            string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
-        PromiseCreateArgs memory call_withdraw = near.call(bridge_address_on_near, "withdraw", args, 1, WITHDRAW_NEAR_GAS);
-        bytes memory callback_arg = abi.encodeWithSelector(this.withdraw_from_near_callback.selector, token_id, amount);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callWithdraw = near.call(bridgeAddressOnNear, "withdraw", args, 1, WITHDRAW_NEAR_GAS);
+        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromNearCallback.selector, tokenId, amount);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
 
-        call_withdraw.then(callback).transact();
+        callWithdraw.then(callback).transact();
     }
 
-    function withdraw_from_near_callback(string memory token_id, uint128 amount) public onlyRole(CALLBACK_ROLE) {
+    function withdrawFromNearCallback(string memory tokenId, uint128 amount) public onlyRole(CALLBACK_ROLE) {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            emit WithdrawFromNear(token_id, amount);
+            emit WithdrawFromNear(tokenId, amount);
         }
     }
 
     function withdraw(string memory token) public {
-        uint128 signer_balance = balance[token][msg.sender];
+        uint128 signerBalance = balance[token][msg.sender];
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id": "aurora", "amount": "',
-                Strings.toString(signer_balance),
+                Strings.toString(signerBalance),
                 '", "msg": "',
-                address_to_string(msg.sender),
+                addressToString(msg.sender),
                 '"}'
             )
         );
-        PromiseCreateArgs memory call_withdraw = near.call(token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
-        bytes memory callback_arg = abi.encodeWithSelector(this.withdraw_callback.selector, msg.sender, token);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callback_arg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callWithdraw = near.call(token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
+        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
 
-        call_withdraw.then(callback).transact();
+        callWithdraw.then(callback).transact();
     }
 
-    function withdraw_callback(address signer, string memory token) public onlyRole(CALLBACK_ROLE) {
-        uint128 transferred_amount = 0;
+    function withdrawCallback(address signer, string memory token) public onlyRole(CALLBACK_ROLE) {
+        uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferred_amount = stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
-        if (transferred_amount > 0) {
-            balance[token][signer] -= transferred_amount;
-            emit Withdraw(signer, token, transferred_amount);
+        if (transferredAmount > 0) {
+            balance[token][signer] -= transferredAmount;
+            emit Withdraw(signer, token, transferredAmount);
         }
     }
 
-    function decode_transfer_message_from_borsh(
-        bytes memory transfer_message_borsh
+    function decodeTransferMessageFromBorsh(
+        bytes memory transferMessageBorsh
     ) private pure returns (TransferMessage memory) {
         TransferMessage memory result;
-        Borsh.Data memory borsh = Borsh.from(transfer_message_borsh);
-        result.valid_till = borsh.decodeU64();
-        result.transfer_token_address_on_near = string(borsh.decodeBytes()); //transfer token address on Near
-        result.transfer_token_address_on_eth = address(borsh.decodeBytes20()); //transfer token address on Ethereum
-        result.transfer_token_amount = borsh.decodeU128();
-        result.fee_token_address_on_near = string(borsh.decodeBytes()); // fee token address on Near
-        result.fee_token_amount = borsh.decodeU128();
+        Borsh.Data memory borsh = Borsh.from(transferMessageBorsh);
+        result.validTill = borsh.decodeU64();
+        result.transferTokenAddressOnNear = string(borsh.decodeBytes()); //transfer token address on Near
+        result.transferTokenAddressOnEth = address(borsh.decodeBytes20()); //transfer token address on Ethereum
+        result.transferTokenAmount = borsh.decodeU128();
+        result.feeTokenAddressOnNear = string(borsh.decodeBytes()); // fee token address on Near
+        result.feeTokenAmount = borsh.decodeU128();
         result.recipient = address(borsh.decodeBytes20()); //recipient
-        uint8 option_valid_till = borsh.decodeU8();
-        if (option_valid_till == 1) {
-            result.valid_till_block_height = borsh.decodeU64(); //valid_till_block_height
+        uint8 optionValidTill = borsh.decodeU8();
+        if (optionValidTill == 1) {
+            result.validTillBlockHeight = borsh.decodeU64(); //valid_till_block_height
         }
-        uint8 option_aurora_sender = borsh.decodeU8();
-        if (option_aurora_sender == 1) {
-            result.aurora_sender = address(borsh.decodeBytes20());
+        uint8 optionAuroraSender = borsh.decodeU8();
+        if (optionAuroraSender == 1) {
+            result.auroraSender = address(borsh.decodeBytes20());
         }
         return result;
     }
 
-    function get_near_address() public view returns (string memory) {
-        string memory aurora_address = address_to_string(address(this));
-        return string.concat(aurora_address, ".aurora");
+    function getNearAddress() public view returns (string memory) {
+        string memory auroraAddress = addressToString(address(this));
+        return string.concat(auroraAddress, ".aurora");
     }
 
-    function get_token_aurora_address(string memory near_token_address) public view returns (address) {
-        return address(registered_tokens[near_token_address]);
+    function getTokenAuroraAddress(string memory nearTokenAddress) public view returns (address) {
+        return address(registeredTokens[nearTokenAddress]);
     }
 
-    function get_user_balance(string memory near_token_address, address user_address) public view returns (uint128) {
-        return balance[near_token_address][user_address];
+    function getUserBalance(string memory nearTokenAddress, address userAddress) public view returns (uint128) {
+        return balance[nearTokenAddress][userAddress];
     }
 
-    function address_to_string(address aurora_address) private pure returns (string memory) {
-        return Utils.bytesToHex(abi.encodePacked(aurora_address));
+    function addressToString(address auroraAddress) private pure returns (string memory) {
+        return Utils.bytesToHex(abi.encodePacked(auroraAddress));
     }
 
     function stringToUint(bytes memory b) private pure returns (uint128) {

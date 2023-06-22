@@ -1,6 +1,6 @@
 const borsh = require("borsh");
 
-function encode_init_msg_to_borsh(valid_till, token_near, token_eth, amount, amount_fee, recipient, aurora_sender) {
+function encodeInitMsgToBorsh(validTill, tokenNear, tokenEth, amount, amountFee, recipient, auroraSender) {
     class MsgStruct {
         constructor(args) {
             Object.assign(this, args)
@@ -23,12 +23,12 @@ function encode_init_msg_to_borsh(valid_till, token_near, token_eth, amount, amo
             {
                 kind: "struct",
                 fields: [
-                    ["valid_till", "u64"],
+                    ["validTill", "u64"],
                     ["transfer", TransferStruct],
                     ["fee", FeeStruct],
                     ["recipient", [20]],
-                    ["valid_till_block_height", { kind: "option", type: "u64" }],
-                    ["aurora_sender", {kind: "option", type: [20]}],
+                    ["validTillBlockHeight", { kind: "option", type: "u64" }],
+                    ["auroraSender", {kind: "option", type: [20]}],
                 ],
             },
         ],
@@ -47,8 +47,8 @@ function encode_init_msg_to_borsh(valid_till, token_near, token_eth, amount, amo
             {
                 kind: "struct",
                 fields: [
-                    ["token_near", "String"],
-                    ["token_eth", [20]],
+                    ["tokenNear", "String"],
+                    ["tokenEth", [20]],
                     ["amount", "u128"],
                 ],
             },
@@ -56,8 +56,8 @@ function encode_init_msg_to_borsh(valid_till, token_near, token_eth, amount, amo
     ]);
 
     const feeStruct = new FeeStruct({
-        amount: amount_fee,
-        token: token_near.toString(),
+        amount: amountFee,
+        token: tokenNear.toString(),
     });
 
     const hexToBytes = (hex) => {
@@ -71,21 +71,21 @@ function encode_init_msg_to_borsh(valid_till, token_near, token_eth, amount, amo
     };
 
     const transferStruct = new TransferStruct({
-        token_near: token_near,
-        token_eth:  hexToBytes(token_eth),
-        amount: amount_fee.toString(),});
+        tokenNear: tokenNear,
+        tokenEth:  hexToBytes(tokenEth),
+        amount: amountFee.toString(),});
 
     const msgStruct = new MsgStruct({
-        valid_till: valid_till.toString(),
+        validTill: validTill.toString(),
         transfer: transferStruct,
         fee: feeStruct,
         recipient: hexToBytes(recipient.substring(2)),
-        valid_till_block_height: null,
-        aurora_sender: hexToBytes(aurora_sender.substring(2)),
+        validTillBlockHeight: null,
+        auroraSender: hexToBytes(auroraSender.substring(2)),
     });
 
     const msgBorsh = borsh.serialize(schema, msgStruct);
     return "0x" + Buffer.from(msgBorsh).toString('hex');
 }
 
-exports.encode_init_msg_to_borsh = encode_init_msg_to_borsh;
+exports.encodeInitMsgToBorsh = encodeInitMsgToBorsh;

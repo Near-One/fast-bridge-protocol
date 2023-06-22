@@ -30,31 +30,31 @@ function getProcessedHashSlotKey(processedHash){
     return ethers.utils.keccak256(paddedKey + paddedSlot.slice(2));
 }
 
-async function get_proof_of_data(contractAddress, slotKey, blockNumber) {
+async function getProofOfData(contractAddress, slotKey, blockNumber) {
     return await web3.eth.getProof(contractAddress, [slotKey], blockNumber);
 }
 
-async function get_block_data(blockNumber) {
+async function getBlockData(blockNumber) {
     return await web3.eth.getBlock(blockNumber);
 }
 
-async function generate_unlock_proof(getProof_response, block){
-    let header_rlp = (Header.fromRpc(block).serialize()).toString('hex');
-    let account_proof = getProof_response.accountProof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));  //converts to bytes array of account proof
-    let res = getProof_response;
+async function generateUnlockProof(getProofResponse, block){
+    let headerRlp = (Header.fromRpc(block).serialize()).toString('hex');
+    let accountProof = getProofResponse.accountProof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));  //converts to bytes array of account proof
+    let res = getProofResponse;
     res.nonce = web3.utils.toHex(res.nonce);   // done for fixing error in eth-object for Account
     res.balance = web3.utils.toHex(res.balance);  // done for fixing error in eth-object for Account
-    let account_data = (Account.fromRpc(res).serialize()).toString('hex');
-    console.log("getProof_response: ", getProof_response);
-    let storage_proof = getProof_response.storageProof[0].proof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));
+    let accountData = (Account.fromRpc(res).serialize()).toString('hex');
+    console.log("getProof_response: ", getProofResponse);
+    let storageProof = getProofResponse.storageProof[0].proof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));
 
-    console.log("header data:", header_rlp);
+    console.log("header data:", headerRlp);
 
     const unlockProof = {
-        header_data: parseHexString(header_rlp),
-        account_proof: account_proof,
-        account_data: parseHexString(account_data),
-        storage_proof: storage_proof,
+        header_data: parseHexString(headerRlp),
+        account_proof: accountProof,
+        account_data: parseHexString(accountData),
+        storage_proof: storageProof,
     }
 
     return unlockProof;
@@ -70,22 +70,22 @@ class Assignable {
 
 class Test extends Assignable { }
 
-async function get_unlock_proof(contractAddress, data, blockNumber) {
+async function getUnlockProof(contractAddress, data, blockNumber) {
     let processHash = processedHash(data.token, data.recipient, data.nonce, data.amount);
     let slotKeyOfProcessedHash = getProcessedHashSlotKey(processHash);
-    let response_data = await get_proof_of_data(contractAddress, slotKeyOfProcessedHash, blockNumber);
-    let block = await get_block_data(blockNumber);
+    let responseData = await getProofOfData(contractAddress, slotKeyOfProcessedHash, blockNumber);
+    let block = await getBlockData(blockNumber);
     block.difficulty = web3.utils.toHex(block.difficulty);
     console.log(block);
-    let unlock_proof = await generate_unlock_proof(response_data, block);
+    let unlockProof = await generateUnlockProof(responseData, block);
 
-    let borsh_ser = borsh.serialize(
+    let borshSer = borsh.serialize(
         new Map([[Test, {kind: 'struct',
             fields: [['header_data', ['u8']],
             ['account_proof', [['u8']]],
             ['account_data', ['u8']],
-            ['storage_proof', [['u8']]]]}]]), new Test(unlock_proof));
-    return borsh_ser.toString("base64");
+            ['storage_proof', [['u8']]]]}]]), new Test(unlockProof));
+    return borshSer.toString("base64");
 }
 
-exports.get_unlock_proof = get_unlock_proof;
+exports.getUnlockProof = getUnlockProof;
