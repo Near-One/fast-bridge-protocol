@@ -1785,7 +1785,7 @@ mod unit_tests {
         testing_env!(context);
         let nonce = U128(1);
 
-        contract.unlock_callback(true, nonce, signer_account_id(), None);
+        contract.unlock_callback(true, nonce, signer_account_id());
 
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
@@ -1996,7 +1996,7 @@ mod unit_tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(9);
-        contract.unlock_callback(true, nonce, signer_account_id(), None);
+        contract.unlock_callback(true, nonce, signer_account_id());
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
             .0;
@@ -2069,7 +2069,7 @@ mod unit_tests {
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock_callback(true, nonce, signer_account_id(), None);
+        contract.unlock_callback(true, nonce, signer_account_id());
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
             .0;

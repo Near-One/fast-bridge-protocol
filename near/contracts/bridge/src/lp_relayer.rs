@@ -163,9 +163,9 @@ mod tests {
                 event.transfer_id.0 .0.to_vec(),
             ],
             vec![
-                Token::Address(event.relayer.into()),
-                Token::Address(event.token.into()),
-                Token::Address(event.recipient.into()),
+                Token::Address(event.relayer.0.into()),
+                Token::Address(event.token.0.into()),
+                Token::Address(event.recipient.0.into()),
                 Token::Uint(event.amount.into()),
                 Token::String(event.unlock_recipient.clone()),
             ],
