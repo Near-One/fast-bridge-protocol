@@ -2,10 +2,8 @@ const { ethers, upgrades } = require("hardhat");
 const { getImplementationAddress } = require("@openzeppelin/upgrades-core");
 require("dotenv");
 
-async function main() {
-    const [deployer] = await ethers.getSigners();
-
-    const EthErc20FastBridge = await ethers.getContractFactory("EthErc20FastBridge", deployer);
+async function upgradeFastBridge(defaultAdminSigner) {
+    const EthErc20FastBridge = await ethers.getContractFactory("EthErc20FastBridge", defaultAdminSigner);
     const bridgeProxyAddress = process.env.BRIDGE_PROXY_ADDRESS;
     console.log("Need to upgrade bridge?");
     console.log("Proxy provided : ", bridgeProxyAddress);
@@ -23,7 +21,7 @@ async function main() {
                     // contract version that is being used, not the version that you are planning to upgrade to.
                     const EthErc20FastBridgeV1 = await ethers.getContractFactory(
                         process.env.FORCE_IMPORT_PROXY,
-                        deployer
+                        defaultAdminSigner
                     );
                     await upgrades.forceImport(bridgeProxyAddress, EthErc20FastBridgeV1);
                 }
@@ -47,7 +45,4 @@ async function main() {
     });
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+module.exports = { upgradeFastBridge };
