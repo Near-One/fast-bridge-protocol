@@ -68,6 +68,72 @@ task("verify_bridge", "verifies the already deployed contract on same network")
         await verify(taskArgs.proxyAddress, []);
     });
 
+task("whitelists_token", "Whitelists erc-20 token in fast-bridge by authorised whitelisting-admin-signer")
+    .addParam("tokenAddress", "Address of token to be whitelisted")
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const { addTokenToWhitelist } = require("./scripts/EthErc20FastBridge/whitelistTokens.js");
+        const [whitelistingAdminSigner] = await hre.ethers.getSigners();
+        await addTokenToWhitelist(taskArgs.tokenAddress, whitelistingAdminSigner);
+    });
+
+task("is_token_whitelisted", "Check if token is whitelisted or not")
+    .addParam("tokenAddress", "Token address to check for whitelist")
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const { isTokenInWhitelist } = require("./scripts/EthErc20FastBridge/whitelistTokens.js");
+        await isTokenInWhitelist(taskArgs.tokenAddress);
+    });
+
+task("remove_token_from_whitelists", "Removes erc-20 token from whitelists")
+    .addParam("tokenAddress", "Token address to remove from whitelists")
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const [whitelistingAdminSigner] = await hre.ethers.getSigners();
+        const { removeTokenFromWhitelist } = require("./scripts/EthErc20FastBridge/whitelistTokens.js");
+        await removeTokenFromWhitelist(taskArgs.tokenAddress, whitelistingAdminSigner);
+    });
+
+task(
+    "whitelists_token_in_bulk",
+    "Whitelists erc-20 tokens in fast-bridge by authorised whitelisting-admin-signer in bulk"
+)
+    .addParam("tokenAddresses", "Comma separated token addresses to whitelists")
+    .addParam("whitelistsStatus", "Comma separated bool values for associated tokens whitelist status")
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const [whitelistingAdminSigner] = await hre.ethers.getSigners();
+        const tokenAddresses = taskArgs.tokenAddresses.split(",");
+        const whitelistsStatus = taskArgs.whitelistsStatus.split(",");
+        const { bulkWhitelistStatusUpdate } = require("./scripts/EthErc20FastBridge/whitelistTokens.js");
+        await bulkWhitelistStatusUpdate(tokenAddresses, whitelistsStatus, whitelistingAdminSigner);
+    });
+
+task("withdraw_stuck_tokens", "Withdraw stucked erc-20 tokens in fast bridge (caller with DEFAULT_ADMIN_ROLE)")
+    .addParam("tokenAddress", "Address of stucked token")
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const [defaultAdminSigner] = await hre.ethers.getSigners();
+        const { withdrawStuckTokens } = require("./scripts/EthErc20FastBridge/withdraw_Stuck_tokens.js");
+        await withdrawStuckTokens(taskArgs.tokenAddress, defaultAdminSigner);
+    });
+
+task("pause_fastbridge", "Pause all user-accessible operations in fast-bridge").setAction(async (_taskArgs, hre) => {
+    await hre.run("compile");
+    const [pauseableAdminSigner] = await hre.ethers.getSigners();
+    const { pauseTransfer } = require("./scripts/EthErc20FastBridge/pause_unpause.js");
+    await pauseTransfer(pauseableAdminSigner);
+});
+
+task("unpause_fastbridge", "Unpause all user-accessible operations in fast-bridge").setAction(
+    async (_taskArgs, hre) => {
+        await hre.run("compile");
+        const [unPauseableAdminSigner] = await hre.ethers.getSigners();
+        const { unpauseTransfer } = require("./scripts/EthErc20FastBridge/pause_unpause.js");
+        await unpauseTransfer(unPauseableAdminSigner);
+    }
+);
+
 module.exports = {
     solidity: {
         version: "0.8.11",
