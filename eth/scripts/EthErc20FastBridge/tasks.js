@@ -6,8 +6,8 @@ const bridgeArtifacts = require("../../artifacts/contracts/EthErc20FastBridge.so
 task("method", "Execute Fastbridge methods")
     .addParam("jsonstring", "JSON string with function signature and arguments")
     .setAction(async (taskArgs, hre) => {
-        const network = (await hre.ethers.getDefaultProvider().getNetwork()).name;
-        const bridgeAddress = deploymentAddress[network].new.bridge;
+        const network_name = hre.network.name;
+        const bridgeAddress = deploymentAddress[network_name].new.bridge;
         const provider = new hre.ethers.providers.JsonRpcProvider(process.env.RPC_TASK);
         const signer = new hre.ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
@@ -31,6 +31,7 @@ task("method", "Execute Fastbridge methods")
 
         console.log("Transaction mined!");
     });
+
 task("deploy_fastbridge", "Deploys Eth-Erc20 Fastbridge and whitelists tokens in deploymentAddress.json")
     .addParam("verification", "Verify the deployed fastbridge on same network", false, boolean)
     .setAction(async (taskArgs, hre) => {
