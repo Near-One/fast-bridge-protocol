@@ -1,8 +1,11 @@
-const { ethers, upgrades } = require("hardhat");
+const { ethers, upgrades, network } = require("hardhat");
 const { getImplementationAddress } = require("@openzeppelin/upgrades-core");
+const deploymentAddress = require("../deployment/deploymentAddresses.json");
+const { getAddressSaver } = require("../deployment/utilities/helpers.js");
+const path = require("path");
 require("dotenv");
 
-async function upgradeFastBridge(defaultAdminSigner) {
+async function main(defaultAdminSigner) {
     const EthErc20FastBridge = await ethers.getContractFactory("EthErc20FastBridge", defaultAdminSigner);
     const bridgeProxyAddress = process.env.BRIDGE_PROXY_ADDRESS;
     console.log("Need to upgrade bridge?");
@@ -31,7 +34,7 @@ async function upgradeFastBridge(defaultAdminSigner) {
                 );
                 await proxy.deployed();
 
-                const currentImplAddress = await getImplementationAddress(ethers.provider, bridgeProxyAddress);
+                const currentImplAddress = await getImplementationAddress(ethers.provider, proxy.address);
                 console.log("EthErc20FastBridge upgraded");
                 console.log("Current implementation address is ", currentImplAddress);
             } else if (userInput === "n") {
@@ -43,6 +46,20 @@ async function upgradeFastBridge(defaultAdminSigner) {
             }
         }
     });
+}
+
+async function upgradeFastBridge(defaultAdminSigner) {
+    const EthErc20FastBridge = await ethers.getContractFactory("EthErc20FastBridge", defaultAdminSigner);
+    const network_name = network.name;
+    const bridgeProxyAddress = deploymentAddress[network_name].new.bridge_proxy;
+    const addressesPath = path.join(__dirname, "../deployment/deploymentAddresses.json");
+    const saveAddress = getAddressSaver(addressesPath, network_name, true);
+    const newBridge = await upgrades.upgradeProxy(bridgeProxyAddress, EthErc20FastBridge);
+    await newBridge.deployed();
+    saveAddress("bridge_proxy", newBridge.address);
+    console.log("Fast-Bridge upgraded");
+    const newBridgeImplementationAddress = await getImplementationAddress(ethers.provider, newBridge.address);
+    saveAddress("bridge_Implementation", newBridgeImplementationAddress);
 }
 
 module.exports = { upgradeFastBridge };

@@ -1,11 +1,11 @@
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const deploymentAddress = require("../deployment/deploymentAddresses.json");
 
 async function getBridgeContract() {
     console.log("Connecting with bridge...");
-    const network = (await ethers.getDefaultProvider().getNetwork()).name;
-    const bridgeAddress = deploymentAddress[network].new.bridge_proxy;
-    const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeAddress);
+    const network_name = network.name;
+    const bridgeProxyAddress = deploymentAddress[network_name].new.bridge_proxy;
+    const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeProxyAddress);
     console.log("Connected !");
     return bridge;
 }
