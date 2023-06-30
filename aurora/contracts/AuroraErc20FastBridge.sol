@@ -186,14 +186,13 @@ contract AuroraErc20FastBridge is AccessControl {
             transferMessage.feeTokenAmount - transferredAmount);
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
-        bool isSuccessful = (transferredAmount != 0);
         emit InitTokenTransfer(signer,
             initArgsBase64,
             transferMessage.transferTokenAddressOnNear,
             transferMessage.transferTokenAmount,
             transferMessage.feeTokenAmount,
             transferMessage.recipient,
-            isSuccessful
+            (transferredAmount != 0)
         );
     }
 
@@ -232,6 +231,8 @@ contract AuroraErc20FastBridge is AccessControl {
                 transferMessage.feeTokenAddressOnNear,
                 transferMessage.feeTokenAmount
             );
+        } else {
+            revert("ERROR: The `Unlock` XCC is fail");
         }
     }
 
@@ -251,6 +252,8 @@ contract AuroraErc20FastBridge is AccessControl {
     function withdrawFromNearCallback(string memory tokenId, uint128 amount) public onlyRole(CALLBACK_ROLE) {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
             emit WithdrawFromNear(tokenId, amount);
+        } else {
+            revert("ERROR: The `Withdraw From Near` XCC is fail");
         }
     }
 
@@ -275,15 +278,15 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function withdrawCallback(address signer, string memory token) public onlyRole(CALLBACK_ROLE) {
-        uint128 transferredAmount = 0;
-
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
-        }
+            uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
 
-        if (transferredAmount > 0) {
-            balance[token][signer] -= transferredAmount;
-            emit Withdraw(signer, token, transferredAmount);
+            if (transferredAmount > 0) {
+                balance[token][signer] -= transferredAmount;
+                emit Withdraw(signer, token, transferredAmount);
+            }
+        } else {
+            revert("ERROR: The `Withdraw` XCC is fail");
         }
     }
 
@@ -293,15 +296,15 @@ contract AuroraErc20FastBridge is AccessControl {
         TransferMessage memory result;
         Borsh.Data memory borsh = Borsh.from(transferMessageBorsh);
         result.validTill = borsh.decodeU64();
-        result.transferTokenAddressOnNear = string(borsh.decodeBytes()); //transfer token address on Near
-        result.transferTokenAddressOnEth = address(borsh.decodeBytes20()); //transfer token address on Ethereum
+        result.transferTokenAddressOnNear = string(borsh.decodeBytes());
+        result.transferTokenAddressOnEth = address(borsh.decodeBytes20());
         result.transferTokenAmount = borsh.decodeU128();
-        result.feeTokenAddressOnNear = string(borsh.decodeBytes()); // fee token address on Near
+        result.feeTokenAddressOnNear = string(borsh.decodeBytes());
         result.feeTokenAmount = borsh.decodeU128();
-        result.recipient = address(borsh.decodeBytes20()); //recipient
+        result.recipient = address(borsh.decodeBytes20());
         uint8 optionValidTill = borsh.decodeU8();
         if (optionValidTill == 1) {
-            result.validTillBlockHeight = borsh.decodeU64(); //valid_till_block_height
+            result.validTillBlockHeight = borsh.decodeU64();
         }
         uint8 optionAuroraSender = borsh.decodeU8();
         if (optionAuroraSender == 1) {
@@ -311,8 +314,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function getNearAddress() public view returns (string memory) {
-        string memory auroraAddress = _addressToString(address(this));
-        return string.concat(auroraAddress, ".aurora");
+        return string.concat(_addressToString(address(this)), ".aurora");
     }
 
     function getTokenAuroraAddress(string memory nearTokenAddress) public view returns (address) {
@@ -330,10 +332,7 @@ contract AuroraErc20FastBridge is AccessControl {
     function _stringToUint(bytes memory b) private pure returns (uint128) {
         uint128 result = 0;
         for (uint256 i = 0; i < b.length; i++) {
-            uint128 c = uint128(uint8(b[i]));
-            if (c >= 48 && c <= 57) {
-                result = result * 10 + (c - 48);
-            }
+            result = result * 10 + (uint128(uint8(b[i])) - 48);
         }
         return result;
     }
