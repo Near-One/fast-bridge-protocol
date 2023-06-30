@@ -118,7 +118,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
     function initTokenTransfer(bytes memory initTransferArgs) public {
         require(whitelistedUsers[address(msg.sender)], "Sender not whitelisted!");
-        TransferMessage memory transferMessage = decodeTransferMessageFromBorsh(initTransferArgs);
+        TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
             transferMessage.auroraSender == msg.sender,
             "Aurora sender in transfer message doesn't equal to signer"
@@ -177,10 +177,10 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
-        TransferMessage memory transferMessage = decodeTransferMessageFromBorsh(initTransferArgs);
+        TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
 
         balance[transferMessage.transferTokenAddressOnNear][signer] += (transferMessage.transferTokenAmount +
             transferMessage.feeTokenAmount - transferredAmount);
@@ -217,7 +217,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
     function unlockCallback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            TransferMessage memory transferMessage = decodeTransferMessageFromBorsh(
+            TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(
                 AuroraSdk.promiseResult(0).output
             );
 
@@ -263,7 +263,7 @@ contract AuroraErc20FastBridge is AccessControl {
                 '{"receiver_id": "aurora", "amount": "',
                 Strings.toString(signerBalance),
                 '", "msg": "',
-                addressToString(msg.sender),
+                _addressToString(msg.sender),
                 '"}'
             )
         );
@@ -278,7 +278,7 @@ contract AuroraErc20FastBridge is AccessControl {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
         if (transferredAmount > 0) {
@@ -287,7 +287,7 @@ contract AuroraErc20FastBridge is AccessControl {
         }
     }
 
-    function decodeTransferMessageFromBorsh(
+    function _decodeTransferMessageFromBorsh(
         bytes memory transferMessageBorsh
     ) private pure returns (TransferMessage memory) {
         TransferMessage memory result;
@@ -311,7 +311,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function getNearAddress() public view returns (string memory) {
-        string memory auroraAddress = addressToString(address(this));
+        string memory auroraAddress = _addressToString(address(this));
         return string.concat(auroraAddress, ".aurora");
     }
 
@@ -323,11 +323,11 @@ contract AuroraErc20FastBridge is AccessControl {
         return balance[nearTokenAddress][userAddress];
     }
 
-    function addressToString(address auroraAddress) private pure returns (string memory) {
+    function _addressToString(address auroraAddress) private pure returns (string memory) {
         return Utils.bytesToHex(abi.encodePacked(auroraAddress));
     }
 
-    function stringToUint(bytes memory b) private pure returns (uint128) {
+    function _stringToUint(bytes memory b) private pure returns (uint128) {
         uint128 result = 0;
         for (uint256 i = 0; i < b.length; i++) {
             uint128 c = uint128(uint8(b[i]));
