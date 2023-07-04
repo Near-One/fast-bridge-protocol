@@ -20,6 +20,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
+    bytes32 public constant WHITELIST_MANAGER = keccak256("WHITELIST_MANAGER");
 
     NEAR public near;
     string bridge_address_on_near;
@@ -36,11 +37,12 @@ contract AuroraErc20FastBridge is AccessControl {
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(ADMIN, msg.sender);
+        _grantRole(WHITELIST_MANAGER, msg.sender);
 
         whitelisted_users[msg.sender] = true;
     }
 
-    function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(ADMIN) {
+    function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(WHITELIST_MANAGER) {
         require(users.length == states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < users.length; i++) {
