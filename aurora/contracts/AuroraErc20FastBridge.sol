@@ -9,9 +9,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-uint64 constant BASE_NEAR_GAS = 50_000_000_000_000;
-uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
-
 contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
     using AuroraSdk for PromiseCreateArgs;
@@ -21,6 +18,9 @@ contract AuroraErc20FastBridge is AccessControl {
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
     bytes32 public constant WHITELIST_MANAGER = keccak256("WHITELIST_MANAGER");
+
+    uint64 constant BASE_NEAR_GAS = 50_000_000_000_000;
+    uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
 
     NEAR public near;
     string bridge_address_on_near;
