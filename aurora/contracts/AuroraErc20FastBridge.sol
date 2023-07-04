@@ -65,6 +65,8 @@ contract AuroraErc20FastBridge is AccessControl {
     function withdraw(string memory token) public {
         uint128 signer_balance = balance[token][msg.sender];
 
+        require(signer_balance > 0, "The signer token balance = 0");
+
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
         bytes memory args = bytes(string.concat('{"receiver_id": "aurora", "amount": "', Strings.toString(signer_balance), '", "msg": "', string(address_to_string(address(msg.sender))), '"}'));
         PromiseCreateArgs memory callTr = near.call(token, "ft_transfer_call", args, 1, BASE_NEAR_GAS);
