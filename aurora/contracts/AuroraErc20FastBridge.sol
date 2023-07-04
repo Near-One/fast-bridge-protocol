@@ -88,10 +88,10 @@ contract AuroraErc20FastBridge is AccessControl {
 
         require(keccak256(abi.encodePacked(token_address_on_near)) == keccak256(abi.encodePacked(fee_token_address_on_near)));
 
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
-
         EvmErc20 token = registered_tokens[token_address_on_near];
         require(address(token) != address(0), "The token is not registered!");
+
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         token.transferFrom(msg.sender, address(this), uint256(transfer_token_amount + fee_token_amount));
         token.withdrawToNear(get_near_address(), uint256(transfer_token_amount + fee_token_amount));
