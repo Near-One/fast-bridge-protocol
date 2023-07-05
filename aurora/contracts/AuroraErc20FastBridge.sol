@@ -218,25 +218,26 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function unlockCallback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
-        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(
-                AuroraSdk.promiseResult(0).output
-            );
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `Unlock` XCC is fail"
+        );
 
-            balance[transferMessage.transferTokenAddressOnNear][signer] += transferMessage.transferTokenAmount;
-            balance[transferMessage.feeTokenAddressOnNear][signer] += transferMessage.feeTokenAmount;
+        TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(
+            AuroraSdk.promiseResult(0).output
+        );
 
-            emit Unlock(
-                nonce,
-                signer,
-                transferMessage.transferTokenAddressOnNear,
-                transferMessage.transferTokenAmount,
-                transferMessage.feeTokenAddressOnNear,
-                transferMessage.feeTokenAmount
-            );
-        } else {
-            revert("ERROR: The `Unlock` XCC is fail");
-        }
+        balance[transferMessage.transferTokenAddressOnNear][signer] += transferMessage.transferTokenAmount;
+        balance[transferMessage.feeTokenAddressOnNear][signer] += transferMessage.feeTokenAmount;
+
+        emit Unlock(
+            nonce,
+            signer,
+            transferMessage.transferTokenAddressOnNear,
+            transferMessage.transferTokenAmount,
+            transferMessage.feeTokenAddressOnNear,
+            transferMessage.feeTokenAmount
+        );
     }
 
     function withdrawFromNear(string memory tokenId, uint128 amount) public {
@@ -253,11 +254,12 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function withdrawFromNearCallback(string memory tokenId, uint128 amount) public onlyRole(CALLBACK_ROLE) {
-        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            emit WithdrawFromNear(tokenId, amount);
-        } else {
-            revert("ERROR: The `Withdraw From Near` XCC is fail");
-        }
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `Withdraw From Near` XCC is fail"
+        );
+
+        emit WithdrawFromNear(tokenId, amount);
     }
 
     function withdraw(string memory token) public {
@@ -283,15 +285,16 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function withdrawCallback(address signer, string memory token) public onlyRole(CALLBACK_ROLE) {
-        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `Withdraw` XCC is fail"
+        );
 
-            if (transferredAmount > 0) {
-                balance[token][signer] -= transferredAmount;
-                emit Withdraw(signer, token, transferredAmount);
-            }
-        } else {
-            revert("ERROR: The `Withdraw` XCC is fail");
+        uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+
+        if (transferredAmount > 0) {
+            balance[token][signer] -= transferredAmount;
+            emit Withdraw(signer, token, transferredAmount);
         }
     }
 
