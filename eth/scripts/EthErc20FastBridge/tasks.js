@@ -121,3 +121,25 @@ task("upgrade_fastbridge", "Upgrade fast-bridge contract (Only signer with DEFAU
         await upgradeFastBridge(defaultAdminSigner);
     }
 );
+
+task("transfer_token", "transfer erc-20 token to fast bridge")
+    .addParam("tokenaddress", "erc-20 token address which is to be transfer")
+    .addParam("recipient", "Address of token receiver")
+    .addParam("nonce", "nonce of transfer")
+    .addParam("amount", "Amount of erc-20 token to transfer")
+    .addParam("unlockrecipient", "Near side unlock recipient: relayer address")
+    .addParam("validtillblockheight", "Block height till which near side unlock is to be made")
+    .setAction(async (taskArgs, hre) => {
+        await hre.run("compile");
+        const [signer] = await hre.ethers.getSigners();
+        const { transferTokens } = require("./transfer_token.js");
+        await transferTokens(
+            signer,
+            taskArgs.tokenaddress,
+            taskArgs.recipient,
+            taskArgs.nonce,
+            taskArgs.amount,
+            taskArgs.unlockrecipient,
+            taskArgs.validtillblockheight
+        );
+    });

@@ -109,7 +109,7 @@ Note: bridge address will be picked from `deploymentAddress[network].new.bridge`
     
     to create `json_string_input`
     1. create json with `signature` and `arguments` properties in below example format
-    ```
+    ``` bash
     {
         "signature": "setWhitelistedTokens(address[],bool[])",
         "argcount": "2",
@@ -131,29 +131,62 @@ Note: bridge address will be picked from `deploymentAddress[network].new.bridge`
 
     
     For example: to call `setWhitelistedTokens` method run command 
-    ```
+    ``` bash
     npx hardhat method --jsonstring '{"signature":"setWhitelistedTokens","arguments":{"arg1":["0xdAC17F958D2ee523a2206206994597C13D831ec7"],"arg2":[true]}}'
     ```
 
-2. To deploy fast-bridge run `npx hardhat deploy_fastbridge --verification <bool> --network <network_name>` , here `--verification` is an optional parameter with default value `false` if passed `true` than contract is verified just after the deployment.
-3. To verify already deployed contract on same network run `npx hardhat verify_bridge --proxyaddress <fastbridge_proxy_address> --network <network_name>`
+2. To deploy fast-bridge run 
+    ``` bash
+    npx hardhat deploy_fastbridge --verification <bool> --network <network_name>
+    ```
+    here `--verification` is an optional parameter with default value `false` if passed `true` than contract is verified just after the deployment.
+3. To verify already deployed contract on same network run 
+    ``` bash
+    npx hardhat verify_bridge --proxyaddress <fastbridge_proxy_address> --network <network_name>
+    ```
 4. To whitelists single erc20 token in fast-bridge run `npx hardhat whitelists_token --tokenaddress <token_address> --network <network_name>`, here the pvt key of signer need to have the authorised role to make successful txn and key is picked from .env file so you need to setup it before running the cmd.
    <br>For example:
-   ```
+   ``` bash
    npx hardhat whitelists_token --tokenaddress 0xb2d75C5a142A68BDA438e6a318C7FBB2242f9693 --network mumbai  
    ```
-5.  To whitelists token in bulk run `npx hardhat whitelists_token_in_bulk --tokenaddresses <comma_separated_token_addresses> --whiteliststatus <comma_separated_bool_value> --network <network_name>`
-   <br>For example:-
+5.  To whitelists token in bulk run 
+    ``` bash
+    npx hardhat whitelists_token_in_bulk --tokenaddresses <comma_separated_token_addresses> --whiteliststatus <comma_separated_bool_value> --network <network_name>
     ```
-    npx hardhat whitelists_token_in_bulk --tokenaddresses 0xF0b0c5E2c3A35213992bD9b45Af352D6D4035203,0xaa2D6608241B6B930BCcaFE245eFDf052e46C9aA --whiteliststatus true,true,true --network mumbai
-    ``` 
+    *For example*:-
+        ``` bash
+        npx hardhat whitelists_token_in_bulk --tokenaddresses 0xF0b0c5E2c3A35213992bD9b45Af352D6D4035203,0xaa2D6608241B6B930BCcaFE245eFDf052e46C9aA --whiteliststatus true,true,true --network mumbai
+        ``` 
     Here also signer need to have the access role to make txn successful.
-6. To check whether the token is whitelisted or not run `npx hardhat is_token_whitelisted --tokenaddress <token_address> --network <network_name>`
-7. To remove token from whitelists run `npx hardhat remove_token_from_whitelists --tokenaddress <token_address> --network <network_name>` 
-    <br>For example:
+6.  To check whether the token is whitelisted or not run 
+    ``` bash
+    npx hardhat is_token_whitelisted --tokenaddress <token_address> --network <network_name>
     ```
+7. To remove token from whitelists run 
+    ``` bash
+    npx hardhat remove_token_from_whitelists --tokenaddress <token_address> --network <network_name>
+    ```
+    For example:
+    ``` bash
     npx hardhat remove_token_from_whitelists --tokenaddress 0xb2d75C5a142A68BDA438e6a318C7FBB2242f9693 --network mumbai
     ```
-8. To pause fast_bridge run `npx hardhat pause_fastbridge --network <network_name>`, here the signer needs to have desired role to do so.
-9. To unpause fast_bridge run `npx hardhat unpause_fastbridge --network <network_name>`, here also the signer needs to have proper access role to do so.
-10. To upgrade the fastbridge run `npx hardhat upgrade_fastbridge --network <network_name>`, here the signer needs to have the proper admin role to upgrade the fast-bridge contract.
+8. To pause fast_bridge run 
+   ``` bash
+   npx hardhat pause_fastbridge --network <network_name>
+   ```
+    here the signer needs to have desired role to do so.
+9.  To unpause fast_bridge run 
+    ``` bash
+    npx hardhat unpause_fastbridge --network <network_name>
+    ```
+     here also the signer needs to have proper access role to do so.
+10. To upgrade the fastbridge run 
+    ``` bash
+    npx hardhat upgrade_fastbridge --network <network_name>
+    ``` 
+    here the signer needs to have the proper admin role to upgrade the fast-bridge contract.
+11. To withdraw stucked erc-20 tokens on fastbridge run:-
+    ``` bash
+    npx hardhat withdraw_stuck_tokens --tokenaddress <erc-20 address> --network <network_name>
+    ```
+    Here, the caller must have `DEFAULT_ADMIN_ROLE` to make withdraw success.
