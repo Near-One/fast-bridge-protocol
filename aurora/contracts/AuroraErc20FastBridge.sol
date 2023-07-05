@@ -10,11 +10,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
-uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
-uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
-uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
-
 contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for NEAR;
     using AuroraSdk for PromiseCreateArgs;
@@ -23,6 +18,13 @@ contract AuroraErc20FastBridge is AccessControl {
 
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
+    bytes32 public constant WHITELIST_MANAGER = keccak256("WHITELIST_MANAGER");
+
+    uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
+    uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
+    uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
+    uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
+
 
     NEAR public near;
     string bridgeAddressOnNear;
@@ -78,11 +80,12 @@ contract AuroraErc20FastBridge is AccessControl {
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(ADMIN, msg.sender);
+        _grantRole(WHITELIST_MANAGER, msg.sender);
 
         whitelistedUsers[msg.sender] = true;
     }
 
-    function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(ADMIN) {
+    function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(WHITELIST_MANAGER) {
         require(users.length == states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < users.length; i++) {
@@ -128,14 +131,14 @@ contract AuroraErc20FastBridge is AccessControl {
                 keccak256(abi.encodePacked(transferMessage.feeTokenAddressOnNear))
         );
 
+        EvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
+        require(address(token) != address(0), "The token is not registered!");
+
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         uint256 totalTokenAmount = uint256(
             transferMessage.transferTokenAmount + transferMessage.feeTokenAmount
         );
-
-        EvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
-        require(address(token) != address(0), "The token is not registered!");
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
         token.withdrawToNear(bytes(getNearAddress()), totalTokenAmount);
@@ -259,6 +262,8 @@ contract AuroraErc20FastBridge is AccessControl {
 
     function withdraw(string memory token) public {
         uint128 signerBalance = balance[token][msg.sender];
+
+        require(signerBalance > 0, "The signer token balance = 0");
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
         bytes memory args = bytes(
