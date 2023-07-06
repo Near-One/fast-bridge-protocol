@@ -160,7 +160,7 @@ Note: bridge address will be picked from `deploymentAddress[network].new.bridge`
     Here also signer need to have the access role to make txn successful.
 6.  To check whether the token is whitelisted or not run 
     ``` bash
-    npx hardhat is_token_whitelisted --tokenaddress <token_address> --network <network_name>
+    npx hardhat is_token_whitelisted --tokenaddress <token_address> --bridgeproxyaddress <fastbridge_proxy_address> --network <network_name>
     ```
 7. To remove token from whitelists run 
     ``` bash

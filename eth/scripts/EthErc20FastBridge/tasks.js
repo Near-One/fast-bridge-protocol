@@ -58,10 +58,11 @@ task("whitelists_token", "Whitelists erc-20 token in fast-bridge by authorised w
 
 task("is_token_whitelisted", "Check if token is whitelisted or not")
     .addParam("tokenaddress", "Token address to check for whitelist")
+    .addParam("bridgeproxyaddress", "Fast-bridge proxy contract address")
     .setAction(async (taskArgs, hre) => {
         await hre.run("compile");
         const { isTokenInWhitelist } = require("./whitelistTokens.js");
-        await isTokenInWhitelist(taskArgs.tokenaddress);
+        await isTokenInWhitelist(taskArgs.tokenaddress, taskArgs.bridgeproxyaddress);
     });
 
 task("remove_token_from_whitelists", "Removes erc-20 token from whitelists")

@@ -43,10 +43,10 @@ async function removeTokenFromWhitelist(token, signer) {
     }
 }
 
-async function isTokenInWhitelist(token) {
-    let bridge;
+async function isTokenInWhitelist(token, bridgeProxyAddress) {
     try {
-        bridge = await getBridgeContract();
+        const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeProxyAddress);
+
         (await bridge.isTokenInWhitelist(token))
             ? console.log(token, "is whitelisted")
             : console.log(token, "is not whitelisted");
