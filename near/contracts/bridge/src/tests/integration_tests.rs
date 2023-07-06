@@ -355,15 +355,16 @@ mod integration_tests {
             valid_till,
             transfer: TransferDataEthereum {
                 token_near: token.id().to_string().parse().unwrap(),
-                token_eth: [0; 20],
+                token_eth: fast_bridge_common::EthAddress([0; 20]),
                 amount: transfer_amount.into(),
             },
             fee: TransferDataNear {
                 token: token.id().to_string().parse().unwrap(),
                 amount: fee_amount.into(),
             },
-            recipient: [1; 20],
+            recipient: fast_bridge_common::EthAddress([1; 20]),
             valid_till_block_height: None,
+            aurora_sender: None,
         };
         let msg = near_sdk::base64::encode(msg.try_to_vec().unwrap());
 

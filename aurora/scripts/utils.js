@@ -1,79 +1,74 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-async function tokensRegistration(provider, fastBridgeAddress) {
-    fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
-    const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
+const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
 
-    console.log("Sending transaction with the account:", deployerWallet.address);
-    console.log("Account balance:", (await deployerWallet.getBalance()).toString());
+async function tokensRegistration(provider, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
+    const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
+    await fastBridge.tokensRegistration(auroraTokenAddress, nearTokenAddress);
 
-    const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", "0x4861825E75ab14553E5aF711EbbE6873d369d146");
-    await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
-
-    const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
-        libraries: {
-            "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
-        },
-    });
-    const fast_bridge = await FastBridge
-        .attach(fastBridgeAddress)
-        .connect(deployerWallet);
-
-    let tx = await fast_bridge.tokens_registration("0x901fb725c106E182614105335ad0E230c91B67C8", "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet");
-    let receipt = await tx.wait();
-
-    console.log("Aurora Fast Bridge Address on Near: ", receipt.events[0].args);
+    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
 }
 
-async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg) {
-    fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
-    const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
-
-    console.log("Sending transaction with the account:", deployerWallet.address);
-    console.log("Account balance:", (await deployerWallet.getBalance()).toString());
-
-    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", "0x901fb725c106E182614105335ad0E230c91B67C8");
+async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {
+    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
-    const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", "0x4861825E75ab14553E5aF711EbbE6873d369d146");
-    await wnear.approve(fastBridgeAddress, "2000000000000000000000000");
-
-    const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
-        libraries: {
-            "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
-        },
-    });
-    const fast_bridge = await FastBridge
-        .attach(fastBridgeAddress)
-        .connect(deployerWallet);
+    const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
 
     const options = { gasLimit: 5000000 };
-    let tx = await fast_bridge.init_token_transfer(initTokenTransferArg, options);
+    let tx = await fastBridge.initTokenTransfer(initTokenTransferArg, options);
     let receipt = await tx.wait();
     console.log(receipt.events[0].args);
 }
 
-async function withdraw(provider, fastBridgeAddress) {
+async function unlock(provider, fastBridgeAddress, nonce) {
+    const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
+
+    let tx = await fastBridge.unlock(nonce);
+    let receipt = await tx.wait();
+    console.log(receipt.events[0].args);
+}
+
+async function withdraw_from_near(provider, fastBridgeAddress, nearTokenAddress, amount) {
+    const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
+
+    let tx = await fastBridge.withdrawFromNear(nearTokenAddress, amount);
+    let receipt = await tx.wait();
+}
+
+async function withdraw(provider, fastBridgeAddress, nearTokenAddress) {
+    const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
+
+    let tx = await fastBridge.withdraw(nearTokenAddress);
+    let receipt = await tx.wait();
+}
+
+async function beforeWorkWithFastBridge(provider, fastBridgeAddress) {
     fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
+    console.log("Sending transaction with the account:", deployerWallet.address);
+    console.log("Account balance:", (await deployerWallet.getBalance()).toString());
 
-    const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", "0x4861825E75ab14553E5aF711EbbE6873d369d146");
-    await wnear.approve(fastBridgeAddress, "2000000000000000000000000");
+    const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
+    await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
 
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
-            "AuroraSdk": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
+            "AuroraSdk": process.env.AURORA_SDK_ADDRESS,
+            "Utils": process.env.AURORA_UTILS_ADDRESS
         },
     });
-    const fast_bridge = await FastBridge
+
+    return FastBridge
         .attach(fastBridgeAddress)
         .connect(deployerWallet);
-
-    let tx = await fast_bridge.withdraw("07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet");
-    let receipt = await tx.wait();
 }
 
 exports.initTokenTransfer = initTokenTransfer;
 exports.tokensRegistration = tokensRegistration;
+exports.unlock = unlock;
+exports.withdraw_from_near = withdraw_from_near;
 exports.withdraw = withdraw;
+
+exports.WNEAR_AURORA_ADDRESS = WNEAR_AURORA_ADDRESS;
