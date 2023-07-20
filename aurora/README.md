@@ -80,3 +80,11 @@ Command for running test:
 ```bash
 yarn hardhat test --network testnet_aurora
 ```
+
+## Formatting
+For apply formatting for Solidity code run:
+```bash
+yarn prettier contracts/AuroraErc20FastBridge.sol --write
+```
+
+File with formatting rules: `.prettierrs.json`

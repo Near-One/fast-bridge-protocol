@@ -25,7 +25,6 @@ contract AuroraErc20FastBridge is AccessControl {
     uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
     uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
-
     NEAR public near;
     string bridgeAddressOnNear;
 
@@ -95,11 +94,7 @@ contract AuroraErc20FastBridge is AccessControl {
         emit SetWhitelistedUsers(users, states);
     }
 
-
-    function tokensRegistration(
-        address auroraTokenAddress,
-        string memory nearTokenAddress
-    ) public onlyRole(ADMIN) {
+    function tokensRegistration(address auroraTokenAddress, string memory nearTokenAddress) public onlyRole(ADMIN) {
         uint128 deposit = 12_500_000_000_000_000_000_000;
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
         bytes memory args = bytes(
@@ -136,9 +131,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
-        uint256 totalTokenAmount = uint256(
-            transferMessage.transferTokenAmount + transferMessage.feeTokenAmount
-        );
+        uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
         token.withdrawToNear(bytes(getNearAddress()), totalTokenAmount);
@@ -173,10 +166,7 @@ contract AuroraErc20FastBridge is AccessControl {
         callFtTransfer.then(callback).transact();
     }
 
-    function initTokenTransferCallback(
-        address signer,
-        bytes memory initTransferArgs
-    ) public onlyRole(CALLBACK_ROLE) {
+    function initTokenTransferCallback(address signer, bytes memory initTransferArgs) public onlyRole(CALLBACK_ROLE) {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
@@ -186,10 +176,12 @@ contract AuroraErc20FastBridge is AccessControl {
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
 
         balance[transferMessage.transferTokenAddressOnNear][signer] += (transferMessage.transferTokenAmount +
-            transferMessage.feeTokenAmount - transferredAmount);
+            transferMessage.feeTokenAmount -
+            transferredAmount);
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
-        emit InitTokenTransfer(signer,
+        emit InitTokenTransfer(
+            signer,
             initArgsBase64,
             transferMessage.transferTokenAddressOnNear,
             transferMessage.transferTokenAmount,
@@ -200,15 +192,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function unlock(uint128 nonce, string memory proof) public {
-        bytes memory args = bytes(
-            string.concat(
-                '{"nonce": "',
-                Strings.toString(nonce),
-                '", "proof": "',
-                proof,
-                '"}'
-            )
-        );
+        bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
 
         PromiseCreateArgs memory callUnlock = near.call(bridgeAddressOnNear, "unlock", args, 0, UNLOCK_NEAR_GAS);
         bytes memory callbackArg = abi.encodeWithSelector(this.unlockCallback.selector, msg.sender, nonce);
@@ -218,14 +202,9 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function unlockCallback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
-        require(
-            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `Unlock` XCC is fail"
-        );
+        require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC is fail");
 
-        TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(
-            AuroraSdk.promiseResult(0).output
-        );
+        TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
 
         balance[transferMessage.transferTokenAddressOnNear][signer] += transferMessage.transferTokenAmount;
         balance[transferMessage.feeTokenAddressOnNear][signer] += transferMessage.feeTokenAmount;
