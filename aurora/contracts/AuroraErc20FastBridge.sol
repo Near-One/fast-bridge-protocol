@@ -16,7 +16,6 @@ contract AuroraErc20FastBridge is AccessControl {
     using AuroraSdk for PromiseWithCallback;
     using Borsh for Borsh.Data;
 
-    bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
     bytes32 public constant WHITELIST_MANAGER = keccak256("WHITELIST_MANAGER");
 
@@ -80,7 +79,7 @@ contract AuroraErc20FastBridge is AccessControl {
         bridgeAddressOnNear = bridgeAddress;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
-        _grantRole(ADMIN, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(WHITELIST_MANAGER, msg.sender);
 
         whitelistedUsers[msg.sender] = true;
@@ -96,7 +95,7 @@ contract AuroraErc20FastBridge is AccessControl {
         emit SetWhitelistedUsers(users, states);
     }
 
-    function tokensRegistration(address auroraTokenAddress, string memory nearTokenAddress) public onlyRole(ADMIN) {
+    function tokensRegistration(address auroraTokenAddress, string memory nearTokenAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(NEAR_STORAGE_DEPOSIT));
         bytes memory args = bytes(
             string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
