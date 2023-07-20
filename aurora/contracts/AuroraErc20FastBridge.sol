@@ -28,7 +28,7 @@ contract AuroraErc20FastBridge is AccessControl {
 
     NEAR public near;
     string bridgeAddressOnNear;
-    string auroraEngineAddressOnNear;
+    string auroraEngineAccountIdOnNear;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
     mapping(address => bool) whitelistedUsers;
@@ -75,10 +75,10 @@ contract AuroraErc20FastBridge is AccessControl {
         address auroraSender;
     }
 
-    constructor(address wnearAddress, string memory bridgeAddress, string memory auroraEngineAddress) {
+    constructor(address wnearAddress, string memory bridgeAddress, string memory auroraEngineAccountId) {
         near = AuroraSdk.initNear(IERC20_NEAR(wnearAddress));
         bridgeAddressOnNear = bridgeAddress;
-        auroraEngineAddressOnNear = auroraEngineAddress;
+        auroraEngineAccountIdOnNear = auroraEngineAccountId;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -261,7 +261,7 @@ contract AuroraErc20FastBridge is AccessControl {
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id":',
-                auroraEngineAddressOnNear,
+                auroraEngineAccountIdOnNear,
                 '"amount": "',
                 Strings.toString(signerBalance),
                 '", "msg": "',
@@ -314,7 +314,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function getNearAddress() public view returns (string memory) {
-        return string.concat(_addressToString(address(this)), ".", auroraEngineAddressOnNear);
+        return string.concat(_addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
     }
 
     function getTokenAuroraAddress(string memory nearTokenAddress) public view returns (address) {
