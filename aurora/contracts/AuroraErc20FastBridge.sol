@@ -95,7 +95,10 @@ contract AuroraErc20FastBridge is AccessControl {
         emit SetWhitelistedUsers(users, states);
     }
 
-    function tokensRegistration(address auroraTokenAddress, string memory nearTokenAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function tokensRegistration(
+        address auroraTokenAddress,
+        string memory nearTokenAddress
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(NEAR_STORAGE_DEPOSIT));
         bytes memory args = bytes(
             string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
@@ -121,9 +124,10 @@ contract AuroraErc20FastBridge is AccessControl {
             transferMessage.auroraSender == msg.sender,
             "Aurora sender in transfer message doesn't equal to signer"
         );
+
         require(
-            keccak256(abi.encodePacked(transferMessage.transferTokenAddressOnNear)) ==
-                keccak256(abi.encodePacked(transferMessage.feeTokenAddressOnNear))
+            _is_equal(transferMessage.transferTokenAddressOnNear, transferMessage.feeTokenAddressOnNear),
+            "The transfer and fee tokens are different. Different tokens not supported yet."
         );
 
         EvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
@@ -322,5 +326,9 @@ contract AuroraErc20FastBridge is AccessControl {
             result = result * 10 + (uint128(uint8(b[i])) - 48);
         }
         return result;
+    }
+
+    function _is_equal(string memory str1, string memory str2) private pure returns (bool) {
+        return keccak256(abi.encodePacked(str1)) == keccak256(abi.encodePacked(str2));
     }
 }
