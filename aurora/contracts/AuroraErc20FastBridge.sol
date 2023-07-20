@@ -140,6 +140,11 @@ contract AuroraErc20FastBridge is AccessControl {
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
+
+        // WARNING: The `withdrawToNear` method works asynchronously.
+        // As a result, there is no guarantee that this method will be completed before `initTransfer`.
+        // In case of such an error, the user will be able to call `withdraw` method and get his/her tokens back.
+        // We expect such an error not to happen as long as transactions were executed in one shard.
         token.withdrawToNear(bytes(getNearAddress()), totalTokenAmount);
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
