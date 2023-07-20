@@ -25,6 +25,8 @@ contract AuroraErc20FastBridge is AccessControl {
     uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
     uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
+    uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
+
     NEAR public near;
     string bridgeAddressOnNear;
 
@@ -95,8 +97,7 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     function tokensRegistration(address auroraTokenAddress, string memory nearTokenAddress) public onlyRole(ADMIN) {
-        uint128 deposit = 12_500_000_000_000_000_000_000;
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(deposit));
+        near.wNEAR.transferFrom(msg.sender, address(this), uint256(NEAR_STORAGE_DEPOSIT));
         bytes memory args = bytes(
             string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
         );
@@ -105,7 +106,7 @@ contract AuroraErc20FastBridge is AccessControl {
             nearTokenAddress,
             "storage_deposit",
             args,
-            deposit,
+            NEAR_STORAGE_DEPOSIT,
             BASE_NEAR_GAS
         );
         callStorageDeposit.transact();
