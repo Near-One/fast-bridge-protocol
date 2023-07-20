@@ -36,7 +36,7 @@ async function main() {
     });
     const options = { gasLimit: 6000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-        .deploy(WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, options);
+        .deploy(WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", options);
     await fastbridge.deployed();
 
     console.log("AuroraErc20FastBridge deployed to:", fastbridge.address);
