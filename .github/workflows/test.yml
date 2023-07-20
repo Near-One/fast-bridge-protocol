@@ -26,8 +26,7 @@ jobs:
     runs-on: [self-hosted, light]
     steps:
       - uses: actions/checkout@v3
-      - run: rustup override set nightly-2023-01-10; cargo install cargo-expand; rustup target add wasm32-unknown-unknown --toolchain nightly-2023-01-10
-      - run: cd near; cargo expand --manifest-path ./contracts/bridge/Cargo.toml --target wasm32-unknown-unknown > res/fastbridge_expand.rs
+      - run: cd near; ./expand.sh
       - run: |
           git diff
           git status
