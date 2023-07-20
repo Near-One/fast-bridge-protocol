@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {IERC20 as IERC20_NEAR} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IERC20 as IERC20_NEAR} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../lib/aurora-engine/etc/eth-contracts/contracts/EvmErc20.sol";
-import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/AuroraSdk.sol";
-import "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/Borsh.sol";
-import "../lib/aurora-contracts-sdk/aurora-solidity-sdk/src/Utils.sol";
+import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "@auroraisnear/aurora-sdk/aurora-sdk/AuroraSdk.sol";
+import "@auroraisnear/aurora-sdk/aurora-sdk/Borsh.sol";
+import "@auroraisnear/aurora-sdk/aurora-sdk/Utils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";

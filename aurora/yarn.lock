@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@auroraisnear/aurora-sdk@^0.0.1":
+  "integrity" "sha512-lfRh80keYyeBg8Zq9nAzhAJ+CD9p35qvlfT5ERAXkm9ZITlGceJh6L90H/W73ubnI4n3MqHlxvrsEzZlGPACIA=="
+  "resolved" "https://registry.npmjs.org/@auroraisnear/aurora-sdk/-/aurora-sdk-0.0.1.tgz"
+  "version" "0.0.1"
+  dependencies:
+    "@openzeppelin/contracts" "^4.8.2"
+
 "@ensdomains/ens@^0.4.4":
   "integrity" "sha512-JSvpj1iNMFjK6K+uVl4unqMoa9rf5jopb8cya5UGBWz23Nw8hSNT7efgUx4BTlAPAgpNlEioUfeTyQ6J9ZvTVw=="
   "resolved" "https://registry.npmjs.org/@ensdomains/ens/-/ens-0.4.5.tgz"
@@ -774,10 +781,10 @@
   "resolved" "https://registry.npmjs.org/@nomiclabs/hardhat-waffle/-/hardhat-waffle-2.0.5.tgz"
   "version" "2.0.5"
 
-"@openzeppelin/contracts@^4.8.1":
-  "integrity" "sha512-xQ6eUZl+RDyb/FiZe1h+U7qr/f4p/SrTSQcTPH2bjur3C5DbuW/zFgCU/b1P/xcIaEqJep+9ju4xDRi3rmChdQ=="
-  "resolved" "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.8.1.tgz"
-  "version" "4.8.1"
+"@openzeppelin/contracts@^4.8.1", "@openzeppelin/contracts@^4.8.2":
+  "integrity" "sha512-mO+y6JaqXjWeMh9glYVzVu8HYPGknAAnWyxTRhGeckOruyXQMNnlcW6w/Dx9ftLeIQk6N+ZJFuVmTwF7lEIFrg=="
+  "resolved" "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.9.2.tgz"
+  "version" "4.9.2"
 
 "@resolver-engine/core@^0.3.3":
   "integrity" "sha512-eB8nEbKDJJBi5p5SrvrvILn4a0h42bKtbCTri3ZxCGt6UvoQyp7HnGOfki944bUjBSHKK3RvgfViHn+kqdXtnQ=="
