@@ -8,14 +8,19 @@ import "@auroraisnear/aurora-sdk/aurora-sdk/Borsh.sol";
 import "@auroraisnear/aurora-sdk/aurora-sdk/Utils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
-contract AuroraErc20FastBridge is AccessControl {
+contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using AuroraSdk for NEAR;
     using AuroraSdk for PromiseCreateArgs;
     using AuroraSdk for PromiseWithCallback;
     using Borsh for Borsh.Data;
 
+    bytes32 public constant PAUSABLE_ADMIN_ROLE = keccak256("PAUSABLE_ADMIN_ROLE");
+    bytes32 public constant UNPAUSABLE_ADMIN_ROLE = keccak256("UNPAUSABLE_ADMIN_ROLE");
     bytes32 public constant CALLBACK_ROLE = keccak256("CALLBACK_ROLE");
     bytes32 public constant WHITELIST_MANAGER = keccak256("WHITELIST_MANAGER");
 
@@ -76,6 +81,9 @@ contract AuroraErc20FastBridge is AccessControl {
     }
 
     constructor(address wnearAddress, string memory bridgeAddress, string memory auroraEngineAccountId) {
+        __Pausable_init();
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
         near = AuroraSdk.initNear(IERC20_NEAR(wnearAddress));
         bridgeAddressOnNear = bridgeAddress;
         auroraEngineAccountIdOnNear = auroraEngineAccountId;
@@ -83,6 +91,8 @@ contract AuroraErc20FastBridge is AccessControl {
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(WHITELIST_MANAGER, msg.sender);
+        _setupRole(PAUSABLE_ADMIN_ROLE, _msgSender());
+        _setupRole(UNPAUSABLE_ADMIN_ROLE, _msgSender());
 
         whitelistedUsers[msg.sender] = true;
     }
@@ -119,7 +129,7 @@ contract AuroraErc20FastBridge is AccessControl {
         emit TokenRegistered(auroraTokenAddress, nearTokenAddress);
     }
 
-    function initTokenTransfer(bytes memory initTransferArgs) public {
+    function initTokenTransfer(bytes memory initTransferArgs) public whenNotPaused {
         require(whitelistedUsers[address(msg.sender)], "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
@@ -202,7 +212,7 @@ contract AuroraErc20FastBridge is AccessControl {
         );
     }
 
-    function unlock(uint128 nonce, string memory proof) public {
+    function unlock(uint128 nonce, string memory proof) public whenNotPaused {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
 
         PromiseCreateArgs memory callUnlock = near.call(bridgeAddressOnNear, "unlock", args, 0, UNLOCK_NEAR_GAS);
@@ -230,7 +240,7 @@ contract AuroraErc20FastBridge is AccessControl {
         );
     }
 
-    function withdrawFromNear(string memory tokenId, uint128 amount) public {
+    function withdrawFromNear(string memory tokenId, uint128 amount) public whenNotPaused {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
 
         bytes memory args = bytes(
@@ -252,7 +262,7 @@ contract AuroraErc20FastBridge is AccessControl {
         emit WithdrawFromNear(tokenId, amount);
     }
 
-    function withdraw(string memory token) public {
+    function withdraw(string memory token) public whenNotPaused {
         uint128 signerBalance = balance[token][msg.sender];
 
         require(signerBalance > 0, "The signer token balance = 0");
@@ -340,4 +350,24 @@ contract AuroraErc20FastBridge is AccessControl {
     function _is_equal(string memory str1, string memory str2) private pure returns (bool) {
         return keccak256(abi.encodePacked(str1)) == keccak256(abi.encodePacked(str2));
     }
+
+    /// Pauses all the operations in Fast Bridge. It affects only user-accessible operations.
+    function pause() external onlyRole(PAUSABLE_ADMIN_ROLE) {
+        _pause();
+    }
+
+    /// Unpauses all the operations in Fast Bridge. It affects only user-accessible operations.
+    function unPause() external onlyRole(UNPAUSABLE_ADMIN_ROLE) {
+        _unpause();
+    }
+
+    /**
+      * @dev Internal function called by the proxy contract to authorize an upgrade to a new implementation address
+      * using the UUPS proxy upgrade pattern. Overrides the default `_authorizeUpgrade` function from the `UUPSUpgradeable` contract.
+      * This function does not need to perform any extra authorization checks other than restricting the execution of the function to the admin and reverting otherwise.
+      * @param newImplementation Address of the new implementation contract.
+      * Requirements:
+      * - The caller must have the `DEFAULT_ADMIN_ROLE`.
+    */
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 }

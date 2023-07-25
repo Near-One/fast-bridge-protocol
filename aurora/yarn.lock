@@ -781,6 +781,11 @@
   "resolved" "https://registry.npmjs.org/@nomiclabs/hardhat-waffle/-/hardhat-waffle-2.0.5.tgz"
   "version" "2.0.5"
 
+"@openzeppelin/contracts-upgradeable@^4.9.2":
+  "integrity" "sha512-siviV3PZV/fHfPaoIC51rf1Jb6iElkYWnNYZ0leO23/ukXuvOyoC/ahy8jqiV7g+++9Nuo3n/rk5ajSN/+d/Sg=="
+  "resolved" "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.9.2.tgz"
+  "version" "4.9.2"
+
 "@openzeppelin/contracts@^4.8.1", "@openzeppelin/contracts@^4.8.2":
   "integrity" "sha512-mO+y6JaqXjWeMh9glYVzVu8HYPGknAAnWyxTRhGeckOruyXQMNnlcW6w/Dx9ftLeIQk6N+ZJFuVmTwF7lEIFrg=="
   "resolved" "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.9.2.tgz"
