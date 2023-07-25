@@ -10,5 +10,5 @@ serde_json = "1.0.91"
 clap = { version = "4.1.4", features = ["derive"] }
 hex = { version = "0.4.3", features = ["serde"] }
 tiny-keccak = { version = "2.0.2", features = ["keccak"] }
-fast-bridge-common = { git = "https://github.com/aurora-is-near/fast-bridge-common.git", tag = "0.2.0" }
+fast-bridge-common = { git = "https://github.com/aurora-is-near/fast-bridge-common.git", rev = "d564009a75b374386d66cd0f5b8b78ea227e7800" }
 eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", rev = "3e859904f445105850c2a08b5a4b0fdc7680c841", default-features = false, features = ["eip1559"] }
