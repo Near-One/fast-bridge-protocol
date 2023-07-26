@@ -145,8 +145,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         EvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
 
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
-
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
@@ -241,8 +239,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdrawFromNear(string memory tokenId, uint128 amount) public whenNotPaused {
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
-
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
@@ -267,7 +263,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         require(signerBalance > 0, "The signer token balance = 0");
 
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(1));
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id":',
