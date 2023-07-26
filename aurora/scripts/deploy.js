@@ -30,11 +30,14 @@ async function main() {
         },
     });
     const options = { gasLimit: 6000000 };
-    const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet)
-        .deploy(WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", options);
-    await fastbridge.deployed();
+    const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet);
+    let proxy = await hre.upgrades.deployProxy(fastbridge, [WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora"], {
+        initializer: "initialize",
+        unsafeAllowLinkedLibraries: true,
+    });
+    await proxy.waitForDeployment();
 
-    console.log("AuroraErc20FastBridge deployed to:", fastbridge.address);
+    console.log("AuroraErc20FastBridge proxy deployed to:", await proxy.getAddress());
 }
 
 // We recommend this pattern to be able to use async/await everywhere

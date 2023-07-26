@@ -66,7 +66,7 @@ module.exports = {
             url: 'https://testnet.aurora.dev',
             accounts: [`0x${AURORA_PRIVATE_KEY}`],
             chainId: 1313161555,
-            timeout: 100_000_000
+            timeout: 100_000_000_000
         },
         develop_aurora: {
             url: 'https://develop.rpc.testnet.aurora.dev:8545',
@@ -78,7 +78,7 @@ module.exports = {
         }
     },
     mocha: {
-        timeout: 10000000000
+        timeout: 1000000000000
     }
 };
 
