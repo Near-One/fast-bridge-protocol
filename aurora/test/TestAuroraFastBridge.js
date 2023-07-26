@@ -160,14 +160,14 @@ async function deployAuroraFastBridgeAndInitTransfer() {
 
     await sleep(15000);
 
-    const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
     await wnear.approve(fastbridge.address, "4012500000000000000000000");
 
     await fastbridge.tokensRegistration(AURORA_TOKEN_ADDRESS, NEAR_TOKEN_ADDRESS, options);
     console.log("Aurora Fast Bridge Address on Near: ", await fastbridge.getNearAddress());
     await sleep(15000);
 
-    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
+    const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
     await usdc.approve(fastbridge.address, "2000000000000000000000000");
 
     let lockPeriod = 50000000000;
@@ -229,7 +229,7 @@ async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight,
     console.log("Withdraw");
     await fastbridge.withdraw(NEAR_TOKEN_ADDRESS, options);
     await sleep(150000);
-    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
+    const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
     const balanceAfterUnlock = await usdc.balanceOf(deployerWallet.address);
     expect(balanceBefore).to.equals(balanceAfterUnlock);
 }
