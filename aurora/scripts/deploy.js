@@ -23,11 +23,6 @@ async function main() {
         deployerWallet.address
     );
 
-    console.log(
-        "Account balance:",
-        (await deployerWallet.getBalance()).toString()
-    );
-
     const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": process.env.AURORA_SDK_ADDRESS,

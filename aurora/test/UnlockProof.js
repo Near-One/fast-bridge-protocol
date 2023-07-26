@@ -1,11 +1,11 @@
 const { ethers } = require('hardhat');
-const Web3 = require("web3");
+const { Web3 } = require("web3");
 const {Header, Account} = require('eth-object');
 const _utils = require('ethereumjs-util');
 const borsh = require('borsh')
 
-const provider = new ethers.providers.JsonRpcProvider('https://ethereum-goerli-rpc.allthatnode.com');
-const web3 = new Web3(new Web3.providers.HttpProvider('https://ethereum-goerli-rpc.allthatnode.com'));
+const provider = new ethers.getDefaultProvider('https://ethereum-goerli-rpc.allthatnode.com');
+const web3 = new Web3('https://ethereum-goerli-rpc.allthatnode.com');
 
 const mappingSlotNumber = 303;
 

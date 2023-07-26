@@ -80,7 +80,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address auroraSender;
     }
 
-    constructor(address wnearAddress, string memory bridgeAddress, string memory auroraEngineAccountId) {
+    function initialize(address wnearAddress, string memory bridgeAddress, string memory auroraEngineAccountId) public initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
