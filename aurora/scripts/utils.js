@@ -11,7 +11,7 @@ async function tokensRegistration(provider, fastBridgeAddress, nearTokenAddress,
 }
 
 async function initTokenTransfer(provider, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {
-    const usdc = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
+    const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
     const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
@@ -45,12 +45,10 @@ async function withdraw(provider, fastBridgeAddress, nearTokenAddress) {
 }
 
 async function beforeWorkWithFastBridge(provider, fastBridgeAddress) {
-    fastBridgeAddress = hre.ethers.utils.getAddress(fastBridgeAddress);
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
     console.log("Sending transaction with the account:", deployerWallet.address);
-    console.log("Account balance:", (await deployerWallet.getBalance()).toString());
 
-    const wnear = await hre.ethers.getContractAt("openzeppelin-contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
     await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
 
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
