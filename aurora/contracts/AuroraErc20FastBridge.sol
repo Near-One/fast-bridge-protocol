@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {IERC20 as IERC20_NEAR} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../lib/aurora-engine/etc/eth-contracts/contracts/EvmErc20.sol";
 import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "@auroraisnear/aurora-sdk/aurora-sdk/AuroraSdk.sol";
 import "@auroraisnear/aurora-sdk/aurora-sdk/Borsh.sol";
 import "@auroraisnear/aurora-sdk/aurora-sdk/Utils.sol";
@@ -12,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "./IEvmErc20.sol";
 
 contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using AuroraSdk for NEAR;
@@ -40,7 +40,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     //By the token address on near returns correspondent ERC20 Aurora token.
     //[token_address_on_near] => aurora_erc20_token
-    mapping(string => EvmErc20) registeredTokens;
+    mapping(string => IEvmErc20) registeredTokens;
 
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_address_on_near][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
@@ -125,7 +125,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
         callStorageDeposit.transact();
 
-        registeredTokens[nearTokenAddress] = EvmErc20(auroraTokenAddress);
+        registeredTokens[nearTokenAddress] = IEvmErc20(auroraTokenAddress);
         emit TokenRegistered(auroraTokenAddress, nearTokenAddress);
     }
 
@@ -142,7 +142,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             "The transfer and fee tokens are different. Different tokens not supported yet."
         );
 
-        EvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
+        IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
