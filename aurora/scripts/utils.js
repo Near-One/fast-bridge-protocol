@@ -3,7 +3,7 @@ const hre = require("hardhat");
 
 async function tokensRegistration(provider, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
-    await fastBridge.tokensRegistration(auroraTokenAddress, nearTokenAddress);
+    await fastBridge.registerToken(auroraTokenAddress, nearTokenAddress);
 
     console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
 }

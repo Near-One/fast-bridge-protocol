@@ -32,9 +32,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
 
     NEAR public near;
-    string bridgeAddressOnNear;
-    string auroraEngineAccountIdOnNear;
-    bool whitelistedUsersModeEnable;
+    string public bridgeAddressOnNear;
+    string public auroraEngineAccountIdOnNear;
+    bool public isWhitelistModeEnabled;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
     mapping(address => bool) whitelistedUsers;
@@ -55,8 +55,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         string feeToken,
         uint128 feeAmount
     );
-    event SetWhitelistedUsers(address[] users, bool[] states);
-    event SetWhitelistedUsersMode(bool);
+    event SetWhitelistModeForUsers(address[] users, bool[] states);
+    event SetWhitelistMode(bool);
     event TokenRegistered(address auroraAddress, string nearAddress);
     event Withdraw(address recipient, string token, uint128 amount);
     event WithdrawFromNear(string token, uint128 amount);
@@ -82,8 +82,12 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address auroraSender;
     }
 
-    function initialize(address wnearAddress, string memory bridgeAddress,
-        string memory auroraEngineAccountId, bool whitelistModeEnable) public initializer {
+    function initialize(
+        address wnearAddress,
+        string memory bridgeAddress,
+        string memory auroraEngineAccountId,
+        bool _isWhitelistModeEnabled
+    ) public initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -98,38 +102,34 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         _setupRole(UNPAUSABLE_ADMIN_ROLE, _msgSender());
 
         whitelistedUsers[msg.sender] = true;
-        whitelistedUsersModeEnable = whitelistModeEnable;
+        isWhitelistModeEnabled = _isWhitelistModeEnabled;
     }
 
-    function setWhitelistedUsersMode(bool isModeEnable) public onlyRole(WHITELIST_MANAGER) {
-        whitelistedUsersModeEnable = isModeEnable;
+    function setWhitelistMode(bool isEnabled) public onlyRole(WHITELIST_MANAGER) {
+        isWhitelistModeEnabled = isEnabled;
 
-        emit SetWhitelistedUsersMode(isModeEnable);
+        emit SetWhitelistMode(isEnabled);
     }
 
-    function isWhitelistedUser(address user) public view returns (bool) {
-        if (whitelistedUsersModeEnable == false) {
+    function isUserWhitelisted(address user) public view returns (bool) {
+        if (isWhitelistModeEnabled == false) {
             return true;
         } else {
             return whitelistedUsers[user];
         }
     }
 
-    function isWhitelistedUsersModeEnable() public view returns (bool) {
-        return whitelistedUsersModeEnable;
-    }
-
-    function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(WHITELIST_MANAGER) {
+    function setWhitelistModeForUsers(address[] memory users, bool[] memory states) public onlyRole(WHITELIST_MANAGER) {
         require(users.length == states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < users.length; i++) {
             whitelistedUsers[users[i]] = states[i];
         }
 
-        emit SetWhitelistedUsers(users, states);
+        emit SetWhitelistModeForUsers(users, states);
     }
 
-    function tokensRegistration(
+    function registerToken(
         address auroraTokenAddress,
         string memory nearTokenAddress
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -152,7 +152,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function initTokenTransfer(bytes memory initTransferArgs) public whenNotPaused {
-        require(isWhitelistedUser(address(msg.sender)), "Sender not whitelisted!");
+        require(isUserWhitelisted(address(msg.sender)), "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
             transferMessage.auroraSender == msg.sender,
@@ -380,12 +380,12 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     /**
-      * @dev Internal function called by the proxy contract to authorize an upgrade to a new implementation address
-      * using the UUPS proxy upgrade pattern. Overrides the default `_authorizeUpgrade` function from the `UUPSUpgradeable` contract.
-      * This function does not need to perform any extra authorization checks other than restricting the execution of the function to the admin and reverting otherwise.
-      * @param newImplementation Address of the new implementation contract.
-      * Requirements:
-      * - The caller must have the `DEFAULT_ADMIN_ROLE`.
-    */
+     * @dev Internal function called by the proxy contract to authorize an upgrade to a new implementation address
+     * using the UUPS proxy upgrade pattern. Overrides the default `_authorizeUpgrade` function from the `UUPSUpgradeable` contract.
+     * This function does not need to perform any extra authorization checks other than restricting the execution of the function to the admin and reverting otherwise.
+     * @param newImplementation Address of the new implementation contract.
+     * Requirements:
+     * - The caller must have the `DEFAULT_ADMIN_ROLE`.
+     */
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 }
