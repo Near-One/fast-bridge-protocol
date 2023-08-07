@@ -1,8 +1,6 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
-
 async function tokensRegistration(provider, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     const fastBridge = await beforeWorkWithFastBridge(provider, fastBridgeAddress);
     await fastBridge.tokensRegistration(auroraTokenAddress, nearTokenAddress);
@@ -48,7 +46,7 @@ async function beforeWorkWithFastBridge(provider, fastBridgeAddress) {
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
     console.log("Sending transaction with the account:", deployerWallet.address);
 
-    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", WNEAR_AURORA_ADDRESS);
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", process.env.WNEAR_AURORA_ADDRESS);
     await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
 
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
@@ -68,5 +66,3 @@ exports.tokensRegistration = tokensRegistration;
 exports.unlock = unlock;
 exports.withdraw_from_near = withdraw_from_near;
 exports.withdraw = withdraw;
-
-exports.WNEAR_AURORA_ADDRESS = WNEAR_AURORA_ADDRESS;

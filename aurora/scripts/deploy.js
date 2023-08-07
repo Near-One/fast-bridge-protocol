@@ -5,7 +5,6 @@
 // Runtime Environment's members available in the global scope.
 require('dotenv').config();
 const hre = require("hardhat");
-const {WNEAR_AURORA_ADDRESS} = require("./utils");
 
 async function main() {
     // Hardhat always runs the compile task when running scripts with its command
@@ -31,7 +30,7 @@ async function main() {
     });
     const options = { gasLimit: 6000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet);
-    let proxy = await hre.upgrades.deployProxy(fastbridge, [WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", true], {
+    let proxy = await hre.upgrades.deployProxy(fastbridge, [process.env.WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", true], {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,
     });
