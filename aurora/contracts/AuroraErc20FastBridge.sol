@@ -34,6 +34,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     NEAR public near;
     string bridgeAddressOnNear;
     string auroraEngineAccountIdOnNear;
+    bool whitelistedUsersModeEnable;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
     mapping(address => bool) whitelistedUsers;
@@ -55,6 +56,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 feeAmount
     );
     event SetWhitelistedUsers(address[] users, bool[] states);
+    event SetWhitelistedUsersMode(bool);
     event TokenRegistered(address auroraAddress, string nearAddress);
     event Withdraw(address recipient, string token, uint128 amount);
     event WithdrawFromNear(string token, uint128 amount);
@@ -80,7 +82,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address auroraSender;
     }
 
-    function initialize(address wnearAddress, string memory bridgeAddress, string memory auroraEngineAccountId) public initializer {
+    function initialize(address wnearAddress, string memory bridgeAddress,
+        string memory auroraEngineAccountId, bool whitelistModeEnable) public initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -95,6 +98,25 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         _setupRole(UNPAUSABLE_ADMIN_ROLE, _msgSender());
 
         whitelistedUsers[msg.sender] = true;
+        whitelistedUsersModeEnable = whitelistModeEnable;
+    }
+
+    function setWhitelistedUsersMode(bool isModeEnable) public onlyRole(WHITELIST_MANAGER) {
+        whitelistedUsersModeEnable = isModeEnable;
+
+        emit SetWhitelistedUsersMode(isModeEnable);
+    }
+
+    function isWhitelistedUser(address user) public view returns (bool) {
+        if (whitelistedUsersModeEnable == false) {
+            return true;
+        } else {
+            return whitelistedUsers[user];
+        }
+    }
+
+    function isWhitelistedUsersModeEnable(address user) public view returns (bool) {
+        return whitelistedUsersModeEnable;
     }
 
     function setWhitelistedUsers(address[] memory users, bool[] memory states) public onlyRole(WHITELIST_MANAGER) {
@@ -130,7 +152,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function initTokenTransfer(bytes memory initTransferArgs) public whenNotPaused {
-        require(whitelistedUsers[address(msg.sender)], "Sender not whitelisted!");
+        require(isWhitelistedUser(address(msg.sender)), "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
             transferMessage.auroraSender == msg.sender,

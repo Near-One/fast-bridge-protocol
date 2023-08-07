@@ -31,7 +31,7 @@ async function main() {
     });
     const options = { gasLimit: 6000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet);
-    let proxy = await hre.upgrades.deployProxy(fastbridge, [WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora"], {
+    let proxy = await hre.upgrades.deployProxy(fastbridge, [WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", true], {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,
     });

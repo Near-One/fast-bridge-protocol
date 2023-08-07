@@ -149,7 +149,7 @@ async function deployAuroraFastBridgeAndInitTransfer() {
     });
     const options = { gasLimit: 6000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet);
-    let proxy = await hre.upgrades.deployProxy(fastbridge, [WNEAR_AURORA_ADDRESS, nearFastBridgeAccountStr, "aurora"], {
+    let proxy = await hre.upgrades.deployProxy(fastbridge, [WNEAR_AURORA_ADDRESS, nearFastBridgeAccountStr, "aurora", true], {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,
     });
@@ -239,7 +239,7 @@ async function waitForBlockHeight(blockHeight) {
     let currentBlockNumber = await getLastBlockNumber();
     while (currentBlockNumber < blockHeight) {
         currentBlockNumber = await getLastBlockNumber();
-        console.log("Current block number = ", currentBlockNumber, "; wait for = ",blockHeight);
+        console.log("Current block number = ", currentBlockNumber, "; wait for = ", blockHeight);
         await sleep(10000);
     }
 }
