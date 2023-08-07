@@ -115,7 +115,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
     }
 
-    function isWhitelistedUsersModeEnable(address user) public view returns (bool) {
+    function isWhitelistedUsersModeEnable() public view returns (bool) {
         return whitelistedUsersModeEnable;
     }
 
@@ -166,6 +166,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
+        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
