@@ -28,11 +28,11 @@ async function main() {
             "Utils": process.env.AURORA_UTILS_ADDRESS
         },
     });
-    const options = { gasLimit: 6000000 };
     const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet);
     let proxy = await hre.upgrades.deployProxy(fastbridge, [process.env.WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", true], {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,
+        gasLimit: 6000000
     });
     await proxy.waitForDeployment();
 
