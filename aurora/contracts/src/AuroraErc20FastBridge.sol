@@ -288,9 +288,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         bytes memory args = bytes(
             string.concat(
-                '{"receiver_id":',
+                '{"receiver_id": "',
                 auroraEngineAccountIdOnNear,
-                '"amount": "',
+                '", "amount": "',
                 Strings.toString(signerBalance),
                 '", "msg": "',
                 _addressToString(msg.sender),

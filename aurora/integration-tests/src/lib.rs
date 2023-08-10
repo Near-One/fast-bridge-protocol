@@ -19,8 +19,9 @@ mod tests {
         wnear,
         workspaces::{self, AccountId},
     };
-    use aurora_sdk_integration_tests::aurora_engine_types::borsh::BorshSerialize;
+    use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
     use std::path::Path;
+    use std::thread::sleep;
     use std::time::Duration;
     use aurora_sdk_integration_tests::wnear::Wnear;
     use aurora_sdk_integration_tests::workspaces::network::Sandbox;
@@ -32,6 +33,14 @@ mod tests {
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
     const TOKEN_SUPPLY: u64 = 1000000000;
+
+    #[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, PartialEq)]
+    pub struct UnlockProof {
+        header_data: Vec<u8>,
+        account_proof: Vec<Vec<u8>>,
+        account_data: Vec<u8>,
+        storage_proof: Vec<Vec<u8>>,
+    }
 
     struct TestsInfrastructure {
         worker: Worker<Sandbox>,
@@ -183,7 +192,7 @@ mod tests {
             let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
                 "withdraw",
                 &[
-                    ethabi::Token::String(self.mock_token.id().to_string())
+                    ethabi::Token::String(self.mock_token.id().to_string()),
                 ],
             );
 
@@ -216,6 +225,55 @@ mod tests {
                 .into_result()
                 .unwrap();
         }
+
+        pub async fn unlock(&self) {
+            let unlock_proof = UnlockProof{
+                header_data: vec![],
+                account_proof: vec![],
+                account_data: vec![],
+                storage_proof: vec![]
+            };
+
+            let unlock_proof_str = near_sdk::base64::encode(unlock_proof.try_to_vec().unwrap());
+
+            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
+                "unlock",
+                &[
+                    ethabi::Token::Uint(U256::one()),
+                    ethabi::Token::String(unlock_proof_str)
+                ],
+            );
+
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true
+            )
+                .await
+                .unwrap();
+        }
+
+        pub async fn withdraw_from_near(&self) {
+            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
+                "withdrawFromNear",
+                &[
+                    ethabi::Token::String(self.mock_token.id().to_string()),
+                    ethabi::Token::Uint(U256::from(100))
+                ],
+            );
+
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true
+            )
+                .await
+                .unwrap();
+        }
     }
 
     #[tokio::test]
@@ -246,6 +304,13 @@ mod tests {
         assert_eq!(balance2, balance1);
 
         infra.increment_current_eth_block().await;
+        sleep(Duration::from_secs(15));
+        infra.unlock().await;
+        infra.withdraw_from_near().await;
+        infra.withdraw().await;
+
+        let balance3 = infra.get_mock_token_balance().await;
+        assert_eq!(balance3, balance0);
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
