@@ -65,6 +65,8 @@ mod tests {
             let user_address = aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
                 user_account.id().as_bytes(),
             );
+
+            compile_near_contracts().await;
             let mock_token = deploy_mock_token(&worker, user_account.id()).await;
 
             let mock_eth_client = deploy_mock_eth_client(&worker).await;
@@ -412,10 +414,7 @@ mod tests {
         return aurora_fast_bridge_impl;
     }
 
-    async fn deploy_mock_token(
-        worker: &workspaces::Worker<workspaces::network::Sandbox>,
-        user_account_id: &str
-    ) -> workspaces::Contract {
+    async fn compile_near_contracts() {
         let contract_path = Path::new("../../near/contracts/");
         let output = tokio::process::Command::new("cargo")
             .current_dir(contract_path)
@@ -431,6 +430,13 @@ mod tests {
             .await
             .unwrap();
         process::require_success(&output).unwrap();
+    }
+
+    async fn deploy_mock_token(
+        worker: &workspaces::Worker<workspaces::network::Sandbox>,
+        user_account_id: &str
+    ) -> workspaces::Contract {
+        let contract_path = Path::new("../../near/contracts/");
         let artifact_path =
             contract_path.join("target/wasm32-unknown-unknown/release/mock_token.wasm");
         let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
@@ -452,20 +458,6 @@ mod tests {
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
-        let output = tokio::process::Command::new("cargo")
-            .current_dir(contract_path)
-            .env("RUSTFLAGS", "-C link-arg=-s")
-            .args([
-                "build",
-                "--all",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-            ])
-            .output()
-            .await
-            .unwrap();
-        process::require_success(&output).unwrap();
         let artifact_path =
             contract_path.join("target/wasm32-unknown-unknown/release/mock_eth_client.wasm");
         let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
@@ -478,20 +470,6 @@ mod tests {
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
-        let output = tokio::process::Command::new("cargo")
-            .current_dir(contract_path)
-            .env("RUSTFLAGS", "-C link-arg=-s")
-            .args([
-                "build",
-                "--all",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-            ])
-            .output()
-            .await
-            .unwrap();
-        process::require_success(&output).unwrap();
         let artifact_path =
             contract_path.join("target/wasm32-unknown-unknown/release/mock_eth_prover.wasm");
         let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
@@ -513,21 +491,6 @@ mod tests {
         mock_eth_prover: &str
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
-        let output = tokio::process::Command::new("cargo")
-            .current_dir(contract_path)
-            .env("RUSTFLAGS", "-C link-arg=-s")
-            .args([
-                "build",
-                "--all",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-            ])
-            .output()
-            .await
-            .unwrap();
-
-        process::require_success(&output).unwrap();
         let artifact_path =
             contract_path.join("target/wasm32-unknown-unknown/release/fastbridge.wasm");
         let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
