@@ -10,3 +10,5 @@ eth/build
 ## testing_ui
 near/testing_ui/.cache/**
 near/testing_ui/dist/**
+/aurora/integration-tests/target/
+/aurora/contracts/out/
