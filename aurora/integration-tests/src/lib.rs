@@ -1,9 +1,6 @@
 #[cfg(test)]
 mod tests {
     use aurora_sdk_integration_tests::aurora_engine::erc20::ERC20;
-    use aurora_sdk_integration_tests::aurora_engine_types::parameters::engine::{
-        SubmitResult, TransactionStatus,
-    };
     use aurora_sdk_integration_tests::aurora_engine_types::H160;
     use aurora_sdk_integration_tests::workspaces::result::ExecutionFinalResult;
     use aurora_sdk_integration_tests::workspaces::{Account, Contract, Worker};
@@ -43,7 +40,7 @@ mod tests {
     }
 
     struct TestsInfrastructure {
-        worker: Worker<Sandbox>,
+        _worker: Worker<Sandbox>,
         engine: AuroraEngine,
         wnear: Wnear,
         user_account: Account,
@@ -51,7 +48,7 @@ mod tests {
         aurora_fast_bridge_contract: DeployedContract,
         mock_token: Contract,
         mock_eth_client: Contract,
-        mock_eth_prover: Contract,
+        _mock_eth_prover: Contract,
         near_fast_bridge: Contract,
         aurora_mock_token: ERC20,
     }
@@ -65,18 +62,15 @@ mod tests {
 
             let wnear = wnear::Wnear::deploy(&worker, &engine).await.unwrap();
             let user_account = worker.dev_create_account().await.unwrap();
-            println!("user_account: {:?}", user_account);
             let user_address = aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
                 user_account.id().as_bytes(),
             );
             let mock_token = deploy_mock_token(&worker, user_account.id()).await;
-            println!("mock token: {:?}", mock_token);
 
             let mock_eth_client = deploy_mock_eth_client(&worker).await;
             let mock_eth_prover = deploy_mock_eth_prover(&worker).await;
 
-            let near_fast_bridge = deploy_near_fast_bridge(&worker, user_account.id(), &mock_token.id().to_string(), &mock_eth_client.id().to_string(), &mock_eth_prover.id().to_string()).await;
-            println!("near fast bridge: {:?}", near_fast_bridge);
+            let near_fast_bridge = deploy_near_fast_bridge(&worker, &mock_token.id().to_string(), &mock_eth_client.id().to_string(), &mock_eth_prover.id().to_string()).await;
 
             let aurora_fast_bridge_contract = deploy_aurora_fast_bridge_contract(
                 &engine,
@@ -89,7 +83,7 @@ mod tests {
             let aurora_mock_token = engine.bridge_nep141(mock_token.id()).await.unwrap();
 
             TestsInfrastructure {
-                worker,
+                _worker: worker,
                 engine,
                 wnear,
                 user_account,
@@ -97,7 +91,7 @@ mod tests {
                 aurora_fast_bridge_contract,
                 mock_token,
                 mock_eth_client,
-                mock_eth_prover,
+                _mock_eth_prover: mock_eth_prover,
                 near_fast_bridge,
                 aurora_mock_token,
             }
@@ -177,15 +171,7 @@ mod tests {
                 ],
             );
 
-            let res = call_aurora_contract(
-                self.aurora_fast_bridge_contract.address,
-                contract_args,
-                &self.user_account,
-                self.engine.inner.id(),
-                true
-            )
-                .await
-                .unwrap();
+            self.call_aurora_contract(contract_args).await;
         }
 
         pub async fn withdraw(&self) {
@@ -196,15 +182,7 @@ mod tests {
                 ],
             );
 
-            call_aurora_contract(
-                self.aurora_fast_bridge_contract.address,
-                contract_args,
-                &self.user_account,
-                self.engine.inner.id(),
-                true
-            )
-                .await
-                .unwrap();
+            self.call_aurora_contract(contract_args).await;
         }
 
         pub async fn get_mock_token_balance(&self) -> U256 {
@@ -244,15 +222,7 @@ mod tests {
                 ],
             );
 
-            call_aurora_contract(
-                self.aurora_fast_bridge_contract.address,
-                contract_args,
-                &self.user_account,
-                self.engine.inner.id(),
-                true
-            )
-                .await
-                .unwrap();
+            self.call_aurora_contract(contract_args).await;
         }
 
         pub async fn withdraw_from_near(&self) {
@@ -264,6 +234,10 @@ mod tests {
                 ],
             );
 
+            self.call_aurora_contract(contract_args).await;
+        }
+
+        pub async fn call_aurora_contract(&self, contract_args: Vec<u8>) {
             call_aurora_contract(
                 self.aurora_fast_bridge_contract.address,
                 contract_args,
@@ -534,7 +508,6 @@ mod tests {
 
     async fn deploy_near_fast_bridge(
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
-        user_account_id: &str,
         mock_token_account_id: &str,
         mock_eth_client: &str,
         mock_eth_prover: &str
