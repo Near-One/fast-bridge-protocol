@@ -75,7 +75,7 @@ jobs:
       - name: Clone the repository
         uses: actions/checkout@v2
         with: 
-        submodules: recursive
+          submodules: recursive
       - name: Test
         run: |
           make test-aurora-fast-bridge
