@@ -65,3 +65,18 @@ jobs:
             echo 'Eth contract changed'
             exit 1
           fi
+
+  test-aurora-fast-bridge:
+    runs-on: self-hosted
+    name: Test aurora fast-bridge
+    steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+      - name: Clone the repository
+        uses: actions/checkout@v2
+        with: 
+        submodules: recursive
+      - name: Test
+        run: |
+          make test-aurora-fast-bridge
+  
