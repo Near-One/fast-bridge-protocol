@@ -84,10 +84,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function initialize(
         address wnearAddress,
-        string memory bridgeAddress,
-        string memory auroraEngineAccountId,
+        string calldata bridgeAddress,
+        string calldata auroraEngineAccountId,
         bool _isWhitelistModeEnabled
-    ) public initializer {
+    ) external initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -105,7 +105,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         isWhitelistModeEnabled = _isWhitelistModeEnabled;
     }
 
-    function setWhitelistMode(bool isEnabled) public onlyRole(WHITELIST_MANAGER) {
+    function setWhitelistMode(bool isEnabled) external onlyRole(WHITELIST_MANAGER) {
         isWhitelistModeEnabled = isEnabled;
 
         emit SetWhitelistMode(isEnabled);
@@ -119,7 +119,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
     }
 
-    function setWhitelistModeForUsers(address[] memory users, bool[] memory states) public onlyRole(WHITELIST_MANAGER) {
+    function setWhitelistModeForUsers(address[] calldata users, bool[] calldata states) external onlyRole(WHITELIST_MANAGER) {
         require(users.length == states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < users.length; i++) {
@@ -131,8 +131,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function registerToken(
         address auroraTokenAddress,
-        string memory nearTokenAddress
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        string calldata nearTokenAddress
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         near.wNEAR.transferFrom(msg.sender, address(this), uint256(NEAR_STORAGE_DEPOSIT));
         bytes memory args = bytes(
             string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
@@ -151,7 +151,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         emit TokenRegistered(auroraTokenAddress, nearTokenAddress);
     }
 
-    function initTokenTransfer(bytes memory initTransferArgs) public whenNotPaused {
+    function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
         require(isUserWhitelisted(address(msg.sender)), "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
@@ -208,7 +208,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callFtTransfer.then(callback).transact();
     }
 
-    function initTokenTransferCallback(address signer, bytes memory initTransferArgs) public onlyRole(CALLBACK_ROLE) {
+    function initTokenTransferCallback(address signer, bytes calldata initTransferArgs) external onlyRole(CALLBACK_ROLE) {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
@@ -233,7 +233,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
     }
 
-    function unlock(uint128 nonce, string memory proof) public whenNotPaused {
+    function unlock(uint128 nonce, string calldata proof) external whenNotPaused {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
 
         PromiseCreateArgs memory callUnlock = near.call(bridgeAddressOnNear, "unlock", args, 0, UNLOCK_NEAR_GAS);
@@ -243,7 +243,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callUnlock.then(callback).transact();
     }
 
-    function unlockCallback(address signer, uint128 nonce) public onlyRole(CALLBACK_ROLE) {
+    function unlockCallback(address signer, uint128 nonce) external onlyRole(CALLBACK_ROLE) {
         require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC is fail");
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
@@ -261,7 +261,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
     }
 
-    function withdrawFromNear(string memory tokenId, uint128 amount) public whenNotPaused {
+    function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
@@ -272,7 +272,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callWithdraw.then(callback).transact();
     }
 
-    function withdrawFromNearCallback(string memory tokenId, uint128 amount) public onlyRole(CALLBACK_ROLE) {
+    function withdrawFromNearCallback(string calldata tokenId, uint128 amount) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
             "ERROR: The `Withdraw From Near` XCC is fail"
@@ -281,7 +281,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         emit WithdrawFromNear(tokenId, amount);
     }
 
-    function withdraw(string memory token) public whenNotPaused {
+    function withdraw(string calldata token) external whenNotPaused {
         uint128 signerBalance = balance[token][msg.sender];
 
         require(signerBalance > 0, "The signer token balance = 0");
@@ -304,7 +304,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callWithdraw.then(callback).transact();
     }
 
-    function withdrawCallback(address signer, string memory token) public onlyRole(CALLBACK_ROLE) {
+    function withdrawCallback(address signer, string calldata token) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
             "ERROR: The `Withdraw` XCC is fail"
@@ -345,11 +345,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         return string.concat(_addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
     }
 
-    function getTokenAuroraAddress(string memory nearTokenAddress) public view returns (address) {
+    function getTokenAuroraAddress(string calldata nearTokenAddress) external view returns (address) {
         return address(registeredTokens[nearTokenAddress]);
     }
 
-    function getUserBalance(string memory nearTokenAddress, address userAddress) public view returns (uint128) {
+    function getUserBalance(string calldata nearTokenAddress, address userAddress) external view returns (uint128) {
         return balance[nearTokenAddress][userAddress];
     }
 
