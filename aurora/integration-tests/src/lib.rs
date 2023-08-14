@@ -20,6 +20,7 @@ mod tests {
     use std::path::Path;
     use std::thread::sleep;
     use std::time::Duration;
+    use aurora_sdk_integration_tests::aurora_engine_types::parameters::engine::{SubmitResult, TransactionStatus};
     use aurora_sdk_integration_tests::wnear::Wnear;
     use aurora_sdk_integration_tests::workspaces::network::Sandbox;
     use fast_bridge_common;
@@ -250,6 +251,26 @@ mod tests {
                 .await
                 .unwrap();
         }
+
+        pub async fn user_balance_in_fast_bridge(&self, expected_value: u8) {
+            let contract_args =
+                self.aurora_fast_bridge_contract.create_call_method_bytes_with_args("getUserBalance",
+                                                                                    &[ethabi::Token::String(self.mock_token.id().to_string()),
+                                                                                           ethabi::Token::Address(self.user_address.raw())]);
+            let outcome = call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true
+            )
+                .await;
+
+            let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
+            if let TransactionStatus::Succeed(res) = result.status {
+                assert_eq!(res[res.len() - 1], expected_value);
+            }
+        }
     }
 
     #[tokio::test]
@@ -271,6 +292,7 @@ mod tests {
 
         let balance0 = infra.get_mock_token_balance().await;
         infra.init_token_transfer().await;
+        infra.user_balance_in_fast_bridge(0).await;
 
         let balance1 = infra.get_mock_token_balance().await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
@@ -281,12 +303,17 @@ mod tests {
 
         infra.increment_current_eth_block().await;
         sleep(Duration::from_secs(15));
+        infra.user_balance_in_fast_bridge(0).await;
         infra.unlock().await;
+        infra.user_balance_in_fast_bridge(0).await;
         infra.withdraw_from_near().await;
+        infra.user_balance_in_fast_bridge(100).await;
         infra.withdraw().await;
 
         let balance3 = infra.get_mock_token_balance().await;
         assert_eq!(balance3, balance0);
+
+        infra.user_balance_in_fast_bridge(0).await;
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
