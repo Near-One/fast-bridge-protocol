@@ -300,6 +300,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
                 '"}'
             )
         );
+        balance[token][msg.sender] -= signerBalance;
+
         PromiseCreateArgs memory callWithdraw = near.call(token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
         bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
@@ -307,16 +309,16 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callWithdraw.then(callback).transact();
     }
 
-    function withdrawCallback(address signer, string calldata token) external onlyRole(CALLBACK_ROLE) {
+    function withdrawCallback(address signer, string calldata token, uint128 amount) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
             "ERROR: The `Withdraw` XCC is fail"
         );
 
         uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+        balance[token][signer] += (amount - transferredAmount);
 
         if (transferredAmount > 0) {
-            balance[token][signer] -= transferredAmount;
             emit Withdraw(signer, token, transferredAmount);
         }
     }
