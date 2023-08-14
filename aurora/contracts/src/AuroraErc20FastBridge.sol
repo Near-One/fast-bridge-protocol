@@ -359,9 +359,14 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function _stringToUint(bytes memory b) private pure returns (uint128) {
         uint128 result = 0;
-        for (uint256 i = 0; i < b.length; i++) {
-            result = result * 10 + (uint128(uint8(b[i])) - 48);
+        
+        for (uint128 i = 0; i < b.length; i++) {
+            uint128 v = uint128(uint8(b[i]));
+            if (v >= 48 && v <= 57) {
+                result = result * 10 + (v - 48);
+            }
         }
+        
         return result;
     }
 
