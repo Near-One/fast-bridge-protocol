@@ -305,7 +305,7 @@ mod tests {
         sleep(Duration::from_secs(15));
         infra.user_balance_in_fast_bridge(0).await;
         infra.unlock().await;
-        infra.user_balance_in_fast_bridge(0).await;
+        infra.user_balance_in_fast_bridge(100).await;
         infra.withdraw_from_near().await;
         infra.user_balance_in_fast_bridge(100).await;
         infra.withdraw().await;
