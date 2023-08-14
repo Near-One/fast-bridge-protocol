@@ -262,6 +262,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
+        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
+
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
@@ -285,6 +287,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 signerBalance = balance[token][msg.sender];
 
         require(signerBalance > 0, "The signer token balance = 0");
+        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
 
         bytes memory args = bytes(
             string.concat(
