@@ -1,3 +1,5 @@
+pub mod test_deploy;
+
 #[cfg(test)]
 mod tests {
     use aurora_sdk_integration_tests::{
@@ -8,7 +10,7 @@ mod tests {
             H160, U256,
         },
         ethabi, tokio,
-        utils::{ethabi::DeployedContract, forge, process},
+        utils::{ethabi::DeployedContract, forge},
         wnear::{self, Wnear},
         workspaces::{
             self, network::Sandbox, result::ExecutionFinalResult, Account, AccountId, Contract,
@@ -21,12 +23,14 @@ mod tests {
     use std::path::Path;
     use std::thread::sleep;
     use std::time::Duration;
+    use crate::test_deploy::test_deploy::{compile_near_contracts, TOKEN_SUPPLY, deploy_mock_token,
+                                          deploy_mock_eth_client, deploy_mock_eth_prover,
+                                          deploy_near_fast_bridge};
 
     const ATTACHED_NEAR: u128 = 5 * near_sdk::ONE_NEAR;
     const NEAR_DEPOSIT: u128 = 2 * near_sdk::ONE_NEAR;
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
-    const TOKEN_SUPPLY: u64 = 1_000_000_000;
 
     struct TestsInfrastructure {
         _worker: Worker<Sandbox>,
@@ -415,8 +419,8 @@ mod tests {
                 "AuroraErc20FastBridge.json",
             ],
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         let deploy_bytes = constructor.create_deploy_bytes_without_constructor();
 
@@ -444,141 +448,10 @@ mod tests {
             engine.inner.id(),
             true,
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
 
         return aurora_fast_bridge_impl;
-    }
-
-    async fn compile_near_contracts() {
-        let contract_path = Path::new("../../near/");
-        let output = tokio::process::Command::new("bash")
-            .current_dir(contract_path)
-            .args([
-                "build_for_tests.sh"
-            ])
-            .output()
-            .await
-            .unwrap();
-        process::require_success(&output).unwrap();
-    }
-
-    async fn deploy_mock_token(
-        worker: &workspaces::Worker<workspaces::network::Sandbox>,
-        user_account_id: &str,
-    ) -> workspaces::Contract {
-        let contract_path = Path::new("../../near/contracts/");
-        let artifact_path =
-            contract_path.join("target/wasm32-unknown-unknown/release/mock_token.wasm");
-        let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
-        let mock_token = worker.dev_deploy(&wasm_bytes).await.unwrap();
-
-        mock_token
-            .call("new_default_meta")
-            .args_json(serde_json::json!({"owner_id": user_account_id, "name": "MockToken", "symbol": "MCT", "total_supply": format!("{}", TOKEN_SUPPLY)}))
-            .transact()
-            .await
-            .unwrap()
-            .into_result()
-            .unwrap();
-
-        mock_token
-    }
-
-    async fn deploy_mock_eth_client(
-        worker: &workspaces::Worker<workspaces::network::Sandbox>,
-    ) -> workspaces::Contract {
-        let contract_path = Path::new("../../near/contracts/");
-        let artifact_path =
-            contract_path.join("target/wasm32-unknown-unknown/release/mock_eth_client.wasm");
-        let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
-        let mock_eth_client = worker.dev_deploy(&wasm_bytes).await.unwrap();
-
-        mock_eth_client
-    }
-
-    async fn deploy_mock_eth_prover(
-        worker: &workspaces::Worker<workspaces::network::Sandbox>,
-    ) -> workspaces::Contract {
-        let contract_path = Path::new("../../near/contracts/");
-        let artifact_path =
-            contract_path.join("target/wasm32-unknown-unknown/release/mock_eth_prover.wasm");
-        let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
-        let mock_eth_prover = worker.dev_deploy(&wasm_bytes).await.unwrap();
-
-        mock_eth_prover
-            .call("set_log_entry_verification_status")
-            .args_json(serde_json::json!({
-                "verification_status": true
-            }))
-            .max_gas()
-            .transact()
-            .await
-            .unwrap()
-            .into_result()
-            .unwrap();
-
-        mock_eth_prover
-    }
-
-    async fn deploy_near_fast_bridge(
-        worker: &workspaces::Worker<workspaces::network::Sandbox>,
-        mock_token_account_id: &str,
-        mock_eth_client: &str,
-        mock_eth_prover: &str,
-    ) -> workspaces::Contract {
-        let contract_path = Path::new("../../near/contracts/");
-        let artifact_path =
-            contract_path.join("target/wasm32-unknown-unknown/release/fastbridge.wasm");
-        let wasm_bytes = tokio::fs::read(artifact_path).await.unwrap();
-        let fast_bridge = worker.dev_deploy(&wasm_bytes).await.unwrap();
-
-        fast_bridge
-            .call("new")
-            .args_json(serde_json::json!({
-                "eth_bridge_contract": "DBE11ADC5F9c821341A837f4810123f495fBFd44",
-                "prover_account": mock_eth_prover,
-                "eth_client_account": mock_eth_client,
-                "lock_time_min": "1s",
-                "lock_time_max": "24h",
-                "eth_block_time": 12000000000u128,
-                "whitelist_mode": true,
-                "start_nonce": "0",
-            }))
-            .max_gas()
-            .transact()
-            .await
-            .unwrap()
-            .into_result()
-            .unwrap();
-
-        fast_bridge
-            .call("acl_grant_role")
-            .args_json(serde_json::json!({
-                "account_id": fast_bridge.id().to_string(),
-                "role": "WhitelistManager"
-            }))
-            .max_gas()
-            .transact()
-            .await
-            .unwrap()
-            .into_result()
-            .unwrap();
-
-        fast_bridge
-            .call("set_token_whitelist_mode")
-            .args_json(serde_json::json!({
-                "token": mock_token_account_id,
-                "mode": "CheckToken"
-            }))
-            .max_gas()
-            .transact()
-            .await
-            .unwrap()
-            .into_result()
-            .unwrap();
-
-        fast_bridge
     }
 
     async fn mint_tokens_near(token_contract: &Contract, receiver_id: &str) {
