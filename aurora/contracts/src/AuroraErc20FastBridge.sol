@@ -316,7 +316,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
 
         uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
-        balance[token][signer] += (amount - transferredAmount);
+        uint128 refundAmount = amount - transferredAmount;
+        
+        if (refundAmount > 0) {
+            balance[token][signer] += refundAmount;
+        }
 
         if (transferredAmount > 0) {
             emit Withdraw(signer, token, transferredAmount);
