@@ -1,30 +1,25 @@
 #[cfg(test)]
 mod tests {
-    use aurora_sdk_integration_tests::aurora_engine::erc20::ERC20;
-    use aurora_sdk_integration_tests::aurora_engine_types::H160;
-    use aurora_sdk_integration_tests::workspaces::result::ExecutionFinalResult;
-    use aurora_sdk_integration_tests::workspaces::{Account, Contract, Worker};
     use aurora_sdk_integration_tests::{
-        aurora_engine::{self, AuroraEngine},
+        aurora_engine::{self, erc20::ERC20, AuroraEngine},
         aurora_engine_types::{
-            parameters::engine::{CallArgs, FunctionCallArgsV1},
+            parameters::engine::{CallArgs, FunctionCallArgsV1, SubmitResult, TransactionStatus},
             types::{Address, Wei},
-            U256,
+            H160, U256,
         },
         ethabi, tokio,
         utils::{ethabi::DeployedContract, forge, process},
-        wnear,
-        workspaces::{self, AccountId},
+        wnear::{self, Wnear},
+        workspaces::{
+            self, network::Sandbox, result::ExecutionFinalResult, Account, AccountId, Contract,
+            Worker,
+        },
     };
+    use fast_bridge_common::{self, EthAddress};
     use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
     use std::path::Path;
     use std::thread::sleep;
     use std::time::Duration;
-    use aurora_sdk_integration_tests::aurora_engine_types::parameters::engine::{SubmitResult, TransactionStatus};
-    use aurora_sdk_integration_tests::wnear::Wnear;
-    use aurora_sdk_integration_tests::workspaces::network::Sandbox;
-    use fast_bridge_common;
-    use fast_bridge_common::EthAddress;
 
     const ATTACHED_NEAR: u128 = 5_000_000_000_000_000_000_000_000;
     const NEAR_DEPOSIT: u128 = 2_000_000_000_000_000_000_000_000;
@@ -57,15 +52,14 @@ mod tests {
     impl TestsInfrastructure {
         pub async fn init() -> Self {
             let worker = workspaces::sandbox().await.unwrap();
-            let engine = aurora_engine::deploy_latest(&worker)
-                .await
-                .unwrap();
+            let engine = aurora_engine::deploy_latest(&worker).await.unwrap();
 
             let wnear = wnear::Wnear::deploy(&worker, &engine).await.unwrap();
             let user_account = worker.dev_create_account().await.unwrap();
-            let user_address = aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
-                user_account.id().as_bytes(),
-            );
+            let user_address =
+                aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
+                    user_account.id().as_bytes(),
+                );
 
             compile_near_contracts().await;
             let mock_token = deploy_mock_token(&worker, user_account.id()).await;
@@ -73,15 +67,21 @@ mod tests {
             let mock_eth_client = deploy_mock_eth_client(&worker).await;
             let mock_eth_prover = deploy_mock_eth_prover(&worker).await;
 
-            let near_fast_bridge = deploy_near_fast_bridge(&worker, &mock_token.id().to_string(), &mock_eth_client.id().to_string(), &mock_eth_prover.id().to_string()).await;
+            let near_fast_bridge = deploy_near_fast_bridge(
+                &worker,
+                &mock_token.id().to_string(),
+                &mock_eth_client.id().to_string(),
+                &mock_eth_prover.id().to_string(),
+            )
+            .await;
 
             let aurora_fast_bridge_contract = deploy_aurora_fast_bridge_contract(
                 &engine,
                 &user_account,
                 wnear.aurora_token.address,
-                &near_fast_bridge
+                &near_fast_bridge,
             )
-                .await;
+            .await;
 
             let aurora_mock_token = engine.bridge_nep141(mock_token.id()).await.unwrap();
 
@@ -117,7 +117,8 @@ mod tests {
                 self.aurora_fast_bridge_contract.address,
                 &user_account.unwrap_or(self.user_account.clone()),
                 &self.engine,
-            ).await;
+            )
+            .await;
         }
 
         pub async fn register_token(&self, user_account: Option<Account>, check_result: bool) {
@@ -127,8 +128,9 @@ mod tests {
                 self.mock_token.id().to_string(),
                 &user_account.unwrap_or(self.user_account.clone()),
                 &self.engine,
-                check_result
-            ).await;
+                check_result,
+            )
+            .await;
         }
 
         pub async fn approve_spend_mock_tokens(&self) {
@@ -137,7 +139,8 @@ mod tests {
                 self.aurora_fast_bridge_contract.address,
                 &self.user_account,
                 &self.engine,
-            ).await;
+            )
+            .await;
         }
 
         pub async fn init_token_transfer(&self) {
@@ -147,43 +150,45 @@ mod tests {
                 .as_nanos()
                 + Duration::from_secs(30).as_nanos()) as u64;
 
-            let transfer_msg = fast_bridge_common::TransferMessage{
+            let transfer_msg = fast_bridge_common::TransferMessage {
                 valid_till,
                 transfer: fast_bridge_common::TransferDataEthereum {
                     token_near: self.mock_token.id().parse().unwrap(),
                     token_eth: EthAddress(self.aurora_mock_token.address.raw().0),
-                    amount: near_sdk::json_types::U128::from(100)
+                    amount: near_sdk::json_types::U128::from(100),
                 },
                 fee: fast_bridge_common::TransferDataNear {
                     token: self.mock_token.id().parse().unwrap(),
-                    amount: near_sdk::json_types::U128::from(0)
+                    amount: near_sdk::json_types::U128::from(0),
                 },
                 recipient: EthAddress(self.user_address.raw().0),
                 valid_till_block_height: None,
-                aurora_sender: Some(EthAddress(self.user_address.raw().0))
+                aurora_sender: Some(EthAddress(self.user_address.raw().0)),
             };
 
-            let mut transfer_msg_borsh_hex = serde_json::to_string(&hex::encode(transfer_msg.try_to_vec().unwrap().as_slice())).unwrap();
+            let mut transfer_msg_borsh_hex =
+                serde_json::to_string(&hex::encode(transfer_msg.try_to_vec().unwrap().as_slice()))
+                    .unwrap();
             transfer_msg_borsh_hex.pop();
             transfer_msg_borsh_hex.remove(0);
 
-            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
-                "initTokenTransfer",
-                &[
-                    ethabi::Token::Bytes(transfer_msg.try_to_vec().unwrap())
-                ],
-            );
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "initTokenTransfer",
+                    &[ethabi::Token::Bytes(transfer_msg.try_to_vec().unwrap())],
+                );
 
             self.call_aurora_contract(contract_args).await;
         }
 
         pub async fn withdraw(&self) {
-            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
-                "withdraw",
-                &[
-                    ethabi::Token::String(self.mock_token.id().to_string()),
-                ],
-            );
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "withdraw",
+                    &[ethabi::Token::String(self.mock_token.id().to_string())],
+                );
 
             self.call_aurora_contract(contract_args).await;
         }
@@ -196,10 +201,11 @@ mod tests {
         }
 
         pub async fn increment_current_eth_block(&self) {
-            self.mock_eth_client.call("set_last_block_number")
+            self.mock_eth_client
+                .call("set_last_block_number")
                 .args_json(serde_json::json!({
-                "block_number": 100
-            }))
+                    "block_number": 100
+                }))
                 .transact()
                 .await
                 .unwrap()
@@ -208,34 +214,38 @@ mod tests {
         }
 
         pub async fn unlock(&self) {
-            let unlock_proof = UnlockProof{
+            let unlock_proof = UnlockProof {
                 header_data: vec![],
                 account_proof: vec![],
                 account_data: vec![],
-                storage_proof: vec![]
+                storage_proof: vec![],
             };
 
             let unlock_proof_str = near_sdk::base64::encode(unlock_proof.try_to_vec().unwrap());
 
-            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
-                "unlock",
-                &[
-                    ethabi::Token::Uint(U256::one()),
-                    ethabi::Token::String(unlock_proof_str)
-                ],
-            );
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "unlock",
+                    &[
+                        ethabi::Token::Uint(U256::one()),
+                        ethabi::Token::String(unlock_proof_str),
+                    ],
+                );
 
             self.call_aurora_contract(contract_args).await;
         }
 
         pub async fn withdraw_from_near(&self) {
-            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
-                "withdrawFromNear",
-                &[
-                    ethabi::Token::String(self.mock_token.id().to_string()),
-                    ethabi::Token::Uint(U256::from(100))
-                ],
-            );
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "withdrawFromNear",
+                    &[
+                        ethabi::Token::String(self.mock_token.id().to_string()),
+                        ethabi::Token::Uint(U256::from(100)),
+                    ],
+                );
 
             self.call_aurora_contract(contract_args).await;
         }
@@ -246,25 +256,30 @@ mod tests {
                 contract_args,
                 &self.user_account,
                 self.engine.inner.id(),
-                true
+                true,
             )
-                .await
-                .unwrap();
+            .await
+            .unwrap();
         }
 
         pub async fn user_balance_in_fast_bridge(&self, expected_value: u8) {
-            let contract_args =
-                self.aurora_fast_bridge_contract.create_call_method_bytes_with_args("getUserBalance",
-                                                                                    &[ethabi::Token::String(self.mock_token.id().to_string()),
-                                                                                           ethabi::Token::Address(self.user_address.raw())]);
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "getUserBalance",
+                    &[
+                        ethabi::Token::String(self.mock_token.id().to_string()),
+                        ethabi::Token::Address(self.user_address.raw()),
+                    ],
+                );
             let outcome = call_aurora_contract(
                 self.aurora_fast_bridge_contract.address,
                 contract_args,
                 &self.user_account,
                 self.engine.inner.id(),
-                true
+                true,
             )
-                .await;
+            .await;
 
             let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
             if let TransactionStatus::Succeed(res) = result.status {
@@ -339,7 +354,7 @@ mod tests {
         near_mock_token_account_id: String,
         user_account: &Account,
         engine: &AuroraEngine,
-        check_result: bool
+        check_result: bool,
     ) {
         let contract_args = aurora_fast_bridge.create_call_method_bytes_with_args(
             "registerToken",
@@ -354,10 +369,10 @@ mod tests {
             contract_args,
             user_account,
             engine.inner.id(),
-            check_result
+            check_result,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
     }
 
     async fn approve_spend_tokens(
@@ -378,7 +393,7 @@ mod tests {
         engine: &AuroraEngine,
         user_account: &workspaces::Account,
         wnear_address: Address,
-        near_fast_bridge: &Contract
+        near_fast_bridge: &Contract,
     ) -> DeployedContract {
         let contract_path = "../contracts";
 
@@ -406,7 +421,11 @@ mod tests {
                     utils_lib.encode()
                 ),
             ],
-            &["out", "AuroraErc20FastBridge.sol", "AuroraErc20FastBridge.json"],
+            &[
+                "out",
+                "AuroraErc20FastBridge.sol",
+                "AuroraErc20FastBridge.json",
+            ],
         )
         .await
         .unwrap();
@@ -426,7 +445,7 @@ mod tests {
                 ethabi::Token::Address(wnear_address.raw()),
                 ethabi::Token::String(near_fast_bridge.id().to_string()),
                 ethabi::Token::String(engine.inner.id().to_string()),
-                ethabi::Token::Bool(false)
+                ethabi::Token::Bool(false),
             ],
         );
 
@@ -435,8 +454,10 @@ mod tests {
             contract_args,
             &user_account,
             engine.inner.id(),
-            true
-        ).await.unwrap();
+            true,
+        )
+        .await
+        .unwrap();
 
         return aurora_fast_bridge_impl;
     }
@@ -461,7 +482,7 @@ mod tests {
 
     async fn deploy_mock_token(
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
-        user_account_id: &str
+        user_account_id: &str,
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
         let artifact_path =
@@ -506,7 +527,13 @@ mod tests {
             .call("set_log_entry_verification_status")
             .args_json(serde_json::json!({
                 "verification_status": true
-            })).max_gas().transact().await.unwrap().into_result().unwrap();
+            }))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
 
         mock_eth_prover
     }
@@ -515,7 +542,7 @@ mod tests {
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
         mock_token_account_id: &str,
         mock_eth_client: &str,
-        mock_eth_prover: &str
+        mock_eth_prover: &str,
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
         let artifact_path =
@@ -547,19 +574,29 @@ mod tests {
             .args_json(serde_json::json!({
                 "account_id": fast_bridge.id().to_string(),
                 "role": "WhitelistManager"
-            })).max_gas().transact().await.unwrap().into_result().unwrap();
+            }))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
 
         fast_bridge
             .call("set_token_whitelist_mode")
             .args_json(serde_json::json!({
                 "token": mock_token_account_id,
                 "mode": "CheckToken"
-            })).max_gas().transact().await.unwrap().into_result().unwrap();
-
+            }))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
 
         fast_bridge
     }
-
 
     async fn mint_tokens_near(token_contract: &Contract, receiver_id: &str) {
         token_contract
@@ -580,7 +617,7 @@ mod tests {
         contract_args: Vec<u8>,
         user_account: &Account,
         engine_account: &AccountId,
-        check_output: bool
+        check_output: bool,
     ) -> ExecutionFinalResult {
         let call_args = CallArgs::V1(FunctionCallArgsV1 {
             contract: contract_address,
