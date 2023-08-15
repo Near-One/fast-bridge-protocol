@@ -451,16 +451,11 @@ mod tests {
     }
 
     async fn compile_near_contracts() {
-        let contract_path = Path::new("../../near/contracts/");
-        let output = tokio::process::Command::new("cargo")
+        let contract_path = Path::new("../../near/");
+        let output = tokio::process::Command::new("bash")
             .current_dir(contract_path)
-            .env("RUSTFLAGS", "-C link-arg=-s")
             .args([
-                "build",
-                "--all",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
+                "build_locally.sh"
             ])
             .output()
             .await
