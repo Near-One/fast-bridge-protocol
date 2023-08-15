@@ -455,7 +455,7 @@ mod tests {
         let output = tokio::process::Command::new("bash")
             .current_dir(contract_path)
             .args([
-                "build_locally.sh"
+                "build_for_tests.sh"
             ])
             .output()
             .await
