@@ -21,11 +21,11 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
 
-    const ATTACHED_NEAR: u128 = 5_000_000_000_000_000_000_000_000;
-    const NEAR_DEPOSIT: u128 = 2_000_000_000_000_000_000_000_000;
+    const ATTACHED_NEAR: u128 = 5 * near_sdk::ONE_NEAR;
+    const NEAR_DEPOSIT: u128 = 2 * near_sdk::ONE_NEAR;
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
-    const TOKEN_SUPPLY: u64 = 1000000000;
+    const TOKEN_SUPPLY: u64 = 1_000_000_000;
 
     #[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, PartialEq)]
     pub struct UnlockProof {
