@@ -16,7 +16,8 @@ mod tests {
         },
     };
     use fast_bridge_common::{self, EthAddress};
-    use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+    use fastbridge::UnlockProof;
+    use near_sdk::borsh::BorshSerialize;
     use std::path::Path;
     use std::thread::sleep;
     use std::time::Duration;
@@ -26,14 +27,6 @@ mod tests {
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
     const TOKEN_SUPPLY: u64 = 1_000_000_000;
-
-    #[derive(Default, BorshDeserialize, BorshSerialize, Debug, Clone, PartialEq)]
-    pub struct UnlockProof {
-        header_data: Vec<u8>,
-        account_proof: Vec<Vec<u8>>,
-        account_data: Vec<u8>,
-        storage_proof: Vec<Vec<u8>>,
-    }
 
     struct TestsInfrastructure {
         _worker: Worker<Sandbox>,
@@ -214,12 +207,7 @@ mod tests {
         }
 
         pub async fn unlock(&self) {
-            let unlock_proof = UnlockProof {
-                header_data: vec![],
-                account_proof: vec![],
-                account_data: vec![],
-                storage_proof: vec![],
-            };
+            let unlock_proof: UnlockProof = Default::default();
 
             let unlock_proof_str = near_sdk::base64::encode(unlock_proof.try_to_vec().unwrap());
 
