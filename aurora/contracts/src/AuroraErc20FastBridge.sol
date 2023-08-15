@@ -30,6 +30,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
+    
+    uint128 constant ASCII_0 = 48;
+    uint128 constant ASCII_9 = 57;    
 
     NEAR public near;
     string public bridgeAddressOnNear;
@@ -371,8 +374,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         
         for (uint128 i = 0; i < b.length; i++) {
             uint128 v = uint128(uint8(b[i]));
-            if (v >= 48 && v <= 57) {
-                result = result * 10 + (v - 48);
+            
+            if (v >= ASCII_0 && v <= ASCII_9) {
+                result = result * 10 + (v - ASCII_0);
             }
         }
         
