@@ -158,13 +158,7 @@ mod tests {
                 valid_till_block_height: None,
                 aurora_sender: Some(EthAddress(self.user_aurora_address.raw().0)),
             };
-
-            let mut transfer_msg_borsh_hex =
-                serde_json::to_string(&hex::encode(transfer_msg.try_to_vec().unwrap().as_slice()))
-                    .unwrap();
-            transfer_msg_borsh_hex.pop();
-            transfer_msg_borsh_hex.remove(0);
-
+            
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
