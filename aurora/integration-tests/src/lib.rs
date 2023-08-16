@@ -38,7 +38,7 @@ mod tests {
         engine: AuroraEngine,
         wnear: Wnear,
         user_account: Account,
-        user_address: Address,
+        user_aurora_address: Address,
         aurora_fast_bridge_contract: DeployedContract,
         mock_token: Contract,
         mock_eth_client: Contract,
@@ -88,7 +88,7 @@ mod tests {
                 engine,
                 wnear,
                 user_account,
-                user_address,
+                user_aurora_address: user_address,
                 aurora_fast_bridge_contract,
                 mock_token,
                 mock_eth_client,
@@ -102,7 +102,7 @@ mod tests {
             self.engine
                 .mint_wnear(
                     &self.wnear,
-                    user_address.unwrap_or(self.user_address),
+                    user_address.unwrap_or(self.user_aurora_address),
                     2 * (ATTACHED_NEAR + NEAR_DEPOSIT),
                 )
                 .await
@@ -159,9 +159,9 @@ mod tests {
                     token: self.mock_token.id().parse().unwrap(),
                     amount: near_sdk::json_types::U128::from(0),
                 },
-                recipient: EthAddress(self.user_address.raw().0),
+                recipient: EthAddress(self.user_aurora_address.raw().0),
                 valid_till_block_height: None,
-                aurora_sender: Some(EthAddress(self.user_address.raw().0)),
+                aurora_sender: Some(EthAddress(self.user_aurora_address.raw().0)),
             };
 
             let mut transfer_msg_borsh_hex =
@@ -193,7 +193,7 @@ mod tests {
 
         pub async fn get_mock_token_balance(&self) -> U256 {
             self.engine
-                .erc20_balance_of(&self.aurora_mock_token, self.user_address)
+                .erc20_balance_of(&self.aurora_mock_token, self.user_aurora_address)
                 .await
                 .unwrap()
         }
@@ -262,7 +262,7 @@ mod tests {
                     "getUserBalance",
                     &[
                         ethabi::Token::String(self.mock_token.id().to_string()),
-                        ethabi::Token::Address(self.user_address.raw()),
+                        ethabi::Token::Address(self.user_aurora_address.raw()),
                     ],
                 );
             let outcome = call_aurora_contract(
@@ -295,7 +295,7 @@ mod tests {
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
         engine_mint_tokens(
-            infra.user_address,
+            infra.user_aurora_address,
             &infra.aurora_mock_token,
             TRANSFER_TOKENS_AMOUNT,
             &infra.engine,
