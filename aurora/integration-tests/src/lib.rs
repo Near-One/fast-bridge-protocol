@@ -253,7 +253,7 @@ mod tests {
         pub async fn assert_user_balance_in_fast_bridge_on_aurora(
             &self,
             user_address: Option<Address>,
-            expected_value: u8,
+            expected_value: u64,
         ) {
             let contract_args = self
                 .aurora_fast_bridge_contract
@@ -277,7 +277,9 @@ mod tests {
 
             let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
             if let TransactionStatus::Succeed(res) = result.status {
-                assert_eq!(res[res.len() - 1], expected_value);
+                let mut buf = [0u8; 8];
+                buf.copy_from_slice(&res.as_slice()[res.len() - 8 .. res.len()]);
+                assert_eq!(u64::from_be_bytes(buf), expected_value);
             }
         }
     }
@@ -339,11 +341,11 @@ mod tests {
             .await;
         infra.unlock().await;
         infra
-            .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT as u8)
+            .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT)
             .await;
         infra.withdraw_from_near().await;
         infra
-            .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT as u8)
+            .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT)
             .await;
         infra.withdraw().await;
 
