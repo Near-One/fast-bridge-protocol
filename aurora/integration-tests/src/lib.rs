@@ -28,8 +28,9 @@ mod tests {
     use std::thread::sleep;
     use std::time::Duration;
 
-    const ATTACHED_NEAR: u128 = 5 * near_sdk::ONE_NEAR;
+    const TOKEN_STORAGE_DEPOSIT: u128 = near_sdk::ONE_NEAR / 80;
     const NEAR_DEPOSIT: u128 = 2 * near_sdk::ONE_NEAR;
+    const WNEAR_FOR_TOKENS_TRANSFERS: u128 = 100 * near_sdk::ONE_YOCTO;
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
 
@@ -98,12 +99,12 @@ mod tests {
             }
         }
 
-        pub async fn mint_wnear(&self, user_address: Option<Address>) {
+        pub async fn mint_wnear(&self, user_address: Option<Address>, amount: u128) {
             self.engine
                 .mint_wnear(
                     &self.wnear,
                     user_address.unwrap_or(self.user_aurora_address),
-                    2 * (ATTACHED_NEAR + NEAR_DEPOSIT),
+                    amount,
                 )
                 .await
                 .unwrap();
@@ -287,7 +288,12 @@ mod tests {
 
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
-        infra.mint_wnear(None).await;
+        infra
+            .mint_wnear(
+                None,
+                TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT + WNEAR_FOR_TOKENS_TRANSFERS,
+            )
+            .await;
         infra.approve_spend_wnear(None).await;
 
         infra.register_token(None, true).await;

@@ -136,7 +136,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address auroraTokenAddress,
         string calldata nearTokenAddress
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        near.wNEAR.transferFrom(msg.sender, address(this), uint256(NEAR_STORAGE_DEPOSIT));
         bytes memory args = bytes(
             string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
         );
@@ -169,8 +168,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
-        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
-
+        
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
@@ -265,8 +263,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
-        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
-
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
@@ -290,8 +286,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 signerBalance = balance[token][msg.sender];
 
         require(signerBalance > 0, "The signer token balance = 0");
-        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
-
+        
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id": "',
