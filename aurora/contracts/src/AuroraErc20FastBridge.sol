@@ -168,7 +168,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
 
         require(
-            _is_equal(transferMessage.transferTokenAddressOnNear, transferMessage.feeTokenAddressOnNear),
+            _isStrEqual(transferMessage.transferTokenAddressOnNear, transferMessage.feeTokenAddressOnNear),
             "The transfer and fee tokens are different. Different tokens not supported yet."
         );
 
@@ -427,7 +427,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         return PromiseCreateArgs(targetAccountId, method, args, nearBalance, nearGas);
     }
 
-    function _is_equal(string memory str1, string memory str2) private pure returns (bool) {
+    function _isStrEqual(string memory str1, string memory str2) private pure returns (bool) {
         return keccak256(abi.encodePacked(str1)) == keccak256(abi.encodePacked(str2));
     }
 
