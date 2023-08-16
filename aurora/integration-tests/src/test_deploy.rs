@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod test_deploy {
-    use aurora_sdk_integration_tests::{tokio, utils::process, workspaces};
+    use aurora_sdk_integration_tests::{aurora_engine_types::types::Address, tokio,
+                                       utils::process, workspaces};
     use std::path::Path;
 
     pub const TOKEN_SUPPLY: u64 = 1_000_000_000;
@@ -91,7 +92,7 @@ pub mod test_deploy {
         fast_bridge
             .call("new")
             .args_json(serde_json::json!({
-                "eth_bridge_contract": "DBE11ADC5F9c821341A837f4810123f495fBFd44",
+                "eth_bridge_contract": Address::zero().encode(),
                 "prover_account": mock_eth_prover_account_id,
                 "eth_client_account": mock_eth_client_account_id,
                 "lock_time_min": "1s",
