@@ -278,7 +278,7 @@ mod tests {
             let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
             if let TransactionStatus::Succeed(res) = result.status {
                 let mut buf = [0u8; 8];
-                buf.copy_from_slice(&res.as_slice()[res.len() - 8 .. res.len()]);
+                buf.copy_from_slice(&res.as_slice()[res.len() - 8..res.len()]);
                 assert_eq!(u64::from_be_bytes(buf), expected_value);
             }
         }
@@ -291,9 +291,12 @@ mod tests {
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
         infra
+            .mint_wnear(None, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT)
+            .await;
+        infra
             .mint_wnear(
-                None,
-                TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT + WNEAR_FOR_TOKENS_TRANSFERS,
+                Some(infra.aurora_fast_bridge_contract.address),
+                WNEAR_FOR_TOKENS_TRANSFERS,
             )
             .await;
         infra.approve_spend_wnear(None).await;

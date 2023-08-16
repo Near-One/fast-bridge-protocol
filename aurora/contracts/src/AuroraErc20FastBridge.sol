@@ -171,7 +171,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
-
+        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
@@ -195,7 +195,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             )
         );
 
-        PromiseCreateArgs memory callFtTransfer = near.call(
+        PromiseCreateArgs memory callFtTransfer = _callWithoutTransferWNear(
+            near,
             transferMessage.transferTokenAddressOnNear,
             "ft_transfer_call",
             args,
@@ -269,10 +270,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
+        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
-        PromiseCreateArgs memory callWithdraw = near.call(bridgeAddressOnNear, "withdraw", args, 1, WITHDRAW_NEAR_GAS);
+        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(near, bridgeAddressOnNear, "withdraw", args, 1, WITHDRAW_NEAR_GAS);
         bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromNearCallback.selector, tokenId, amount);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
 
@@ -292,6 +294,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 signerBalance = balance[token][msg.sender];
 
         require(signerBalance > 0, "The signer token balance = 0");
+        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
 
         bytes memory args = bytes(
             string.concat(
@@ -306,7 +309,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
         balance[token][msg.sender] -= signerBalance;
 
-        PromiseCreateArgs memory callWithdraw = near.call(token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
+        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(near, token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
         bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
 
@@ -382,6 +385,24 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
 
         return result;
+    }
+    
+    /// Creates a base promise. This is not immediately scheduled for execution
+    /// until transact is called. It can be combined with other promises using
+    /// `then` combinator.
+    ///
+    /// Input is not checekd during promise creation. If it is invalid, the
+    /// transaction will be scheduled either way, but it will fail during execution.
+    function _callWithoutTransferWNear(
+        NEAR storage _near,
+        string memory targetAccountId,
+        string memory method,
+        bytes memory args,
+        uint128 nearBalance,
+        uint64 nearGas
+    ) private view returns (PromiseCreateArgs memory) {
+        require(_near.initialized, "Near isn't initialized");
+        return PromiseCreateArgs(targetAccountId, method, args, nearBalance, nearGas);
     }
 
     function _is_equal(string memory str1, string memory str2) private pure returns (bool) {
