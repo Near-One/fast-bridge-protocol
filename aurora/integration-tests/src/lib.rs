@@ -158,7 +158,7 @@ mod tests {
                 valid_till_block_height: None,
                 aurora_sender: Some(EthAddress(self.user_aurora_address.raw().0)),
             };
-            
+
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
@@ -180,9 +180,15 @@ mod tests {
             self.call_aurora_contract(contract_args).await;
         }
 
-        pub async fn get_mock_token_balance(&self) -> U256 {
+        pub async fn get_mock_token_balance_on_aurora_for(
+            &self,
+            user_address: Option<Address>,
+        ) -> U256 {
             self.engine
-                .erc20_balance_of(&self.aurora_mock_token, self.user_aurora_address)
+                .erc20_balance_of(
+                    &self.aurora_mock_token,
+                    user_address.unwrap_or(self.user_aurora_address),
+                )
                 .await
                 .unwrap()
         }
@@ -244,14 +250,20 @@ mod tests {
             .unwrap();
         }
 
-        pub async fn user_balance_in_fast_bridge(&self, expected_value: u8) {
+        pub async fn assert_user_balance_in_fast_bridge_on_aurora(
+            &self,
+            user_address: Option<Address>,
+            expected_value: u8,
+        ) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
                     "getUserBalance",
                     &[
                         ethabi::Token::String(self.mock_token.id().to_string()),
-                        ethabi::Token::Address(self.user_aurora_address.raw()),
+                        ethabi::Token::Address(
+                            user_address.unwrap_or(self.user_aurora_address).raw(),
+                        ),
                     ],
                 );
             let outcome = call_aurora_contract(
@@ -298,7 +310,7 @@ mod tests {
 
         infra.approve_spend_mock_tokens().await;
 
-        let balance0 = infra.get_mock_token_balance().await;
+        let balance0 = infra.get_mock_token_balance_on_aurora_for(None).await;
 
         let valid_till = (std::time::SystemTime::now()
             .duration_since(std::time::SystemTime::UNIX_EPOCH)
@@ -309,28 +321,38 @@ mod tests {
         infra
             .init_token_transfer(TRANSFER_TOKENS_AMOUNT as u128, 0, valid_till)
             .await;
-        infra.user_balance_in_fast_bridge(0).await;
+        infra
+            .assert_user_balance_in_fast_bridge_on_aurora(None, 0)
+            .await;
 
-        let balance1 = infra.get_mock_token_balance().await;
+        let balance1 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
 
         infra.withdraw().await;
-        let balance2 = infra.get_mock_token_balance().await;
+        let balance2 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance2, balance1);
 
         infra.increment_current_eth_block().await;
         sleep(Duration::from_secs(15));
-        infra.user_balance_in_fast_bridge(0).await;
+        infra
+            .assert_user_balance_in_fast_bridge_on_aurora(None, 0)
+            .await;
         infra.unlock().await;
-        infra.user_balance_in_fast_bridge(100).await;
+        infra
+            .assert_user_balance_in_fast_bridge_on_aurora(None, 100)
+            .await;
         infra.withdraw_from_near().await;
-        infra.user_balance_in_fast_bridge(100).await;
+        infra
+            .assert_user_balance_in_fast_bridge_on_aurora(None, 100)
+            .await;
         infra.withdraw().await;
 
-        let balance3 = infra.get_mock_token_balance().await;
+        let balance3 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance3, balance0);
 
-        infra.user_balance_in_fast_bridge(0).await;
+        infra
+            .assert_user_balance_in_fast_bridge_on_aurora(None, 0)
+            .await;
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
@@ -383,9 +405,14 @@ mod tests {
         user_account: &Account,
         engine: &AuroraEngine,
     ) {
-        let evm_input = token_contract.create_approve_call_bytes(spender_address, U256::MAX);
+        let evm_call_args = token_contract.create_approve_call_bytes(spender_address, U256::MAX);
         let result = engine
-            .call_evm_contract_with(user_account, token_contract.address, evm_input, Wei::zero())
+            .call_evm_contract_with(
+                user_account,
+                token_contract.address,
+                evm_call_args,
+                Wei::zero(),
+            )
             .await
             .unwrap();
         aurora_engine::unwrap_success(result.status).unwrap();
