@@ -314,12 +314,12 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdrawCallback(address signer, string calldata token, uint128 amount) external onlyRole(CALLBACK_ROLE) {
-        require(
-            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `Withdraw` XCC is fail"
-        );
+        uint128 transferredAmount = 0;
 
-        uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+        if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
+            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+        }
+
         uint128 refundAmount = amount - transferredAmount;
 
         if (refundAmount > 0) {
