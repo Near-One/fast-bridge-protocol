@@ -91,7 +91,7 @@ pub mod test_deploy {
         fast_bridge
             .call("new")
             .args_json(serde_json::json!({
-                "eth_bridge_contract": Address::zero().encode(),
+                "eth_bridge_contract": Address::from_array([1u8;20]).encode(),
                 "prover_account": mock_eth_prover_account_id,
                 "eth_client_account": mock_eth_client_account_id,
                 "lock_time_min": "1s",

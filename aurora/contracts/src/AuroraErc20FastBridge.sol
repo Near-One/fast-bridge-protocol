@@ -30,9 +30,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
-    
+
     uint128 constant ASCII_0 = 48;
-    uint128 constant ASCII_9 = 57;    
+    uint128 constant ASCII_9 = 57;
 
     NEAR public near;
     string public bridgeAddressOnNear;
@@ -122,7 +122,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
     }
 
-    function setWhitelistModeForUsers(address[] calldata users, bool[] calldata states) external onlyRole(WHITELIST_MANAGER) {
+    function setWhitelistModeForUsers(
+        address[] calldata users,
+        bool[] calldata states
+    ) external onlyRole(WHITELIST_MANAGER) {
         require(users.length == states.length, "Arrays must be equal");
 
         for (uint256 i = 0; i < users.length; i++) {
@@ -168,7 +171,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
-        
+
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
@@ -209,7 +212,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callFtTransfer.then(callback).transact();
     }
 
-    function initTokenTransferCallback(address signer, bytes calldata initTransferArgs) external onlyRole(CALLBACK_ROLE) {
+    function initTokenTransferCallback(
+        address signer,
+        bytes calldata initTransferArgs
+    ) external onlyRole(CALLBACK_ROLE) {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
@@ -286,7 +292,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 signerBalance = balance[token][msg.sender];
 
         require(signerBalance > 0, "The signer token balance = 0");
-        
+
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id": "',
@@ -315,7 +321,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         uint128 transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
         uint128 refundAmount = amount - transferredAmount;
-        
+
         if (refundAmount > 0) {
             balance[token][signer] += refundAmount;
         }
@@ -366,15 +372,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function _stringToUint(bytes memory b) private pure returns (uint128) {
         uint128 result = 0;
-        
+
         for (uint128 i = 0; i < b.length; i++) {
             uint128 v = uint128(uint8(b[i]));
-            
+
             if (v >= ASCII_0 && v <= ASCII_9) {
                 result = result * 10 + (v - ASCII_0);
             }
         }
-        
+
         return result;
     }
 

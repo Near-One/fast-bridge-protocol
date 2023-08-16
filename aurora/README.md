@@ -84,7 +84,7 @@ yarn hardhat test --network testnet_aurora
 ## Formatting
 For apply formatting for Solidity code run:
 ```bash
-yarn prettier contracts/AuroraErc20FastBridge.sol --write
+yarn prettier contracts/src/AuroraErc20FastBridge.sol --write --plugin=prettier-plugin-solidity
 ```
 
 File with formatting rules: `.prettierrs.json`
