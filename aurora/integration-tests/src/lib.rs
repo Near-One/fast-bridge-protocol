@@ -142,23 +142,17 @@ mod tests {
             .await;
         }
 
-        pub async fn init_token_transfer(&self) {
-            let valid_till = (std::time::SystemTime::now()
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-                + Duration::from_secs(30).as_nanos()) as u64;
-
+        pub async fn init_token_transfer(&self, amount: u128, fee_amount: u128, valid_till: u64) {
             let transfer_msg = fast_bridge_common::TransferMessage {
                 valid_till,
                 transfer: fast_bridge_common::TransferDataEthereum {
                     token_near: self.mock_token.id().parse().unwrap(),
                     token_eth: EthAddress(self.aurora_mock_token.address.raw().0),
-                    amount: near_sdk::json_types::U128::from(100),
+                    amount: near_sdk::json_types::U128::from(amount),
                 },
                 fee: fast_bridge_common::TransferDataNear {
                     token: self.mock_token.id().parse().unwrap(),
-                    amount: near_sdk::json_types::U128::from(0),
+                    amount: near_sdk::json_types::U128::from(fee_amount),
                 },
                 recipient: EthAddress(self.user_aurora_address.raw().0),
                 valid_till_block_height: None,
@@ -311,7 +305,16 @@ mod tests {
         infra.approve_spend_mock_tokens().await;
 
         let balance0 = infra.get_mock_token_balance().await;
-        infra.init_token_transfer().await;
+
+        let valid_till = (std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            + Duration::from_secs(30).as_nanos()) as u64;
+
+        infra
+            .init_token_transfer(TRANSFER_TOKENS_AMOUNT as u128, 0, valid_till)
+            .await;
         infra.user_balance_in_fast_bridge(0).await;
 
         let balance1 = infra.get_mock_token_balance().await;
