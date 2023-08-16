@@ -1,7 +1,8 @@
 #[cfg(test)]
 pub mod test_deploy {
-    use aurora_sdk_integration_tests::{aurora_engine_types::types::Address, tokio,
-                                       utils::process, workspaces};
+    use aurora_sdk_integration_tests::{
+        aurora_engine_types::types::Address, tokio, utils::process, workspaces,
+    };
     use std::path::Path;
 
     pub const TOKEN_SUPPLY: u64 = 1_000_000_000;
@@ -10,9 +11,7 @@ pub mod test_deploy {
         let contract_path = Path::new("../../near/");
         let output = tokio::process::Command::new("bash")
             .current_dir(contract_path)
-            .args([
-                "build_for_tests.sh"
-            ])
+            .args(["build_for_tests.sh"])
             .output()
             .await
             .unwrap();

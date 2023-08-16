@@ -2,6 +2,10 @@ pub mod test_deploy;
 
 #[cfg(test)]
 mod tests {
+    use crate::test_deploy::test_deploy::{
+        compile_near_contracts, deploy_mock_eth_client, deploy_mock_eth_prover, deploy_mock_token,
+        deploy_near_fast_bridge, TOKEN_SUPPLY,
+    };
     use aurora_sdk_integration_tests::{
         aurora_engine::{self, erc20::ERC20, AuroraEngine},
         aurora_engine_types::{
@@ -23,9 +27,6 @@ mod tests {
     use std::path::Path;
     use std::thread::sleep;
     use std::time::Duration;
-    use crate::test_deploy::test_deploy::{compile_near_contracts, TOKEN_SUPPLY, deploy_mock_token,
-                                          deploy_mock_eth_client, deploy_mock_eth_prover,
-                                          deploy_near_fast_bridge};
 
     const ATTACHED_NEAR: u128 = 5 * near_sdk::ONE_NEAR;
     const NEAR_DEPOSIT: u128 = 2 * near_sdk::ONE_NEAR;
@@ -293,7 +294,13 @@ mod tests {
 
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
-        engine_mint_tokens(infra.user_address, &infra.aurora_mock_token, &infra.engine).await;
+        engine_mint_tokens(
+            infra.user_address,
+            &infra.aurora_mock_token,
+            TRANSFER_TOKENS_AMOUNT,
+            &infra.engine,
+        )
+        .await;
 
         infra.approve_spend_mock_tokens().await;
 
@@ -419,8 +426,8 @@ mod tests {
                 "AuroraErc20FastBridge.json",
             ],
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         let deploy_bytes = constructor.create_deploy_bytes_without_constructor();
 
@@ -448,8 +455,8 @@ mod tests {
             engine.inner.id(),
             true,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         return aurora_fast_bridge_impl;
     }
@@ -502,10 +509,10 @@ mod tests {
     async fn engine_mint_tokens(
         user_address: Address,
         token_account: &ERC20,
+        amount: u64,
         engine: &AuroraEngine,
     ) {
-        let mint_args =
-            token_account.create_mint_call_bytes(user_address, U256::from(TRANSFER_TOKENS_AMOUNT));
+        let mint_args = token_account.create_mint_call_bytes(user_address, U256::from(amount));
         let call_args = CallArgs::V1(FunctionCallArgsV1 {
             contract: token_account.address,
             input: mint_args.0,
