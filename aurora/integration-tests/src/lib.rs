@@ -341,7 +341,7 @@ mod tests {
             .call("storage_deposit")
             .args_json(serde_json::json!({ "account_id": account_id }))
             .max_gas()
-            .deposit(deposit.unwrap_or(1_250_000_000_000_000_000_000))
+            .deposit(deposit.unwrap_or(TOKEN_STORAGE_DEPOSIT))
             .transact()
             .await
             .unwrap();
