@@ -33,6 +33,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     uint128 constant ASCII_0 = 48;
     uint128 constant ASCII_9 = 57;
+    uint128 constant ONE_YOCTO = 1;
+    uint128 constant NO_DEPOSIT = 0;
 
     NEAR public near;
     string public bridgeAddressOnNear;
@@ -157,6 +159,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
+        require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         require(isUserWhitelisted(address(msg.sender)), "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
@@ -171,7 +174,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
         require(address(token) != address(0), "The token is not registered!");
-        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
+
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
@@ -200,7 +203,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             transferMessage.transferTokenAddressOnNear,
             "ft_transfer_call",
             args,
-            1,
+            ONE_YOCTO,
             INIT_TRANSFER_NEAR_GAS
         );
         bytes memory callbackArg = abi.encodeWithSelector(
@@ -208,7 +211,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             msg.sender,
             initTransferArgs
         );
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callFtTransfer.then(callback).transact();
     }
@@ -244,9 +247,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     function unlock(uint128 nonce, string calldata proof) external whenNotPaused {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
 
-        PromiseCreateArgs memory callUnlock = near.call(bridgeAddressOnNear, "unlock", args, 0, UNLOCK_NEAR_GAS);
+        PromiseCreateArgs memory callUnlock = near.call(
+            bridgeAddressOnNear,
+            "unlock",
+            args,
+            NO_DEPOSIT,
+            UNLOCK_NEAR_GAS
+        );
         bytes memory callbackArg = abi.encodeWithSelector(this.unlockCallback.selector, msg.sender, nonce);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callUnlock.then(callback).transact();
     }
@@ -270,13 +279,20 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
-        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
+        require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(near, bridgeAddressOnNear, "withdraw", args, 1, WITHDRAW_NEAR_GAS);
+        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
+            near,
+            bridgeAddressOnNear,
+            "withdraw",
+            args,
+            ONE_YOCTO,
+            WITHDRAW_NEAR_GAS
+        );
         bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromNearCallback.selector, tokenId, amount);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
@@ -291,10 +307,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function withdraw(string calldata token) external whenNotPaused {
+        require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         uint128 signerBalance = balance[token][msg.sender];
-
         require(signerBalance > 0, "The signer token balance = 0");
-        require(near.wNEAR.balanceOf(address(this)) > 0, "Not enough wNEAR balance of AuroraErc20FastBridge");
 
         bytes memory args = bytes(
             string.concat(
@@ -309,9 +324,16 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
         balance[token][msg.sender] -= signerBalance;
 
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(near, token, "ft_transfer_call", args, 1, WITHDRAW_NEAR_GAS);
+        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
+            near,
+            token,
+            "ft_transfer_call",
+            args,
+            ONE_YOCTO,
+            WITHDRAW_NEAR_GAS
+        );
         bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, 0, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
@@ -386,7 +408,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         return result;
     }
-    
+
     /// Creates a base promise. This is not immediately scheduled for execution
     /// until transact is called. It can be combined with other promises using
     /// `then` combinator.
