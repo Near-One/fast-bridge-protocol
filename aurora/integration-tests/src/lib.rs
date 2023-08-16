@@ -231,7 +231,7 @@ mod tests {
                     "withdrawFromNear",
                     &[
                         ethabi::Token::String(self.mock_token.id().to_string()),
-                        ethabi::Token::Uint(U256::from(100)),
+                        ethabi::Token::Uint(U256::from(TRANSFER_TOKENS_AMOUNT)),
                     ],
                 );
 
@@ -339,11 +339,11 @@ mod tests {
             .await;
         infra.unlock().await;
         infra
-            .assert_user_balance_in_fast_bridge_on_aurora(None, 100)
+            .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT as u8)
             .await;
         infra.withdraw_from_near().await;
         infra
-            .assert_user_balance_in_fast_bridge_on_aurora(None, 100)
+            .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT as u8)
             .await;
         infra.withdraw().await;
 
