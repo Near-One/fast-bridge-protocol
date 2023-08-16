@@ -20,7 +20,7 @@ pub mod test_deploy {
 
     pub async fn deploy_mock_token(
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
-        user_account_id: &str,
+        owner_account_id: &str,
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
         let artifact_path =
@@ -30,7 +30,7 @@ pub mod test_deploy {
 
         mock_token
             .call("new_default_meta")
-            .args_json(serde_json::json!({"owner_id": user_account_id, "name": "MockToken", "symbol": "MCT", "total_supply": format!("{}", TOKEN_SUPPLY)}))
+            .args_json(serde_json::json!({"owner_id": owner_account_id, "name": "MockToken", "symbol": "MCT", "total_supply": format!("{}", TOKEN_SUPPLY)}))
             .transact()
             .await
             .unwrap()
@@ -79,8 +79,8 @@ pub mod test_deploy {
     pub async fn deploy_near_fast_bridge(
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
         mock_token_account_id: &str,
-        mock_eth_client: &str,
-        mock_eth_prover: &str,
+        mock_eth_client_account_id: &str,
+        mock_eth_prover_account_id: &str,
     ) -> workspaces::Contract {
         let contract_path = Path::new("../../near/contracts/");
         let artifact_path =
@@ -92,8 +92,8 @@ pub mod test_deploy {
             .call("new")
             .args_json(serde_json::json!({
                 "eth_bridge_contract": "DBE11ADC5F9c821341A837f4810123f495fBFd44",
-                "prover_account": mock_eth_prover,
-                "eth_client_account": mock_eth_client,
+                "prover_account": mock_eth_prover_account_id,
+                "eth_client_account": mock_eth_client_account_id,
                 "lock_time_min": "1s",
                 "lock_time_max": "24h",
                 "eth_block_time": 12000000000u128,
