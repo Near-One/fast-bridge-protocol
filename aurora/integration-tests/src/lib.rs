@@ -284,7 +284,7 @@ mod tests {
     async fn test_init_token_transfer() {
         let infra = TestsInfrastructure::init().await;
 
-        mint_tokens_near(&infra.mock_token, infra.engine.inner.id()).await;
+        mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
         infra.mint_wnear(None).await;
         infra.approve_spend_wnear(None).await;
@@ -454,12 +454,12 @@ mod tests {
         return aurora_fast_bridge_impl;
     }
 
-    async fn mint_tokens_near(token_contract: &Contract, receiver_id: &str) {
+    async fn mint_tokens_near(token_contract: &Contract, amount: u64, receiver_id: &str) {
         token_contract
             .call("mint")
             .args_json(serde_json::json!({
                 "account_id": receiver_id,
-                "amount": format!("{}", TOKEN_SUPPLY)
+                "amount": format!("{}", amount)
             }))
             .transact()
             .await
