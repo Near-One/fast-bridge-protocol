@@ -268,12 +268,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
 
-        balance[transferMessage.transferTokenAddressOnNear][signer] += transferMessage.transferTokenAmount;
-        balance[transferMessage.feeTokenAddressOnNear][signer] += transferMessage.feeTokenAmount;
+        balance[transferMessage.transferTokenAddressOnNear][transferMessage.auroraSender] += transferMessage
+            .transferTokenAmount;
+        balance[transferMessage.feeTokenAddressOnNear][transferMessage.auroraSender] += transferMessage.feeTokenAmount;
 
         emit Unlock(
             nonce,
-            signer,
+            transferMessage.auroraSender,
             transferMessage.transferTokenAddressOnNear,
             transferMessage.transferTokenAmount,
             transferMessage.feeTokenAddressOnNear,
