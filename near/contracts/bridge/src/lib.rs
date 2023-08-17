@@ -107,8 +107,7 @@ trait FastBridgeInterface {
 
     fn unlock_and_withdraw_return_transfer_msg(
         &self,
-        #[callback]
-        withdraw_amount: U128,
+        #[callback] withdraw_amount: U128,
         transfer_data: TransferMessage,
     ) -> TransferMessage;
 }
@@ -398,7 +397,7 @@ impl FastBridge {
     ) -> Promise {
         self.unlock(nonce, proof).then(
             ext_self::ext(current_account_id())
-                .with_static_gas(utils::tera_gas(40))
+                .with_static_gas(utils::tera_gas(25))
                 .with_attached_deposit(utils::NO_DEPOSIT)
                 .unlock_and_withdraw_callback(env::predecessor_account_id()),
         )
@@ -415,7 +414,7 @@ impl FastBridge {
         self.withdraw_internal(transfer_data.transfer.token_near.clone(), None, sender_id)
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(2))
+                    .with_static_gas(utils::tera_gas(1))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_and_withdraw_return_transfer_msg(transfer_data),
             )
@@ -425,8 +424,7 @@ impl FastBridge {
     #[result_serializer(borsh)]
     pub fn unlock_and_withdraw_return_transfer_msg(
         &self,
-        #[callback]
-        withdraw_amount: U128,
+        #[callback] withdraw_amount: U128,
         transfer_data: TransferMessage,
     ) -> TransferMessage {
         require!(withdraw_amount.0 > 0, "Withdraw failed");
@@ -479,7 +477,7 @@ impl FastBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(50))
+                    .with_static_gas(utils::tera_gas(10))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_callback(nonce, env::predecessor_account_id()),
             )

@@ -17610,7 +17610,7 @@ impl FastBridge {
         self.unlock(nonce, proof)
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(40))
+                    .with_static_gas(utils::tera_gas(25))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_and_withdraw_callback(env::predecessor_account_id()),
             )
@@ -17627,7 +17627,7 @@ impl FastBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(2))
+                    .with_static_gas(utils::tera_gas(1))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_and_withdraw_return_transfer_msg(transfer_data),
             )
@@ -17722,7 +17722,7 @@ impl FastBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(50))
+                    .with_static_gas(utils::tera_gas(10))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_callback(nonce, env::predecessor_account_id()),
             )
