@@ -27,7 +27,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
     uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
     uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
-    uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
+    uint64 constant UNLOCK_NEAR_GAS = 190_000_000_000_000;
 
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
 
@@ -249,7 +249,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         PromiseCreateArgs memory callUnlock = near.call(
             bridgeAddressOnNear,
-            "unlock",
+            "unlock_and_withdraw",
             args,
             NO_DEPOSIT,
             UNLOCK_NEAR_GAS
