@@ -885,7 +885,6 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, recipient_id),
             )
-            .into()
     }
 
     /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
