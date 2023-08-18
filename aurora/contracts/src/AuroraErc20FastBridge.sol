@@ -257,13 +257,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             NO_DEPOSIT,
             UNLOCK_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.unlockCallback.selector, msg.sender, nonce);
+        bytes memory callbackArg = abi.encodeWithSelector(this.unlockCallback.selector, nonce);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callUnlock.then(callback).transact();
     }
 
-    function unlockCallback(address signer, uint128 nonce) external onlyRole(CALLBACK_ROLE) {
+    function unlockCallback(uint128 nonce) external onlyRole(CALLBACK_ROLE) {
         require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC is fail");
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
