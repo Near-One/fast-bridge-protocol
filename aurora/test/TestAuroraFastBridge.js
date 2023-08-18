@@ -132,7 +132,7 @@ async function deployFastBridge() {
     });
 }
 
-async function deployAuroraFastBridgeAndInitTransfer() {
+async function deployAuroraFastBridgeAndInitTransfer(config) {
     const provider = hre.ethers.getDefaultProvider("https://testnet.aurora.dev");
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
 
@@ -143,8 +143,8 @@ async function deployAuroraFastBridgeAndInitTransfer() {
 
     const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
-            "AuroraSdk": process.env.AURORA_SDK_ADDRESS,
-            "Utils": process.env.AURORA_UTILS_ADDRESS
+            "AuroraSdk": config.auroraSdkAddress,
+            "Utils": config.auroraUtilsAddress
         },
     });
     const options = { gasLimit: 6000000 };
@@ -196,13 +196,13 @@ async function deployAuroraFastBridgeAndInitTransfer() {
     return [await proxy.getAddress(), validTillBlockHeight, balanceBefore];
 }
 
-async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight, balanceBefore) {
+async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight, balanceBefore, config) {
     const provider = hre.ethers.provider;
     const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
     const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
-            "AuroraSdk": process.env.AURORA_SDK_ADDRESS,
-            "Utils": process.env.AURORA_UTILS_ADDRESS
+            "AuroraSdk": config.auroraSdkAddress,
+            "Utils": config.auroraUtilsAddress
         },
     });
 
@@ -246,15 +246,18 @@ async function waitForBlockHeight(blockHeight) {
 
 describe("Aurora Fast Bridge", function () {
     it("The Basic Aurora->Eth transfer with unlock", async function () {
+        const config = require(`../configs/aurora-testnet.json`);
+
         await deployFastBridge();
         console.log("Near fast bridge account: " + nearFastBridgeAccountStr);
 
-        let [auroraFastBridgeAddress, validTillBlockHeight, balanceBefore] = await deployAuroraFastBridgeAndInitTransfer();
+        let [auroraFastBridgeAddress, validTillBlockHeight, balanceBefore] =
+            await deployAuroraFastBridgeAndInitTransfer(config);
         console.log("Valid till block height: ", validTillBlockHeight);
 
         await waitForBlockHeight(validTillBlockHeight);
 
-        await auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight, balanceBefore);
+        await auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight, balanceBefore, config);
     });
 
     afterEach(async function() {
