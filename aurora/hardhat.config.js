@@ -8,6 +8,41 @@ require('dotenv').config();
 
 const AURORA_PRIVATE_KEY = process.env.AURORA_PRIVATE_KEY;
 
+task("deploy", "Deploy aurora fast bridge proxy contract")
+    .addParam("silo", "Config file name without extension")
+    .setAction(async (taskArgs, hre) => {
+        const { deploy } = require("./scripts/deploy.js");
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await hre.run("compile");
+        await deploy({
+            signer,
+            nearFastBridgeAccount: config.nearFastBridgeAccount,
+            auroraEngineAccountId: config.auroraEngineAccountId,
+            wNearAddress: config.wNearAddress,
+            auroraSdkAddress: config.auroraSdkAddress,
+            auroraUtilsAddress: config.auroraUtilsAddress
+        });
+    });
+
+task("upgrade", "Upgrade aurora fast bridge proxy contract")
+    .addParam("silo", "Config file name without extension")
+    .addParam("proxy", "Current proxy address of the AuroraErc20FastBridge contract")
+    .setAction(async (taskArgs, hre) => {
+        const { upgrade } = require("./scripts/deploy.js");
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await hre.run("compile");
+        await upgrade({
+            signer,
+            proxyAddress: taskArgs.proxy,
+            auroraSdkAddress: config.auroraSdkAddress,
+            auroraUtilsAddress: config.auroraUtilsAddress
+        });
+    });
+
 task('tokens_registration', 'Register tokens and storage deposit on NEAR for the contract')
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAddress', "Token address on Near")

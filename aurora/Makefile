@@ -1,4 +1,4 @@
-AURORA_FAST_BRIDGE_ADDRESS=0x77b56321DBCed3D92C0C25e1dD836198802D3Fa8
+AURORA_FAST_BRIDGE_ADDRESS=0x143D0a3070eE103f17d471096B4F60b73db13FDb
 
 # To generate hex borsh representation of init_token_transfer_arg you can use the script from: `../near/utils`
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
@@ -13,7 +13,10 @@ AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
 TRANSFER_TOKEN_AMOUNT=200000
 
 deploy:
-	yarn hardhat run scripts/deploy.js --network $(NETWORK)
+	yarn hardhat deploy --silo "aurora-testnet" --network $(NETWORK)
+
+upgrade:
+	yarn hardhat upgrade --silo "aurora-testnet" --proxy $(AURORA_FAST_BRIDGE_ADDRESS) --network $(NETWORK)
 
 tokens_registration:
 	yarn hardhat tokens_registration --network $(NETWORK) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
