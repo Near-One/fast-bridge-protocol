@@ -120,7 +120,8 @@ mod tests {
             .await;
         }
 
-        pub async fn register_token(&self, user_account: Option<Account>, check_result: bool) {
+        pub async fn register_token(&self, user_account: Option<Account>, check_result: bool)
+            -> ExecutionFinalResult {
             aurora_fast_bridge_register_token(
                 &self.aurora_fast_bridge_contract,
                 self.aurora_mock_token.address.raw(),
@@ -129,7 +130,7 @@ mod tests {
                 &self.engine,
                 check_result,
             )
-            .await;
+            .await
         }
 
         pub async fn approve_spend_mock_tokens(&self, user_account: Option<Account>) {
@@ -320,6 +321,31 @@ mod tests {
 
             return None;
         }
+
+        pub async fn get_near_address(&self) -> Option<String> {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "getNearAddress",
+                    &[],
+                );
+            let outcome = call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                None
+            ).await;
+
+            let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
+            if let TransactionStatus::Succeed(res) = result.status {
+                let near_account = String::from_utf8(res.as_slice().to_vec()).unwrap();
+                return Some(near_account);
+            }
+
+            return None;
+        }
     }
 
     #[tokio::test]
@@ -339,7 +365,7 @@ mod tests {
             .await;
         infra.approve_spend_wnear(None).await;
 
-        infra.register_token(None, true).await;
+        infra.register_token(None, true).await.unwrap();
         assert_eq!(infra.get_token_aurora_address().await.unwrap(), infra.aurora_mock_token.address.raw().0);
 
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
@@ -408,7 +434,7 @@ mod tests {
             )
             .await;
         infra.approve_spend_wnear(None).await;
-        infra.register_token(None, true).await;
+        infra.register_token(None, true).await.unwrap();
 
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
@@ -496,7 +522,7 @@ mod tests {
                 WNEAR_FOR_TOKENS_TRANSFERS,
             ).await;
         infra.approve_spend_wnear(None).await;
-        infra.register_token(None, true).await;
+        infra.register_token(None, true).await.unwrap();
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         engine_mint_tokens(
             infra.user_aurora_address,
@@ -540,7 +566,7 @@ mod tests {
                 Some(infra.aurora_fast_bridge_contract.address),
                 WNEAR_FOR_TOKENS_TRANSFERS).await;
         infra.approve_spend_wnear(None).await;
-        infra.register_token(None, true).await;
+        infra.register_token(None, true).await.unwrap();
 
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
@@ -591,6 +617,18 @@ mod tests {
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(Some(second_user_address)).await.as_u64(), 0);
     }
 
+    #[tokio::test]
+    async fn get_near_address_test() {
+        let infra = TestsInfrastructure::init().await;
+        mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
+        infra.mint_wnear(None, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT).await;
+        infra.approve_spend_wnear(None).await;
+
+        let output = infra.register_token(None, true).await;
+        
+        assert!(infra.get_near_address().await.unwrap().contains(&output.receipt_outcomes()[1].executor_id.to_string()));
+    }
+
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
         let outcome = token_contract
             .call("storage_deposit")
@@ -615,7 +653,7 @@ mod tests {
         user_account: &Account,
         engine: &AuroraEngine,
         check_result: bool,
-    ) {
+    ) -> ExecutionFinalResult {
         let contract_args = aurora_fast_bridge.create_call_method_bytes_with_args(
             "registerToken",
             &[
@@ -633,7 +671,6 @@ mod tests {
             None
         )
         .await
-        .unwrap();
     }
 
     async fn approve_spend_tokens(
