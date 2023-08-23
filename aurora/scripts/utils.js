@@ -42,6 +42,17 @@ async function withdraw(signer, config, fastBridgeAddress, nearTokenAddress) {
     let receipt = await tx.wait();
 }
 
+
+async function get_near_account_id(signer, config, fastBridgeAddress) {
+    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
+}
+
+async function get_token_aurora_address(signer, config, fastBridgeAddress, nearTokenAddress) {
+    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getTokenAuroraAddress(nearTokenAddress));
+}
+
 async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
     console.log("Sending transaction with the account:", signer.address);
 
@@ -60,6 +71,8 @@ async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
         .connect(signer);
 }
 
+exports.get_token_aurora_address = get_token_aurora_address;
+exports.get_near_account_id = get_near_account_id;
 exports.initTokenTransfer = initTokenTransfer;
 exports.tokensRegistration = tokensRegistration;
 exports.unlock = unlock;

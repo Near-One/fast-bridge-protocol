@@ -1,4 +1,4 @@
-AURORA_FAST_BRIDGE_ADDRESS=0x143D0a3070eE103f17d471096B4F60b73db13FDb
+AURORA_FAST_BRIDGE_ADDRESS=0xE74FC2656FE07FF4915966BAE0808eBCb665415f
 
 # To generate hex borsh representation of init_token_transfer_arg you can use the script from: `../near/utils`
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
@@ -33,6 +33,12 @@ withdraw_from_near:
 
 withdraw:
 	yarn hardhat withdraw --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS)
+
+get_near_account_id:
+	yarn hardhat get_near_account_id --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS)
+	
+get_token_aurora_address:
+	yarn hardhat get_token_aurora_address --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS)
 
 test:
 	yarn hardhat test --network testnet_aurora

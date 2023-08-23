@@ -106,6 +106,29 @@ task('withdraw', 'Withdraw tokens to user on Aurora')
         await withdraw(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
     });
 
+task('get_near_account_id', '')
+    .addParam("silo", "Config file name without extension")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .setAction(async taskArgs => {
+        const { get_near_account_id } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await get_near_account_id(signer, config, taskArgs.fastBridgeAddress);
+    });
+    
+task('get_token_aurora_address', '')
+    .addParam("silo", "Config file name without extension")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAddress', "Token address on Near")
+    .setAction(async taskArgs => {
+        const { get_token_aurora_address } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
+    });
+
 module.exports = {
     solidity: {
         version: "0.8.17",
