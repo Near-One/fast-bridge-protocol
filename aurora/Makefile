@@ -1,4 +1,4 @@
-AURORA_FAST_BRIDGE_ADDRESS=0x143D0a3070eE103f17d471096B4F60b73db13FDb
+AURORA_FAST_BRIDGE_ADDRESS=0xE74FC2656FE07FF4915966BAE0808eBCb665415f
 
 # To generate hex borsh representation of init_token_transfer_arg you can use the script from: `../near/utils`
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
