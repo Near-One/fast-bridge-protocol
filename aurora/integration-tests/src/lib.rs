@@ -292,6 +292,34 @@ mod tests {
                 assert_eq!(u64::from_be_bytes(buf), expected_value);
             }
         }
+
+        pub async fn get_token_aurora_address(&self) -> Option<[u8; 20]> {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "getTokenAuroraAddress",
+                    &[
+                        ethabi::Token::String(self.mock_token.id().to_string())
+                    ],
+                );
+            let outcome = call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                None
+            ).await;
+
+            let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
+            if let TransactionStatus::Succeed(res) = result.status {
+                let mut buf = [0u8; 20];
+                buf.copy_from_slice(&res.as_slice()[res.len() - 20..res.len()]);
+                return Some(buf);
+            }
+
+            return None;
+        }
     }
 
     #[tokio::test]
@@ -312,6 +340,7 @@ mod tests {
         infra.approve_spend_wnear(None).await;
 
         infra.register_token(None, true).await;
+        assert_eq!(infra.get_token_aurora_address().await.unwrap(), infra.aurora_mock_token.address.raw().0);
 
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
