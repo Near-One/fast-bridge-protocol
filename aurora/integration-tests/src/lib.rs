@@ -174,7 +174,7 @@ mod tests {
             self.call_aurora_contract(contract_args, user_account, check_output, gas).await;
         }
 
-        pub async fn withdraw(&self, user_account: Option<Account>) {
+        pub async fn withdraw(&self, user_account: Option<Account>, check_output: bool) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
@@ -182,7 +182,7 @@ mod tests {
                     &[ethabi::Token::String(self.mock_token.id().to_string())],
                 );
 
-            self.call_aurora_contract(contract_args, user_account, true, None).await;
+            self.call_aurora_contract(contract_args, user_account, check_output, None).await;
         }
 
         pub async fn get_mock_token_balance_on_aurora_for(
@@ -337,7 +337,7 @@ mod tests {
         let balance1 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
 
-        infra.withdraw(None).await;
+        infra.withdraw(None, true).await;
         let balance2 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance2, balance1);
 
@@ -354,7 +354,7 @@ mod tests {
         infra
             .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT)
             .await;
-        infra.withdraw(None).await;
+        infra.withdraw(None, true).await;
 
         let balance3 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance3, balance0);
@@ -462,8 +462,8 @@ mod tests {
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), 0);
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(Some(second_user_address)).await.as_u64(), 0);
 
-        infra.withdraw(None).await;
-        infra.withdraw(None).await;
+        infra.withdraw(None, true).await;
+        infra.withdraw(None, true).await;
 
         infra
             .assert_user_balance_in_fast_bridge_on_aurora(None, 0)
@@ -474,7 +474,7 @@ mod tests {
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), TRANSFER_TOKENS_AMOUNT);
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(Some(second_user_address)).await.as_u64(), 0);
 
-        infra.withdraw(Some(second_user_account.clone())).await;
+        infra.withdraw(Some(second_user_account.clone()), true).await;
         infra
             .assert_user_balance_in_fast_bridge_on_aurora(None, 0)
             .await;
@@ -511,7 +511,7 @@ mod tests {
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), 0);
         infra.assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT).await;
 
-        infra.withdraw(None).await;
+        infra.withdraw(None, true).await;
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), TRANSFER_TOKENS_AMOUNT);
         infra.assert_user_balance_in_fast_bridge_on_aurora(None, 0).await;
 
@@ -521,6 +521,73 @@ mod tests {
 
         assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), TRANSFER_TOKENS_AMOUNT);
         infra.assert_user_balance_in_fast_bridge_on_aurora(None, 0).await;
+    }
+
+    #[tokio::test]
+    async fn test_withdraw_without_withdraw_from_near() {
+        let infra = TestsInfrastructure::init().await;
+        mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
+
+        let second_user_account = infra.worker.dev_create_account().await.unwrap();
+        let second_user_address =
+            aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
+                second_user_account.id().as_bytes(),
+            );
+
+        infra.mint_wnear(None, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT).await;
+        infra.mint_wnear(
+                Some(infra.aurora_fast_bridge_contract.address),
+                WNEAR_FOR_TOKENS_TRANSFERS).await;
+        infra.approve_spend_wnear(None).await;
+        infra.register_token(None, true).await;
+
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
+
+        engine_mint_tokens(
+            infra.user_aurora_address,
+            &infra.aurora_mock_token,
+            TRANSFER_TOKENS_AMOUNT,
+            &infra.engine,
+        ).await;
+
+        engine_mint_tokens(
+            second_user_address,
+            &infra.aurora_mock_token,
+            TRANSFER_TOKENS_AMOUNT,
+            &infra.engine,
+        ).await;
+
+        infra.approve_spend_mock_tokens(None).await;
+        infra.approve_spend_mock_tokens(Some(second_user_account.clone())).await;
+
+        infra
+            .init_token_transfer(TRANSFER_TOKENS_AMOUNT as u128, 0, None, None, None, true, None)
+            .await;
+        infra
+            .init_token_transfer(TRANSFER_TOKENS_AMOUNT as u128, 0, None, Some(second_user_address), Some(second_user_account.clone()), true, None)
+            .await;
+
+        infra.increment_current_eth_block().await;
+        sleep(Duration::from_secs(15));
+
+        infra.unlock(None, 1).await;
+        infra.unlock(Some(second_user_account.clone()), 2).await;
+        infra.assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT).await;
+
+        infra.withdraw(None, false).await;
+        infra.assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT).await;
+        assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), 0);
+
+        infra.withdraw_from_near(None).await;
+        infra.withdraw(Some(second_user_account.clone()), false).await;
+        infra.withdraw(None, false).await;
+
+        infra.assert_user_balance_in_fast_bridge_on_aurora(None, 0).await;
+        assert_eq!(infra.get_mock_token_balance_on_aurora_for(None).await.as_u64(), TRANSFER_TOKENS_AMOUNT);
+
+        infra.assert_user_balance_in_fast_bridge_on_aurora(Some(second_user_address), TRANSFER_TOKENS_AMOUNT).await;
+        assert_eq!(infra.get_mock_token_balance_on_aurora_for(Some(second_user_address)).await.as_u64(), 0);
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
