@@ -8,6 +8,7 @@ NONCE=1
 
 NETWORK=testnet_aurora
 NEAR_TOKEN_ADDRESS="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
+ETH_TOKEN_ADDRESS="0x07865c6E87B9F70255377e024ace6630C1Eaa37F"
 AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
 TRANSFER_TOKEN_AMOUNT=200000
 SILO="aurora-testnet"
@@ -22,7 +23,7 @@ tokens_registration:
 	yarn hardhat tokens_registration --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
 
 init_token_transfer:
-	yarn hardhat init_token_transfer --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+	yarn hardhat init_token_transfer --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS) --eth-token-address $(ETH_TOKEN_ADDRESS)
 
 unlock:
 	yarn hardhat unlock --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE)

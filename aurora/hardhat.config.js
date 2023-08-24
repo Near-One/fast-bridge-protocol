@@ -61,12 +61,13 @@ task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAddress', "Token address on Near")
     .addParam('auroraTokenAddress', "Token address on Aurora")
+    .addParam('ethTokenAddress', "Token address on Eth")
     .setAction(async taskArgs => {
         const { initTokenTransfer } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.silo}.json`);
 
-        await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress.substring(2), taskArgs.auroraTokenAddress);
+        await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.auroraTokenAddress, taskArgs.ethTokenAddress);
     });
 
 task('unlock', 'Unlock tokens on Near')

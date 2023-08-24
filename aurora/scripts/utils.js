@@ -9,7 +9,7 @@ async function tokensRegistration(signer, config, fastBridgeAddress, nearTokenAd
     console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
 }
 
-async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
+async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress, ethTokenAddress) {
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
@@ -17,10 +17,10 @@ async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAdd
     
     
 
-    let lockPeriod = 50000000000;
+    let lockPeriod = 10800000000000;
     const validTill = Date.now() * 1000000 + lockPeriod;
 
-    const initTokenTransferArg = encodeInitMsgToBorsh(validTill, nearTokenAddress, auroraTokenAddress.substring(2), 100, 100, signer.address, signer.address);
+    const initTokenTransferArg = encodeInitMsgToBorsh(validTill, nearTokenAddress, ethTokenAddress.substring(2), 100, 100, signer.address, signer.address);
      
     const options = { gasLimit: 5000000 };
     let tx = await fastBridge.initTokenTransfer(initTokenTransferArg, options);
