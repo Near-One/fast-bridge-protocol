@@ -1,5 +1,6 @@
 require('dotenv').config();
 const hre = require("hardhat");
+const {encodeInitMsgToBorsh} = require("../test/EncodeInitMsgToBorsh");
 
 async function tokensRegistration(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
@@ -8,12 +9,19 @@ async function tokensRegistration(signer, config, fastBridgeAddress, nearTokenAd
     console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
 }
 
-async function initTokenTransfer(signer, config, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {
+async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    
+    
 
+    let lockPeriod = 50000000000;
+    const validTill = Date.now() * 1000000 + lockPeriod;
+
+    const initTokenTransferArg = encodeInitMsgToBorsh(validTill, nearTokenAddress, auroraTokenAddress.substring(2), 100, 100, signer.address, signer.address);
+     
     const options = { gasLimit: 5000000 };
     let tx = await fastBridge.initTokenTransfer(initTokenTransferArg, options);
     let receipt = await tx.wait();
@@ -58,7 +66,8 @@ async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
 
     const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
     await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
-
+    
+    await wnear.transfer(fastBridgeAddress, 1);
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": config.auroraSdkAddress,
