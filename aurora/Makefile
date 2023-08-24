@@ -34,5 +34,9 @@ withdraw_from_near:
 withdraw:
 	yarn hardhat withdraw --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS)
 
+set_whitelist_mode_for_users:
+	yarn hardhat set_whitelist_mode_for_users --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --user-address $(USER_ADDRESS)
+
+
 test:
 	yarn hardhat test --network testnet_aurora

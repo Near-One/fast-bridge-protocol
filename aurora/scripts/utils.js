@@ -42,6 +42,13 @@ async function withdraw(signer, config, fastBridgeAddress, nearTokenAddress) {
     let receipt = await tx.wait();
 }
 
+async function set_whitelist_mode_for_users(signer, config, fastBridgeAddress, userAddress) {
+    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+
+    let tx = await fastBridge.setWhitelistModeForUsers([userAddress], [true]);
+    let receipt = await tx.wait();
+}
+
 async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
     console.log("Sending transaction with the account:", signer.address);
 
@@ -60,6 +67,7 @@ async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
         .connect(signer);
 }
 
+exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
 exports.initTokenTransfer = initTokenTransfer;
 exports.tokensRegistration = tokensRegistration;
 exports.unlock = unlock;

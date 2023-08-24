@@ -106,6 +106,19 @@ task('withdraw', 'Withdraw tokens to user on Aurora')
         await withdraw(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
     });
 
+task('set_whitelist_mode_for_users', 'Set whitelist mode for users')
+    .addParam("silo", "Config file name without extension")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('userAddress', "User address")
+    .setAction(async taskArgs => {
+        const { set_whitelist_mode_for_users } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await set_whitelist_mode_for_users(signer, config, taskArgs.fastBridgeAddress, taskArgs.userAddress);
+    });
+
+
 module.exports = {
     solidity: {
         version: "0.8.17",
