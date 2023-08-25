@@ -27,7 +27,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
     uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
     uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
-    uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
+    uint64 constant UNLOCK_NEAR_GAS = 160_000_000_000_000;
 
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
 
@@ -252,7 +252,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         PromiseCreateArgs memory callUnlock = near.call(
             bridgeAddressOnNear,
-            "unlock",
+            "unlock_and_withdraw",
             args,
             NO_DEPOSIT,
             UNLOCK_NEAR_GAS
@@ -280,34 +280,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             transferMessage.feeTokenAddressOnNear,
             transferMessage.feeTokenAmount
         );
-    }
-
-    function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
-        require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
-        bytes memory args = bytes(
-            string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
-        );
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
-            near,
-            bridgeAddressOnNear,
-            "withdraw",
-            args,
-            ONE_YOCTO,
-            WITHDRAW_NEAR_GAS
-        );
-        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromNearCallback.selector, tokenId, amount);
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
-
-        callWithdraw.then(callback).transact();
-    }
-
-    function withdrawFromNearCallback(string calldata tokenId, uint128 amount) external onlyRole(CALLBACK_ROLE) {
-        require(
-            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `Withdraw From Near` XCC is fail"
-        );
-
-        emit WithdrawFromNear(tokenId, amount);
     }
 
     function withdraw(string calldata token) external whenNotPaused {

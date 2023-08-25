@@ -96,6 +96,20 @@ trait FastBridgeInterface {
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] update_balance: Option<UpdateBalance>,
     ) -> PromiseOrValue<U128>;
+
+    fn unlock_and_withdraw_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        transfer_data: TransferMessage,
+        #[serializer(borsh)] sender_id: AccountId,
+    ) -> Promise;
+
+    fn unlock_and_withdraw_return_transfer_msg(
+        &self,
+        #[callback] withdraw_amount: U128,
+        transfer_data: TransferMessage,
+    ) -> TransferMessage;
 }
 
 #[derive(
@@ -375,6 +389,48 @@ impl FastBridge {
         U128::from(0)
     }
 
+    #[pause(except(roles(Role::UnrestrictedUnlock)))]
+    pub fn unlock_and_withdraw(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+    ) -> Promise {
+        self.unlock(nonce, proof).then(
+            ext_self::ext(current_account_id())
+                .with_static_gas(utils::tera_gas(25))
+                .with_attached_deposit(utils::NO_DEPOSIT)
+                .unlock_and_withdraw_callback(env::predecessor_account_id()),
+        )
+    }
+
+    #[private]
+    pub fn unlock_and_withdraw_callback(
+        &mut self,
+        #[callback]
+        #[serializer(borsh)]
+        transfer_data: TransferMessage,
+        #[serializer(borsh)] sender_id: AccountId,
+    ) -> Promise {
+        self.withdraw_internal(transfer_data.transfer.token_near.clone(), None, sender_id)
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(1))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_and_withdraw_return_transfer_msg(transfer_data),
+            )
+    }
+
+    #[private]
+    #[result_serializer(borsh)]
+    pub fn unlock_and_withdraw_return_transfer_msg(
+        &self,
+        #[callback] withdraw_amount: U128,
+        transfer_data: TransferMessage,
+    ) -> TransferMessage {
+        require!(withdraw_amount.0 > 0, "Withdraw failed");
+        transfer_data
+    }
+
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
@@ -421,7 +477,7 @@ impl FastBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(50))
+                    .with_static_gas(utils::tera_gas(10))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_callback(nonce, env::predecessor_account_id()),
             )
@@ -793,8 +849,17 @@ impl FastBridge {
     /// * The caller does not have any balance.
     #[payable]
     #[pause(except(roles(Role::UnrestrictedWithdraw)))]
-    pub fn withdraw(&mut self, token_id: AccountId, amount: Option<U128>) -> PromiseOrValue<U128> {
+    pub fn withdraw(&mut self, token_id: AccountId, amount: Option<U128>) -> Promise {
         let recipient_id = env::predecessor_account_id();
+        self.withdraw_internal(token_id, amount, recipient_id)
+    }
+
+    fn withdraw_internal(
+        &mut self,
+        token_id: AccountId,
+        amount: Option<U128>,
+        recipient_id: AccountId,
+    ) -> Promise {
         let user_balance = self.get_user_balance(&recipient_id, &token_id);
         let amount = amount.unwrap_or(user_balance);
 
@@ -820,7 +885,6 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, recipient_id),
             )
-            .into()
     }
 
     /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
