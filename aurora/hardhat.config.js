@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@openzeppelin/hardhat-upgrades");
+
 // Replace this private key with your Ropsten account private key
 // To export your private key from Metamask, open Metamask and
 // go to Account Details > Export Private Key
@@ -74,12 +75,14 @@ task('unlock', 'Unlock tokens on Near')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nonce', 'nonce')
+    .addParam('ethTokenAddress', "Token address on Eth")
+    .addParam('validTillBlockHeight', "Valid till block height")
     .setAction(async taskArgs => {
         const { unlock } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.silo}.json`);
 
-        await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce);
+        await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce, taskArgs.ethTokenAddress, taskArgs.validTillBlockHeight);
     });
 
 task('withdraw_from_near', 'Withdraw tokens on Near side')

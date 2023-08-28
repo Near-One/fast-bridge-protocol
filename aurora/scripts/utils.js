@@ -28,12 +28,22 @@ async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAdd
     console.log(receipt.events[0].args);
 }
 
-async function unlock(signer, config, fastBridgeAddress, nonce) {
+async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress, validTillBlockHeight) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    
+    const { getUnlockProof } = require('../test/UnlockProof');
+    const proof = await getUnlockProof("0x00763f30eEB0eEF506907e18f2a6ceC2DAb30Df8",
+        { token: ethTokenAddress,
+          recipient: signer.address,
+          nonce,
+          amount: 100}, validTillBlockHeight);
 
-    let tx = await fastBridge.unlock(nonce);
+    console.log("proof: ",  proof);
+    console.log("proof len: ", proof.length);
+    
+    let tx = await fastBridge.unlock(nonce, proof);
     let receipt = await tx.wait();
-    console.log(receipt.events[0].args);
+    //console.log(receipt.events[0].args);
 }
 
 async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAddress, amount) {

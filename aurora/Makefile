@@ -4,7 +4,8 @@ AURORA_FAST_BRIDGE_ADDRESS=0xE74FC2656FE07FF4915966BAE0808eBCb665415f
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
 # where <JSON_MESSAGE> is a init_token_transfer_arg in json format. More details in README.md in `../near/utils`
 # You will need the output in line which started with `Encoded message(hex):`
-NONCE=1
+NONCE=41
+VALID_TILL_BLOCK_HIEGHT=9595845
 
 NETWORK=testnet_aurora
 NEAR_TOKEN_ADDRESS="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
@@ -26,7 +27,7 @@ init_token_transfer:
 	yarn hardhat init_token_transfer --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS) --eth-token-address $(ETH_TOKEN_ADDRESS)
 
 unlock:
-	yarn hardhat unlock --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE)
+	yarn hardhat unlock --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE) --eth-token-address $(ETH_TOKEN_ADDRESS) --valid-till-block-height $(VALID_TILL_BLOCK_HIEGHT)
 
 withdraw_from_near:
 	yarn hardhat withdraw_from_near --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --token-amount $(TRANSFER_TOKEN_AMOUNT)

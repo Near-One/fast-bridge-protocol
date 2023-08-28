@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers } = require("hardhat");
 const { Web3 } = require("web3");
 const {Header, Account} = require('eth-object');
 const _utils = require('ethereumjs-util');
@@ -20,14 +20,14 @@ function parseHexString(str) {
 }
 
 function processedHash(_token, _recipient, _nonce, _amount) {
-    let encodedData = ethers.utils.solidityPack(["address", "address", "uint256", "uint256"],[_token, _recipient, _nonce, _amount]);
-    return ethers.utils.solidityKeccak256(["bytes"],[encodedData]);
+    let encodedData = ethers.solidityPacked(["address", "address", "uint256", "uint256"],[_token, _recipient, _nonce, _amount]);
+    return ethers.solidityPackedKeccak256(["bytes"],[encodedData]);
 }
 
 function getProcessedHashSlotKey(processedHash){
-    const paddedSlot = ethers.utils.hexZeroPad(mappingSlotNumber, 32);
-    const paddedKey = ethers.utils.hexZeroPad(processedHash, 32);
-    return ethers.utils.keccak256(paddedKey + paddedSlot.slice(2));
+    const paddedSlot = ethers.zeroPadValue(ethers.toBeArray(mappingSlotNumber), 32);
+    const paddedKey = ethers.zeroPadValue(processedHash, 32);
+    return ethers.keccak256(paddedKey + paddedSlot.slice(2));
 }
 
 async function getProofOfData(contractAddress, slotKey, blockNumber) {
@@ -39,6 +39,7 @@ async function getBlockData(blockNumber) {
 }
 
 async function generateUnlockProof(getProofResponse, block){
+    console.log("block", block);
     let headerRlp = (Header.fromRpc(block).serialize()).toString('hex');
     let accountProof = getProofResponse.accountProof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));  //converts to bytes array of account proof
     let res = getProofResponse;
@@ -76,7 +77,10 @@ async function getUnlockProof(contractAddress, data, blockNumber) {
     let responseData = await getProofOfData(contractAddress, slotKeyOfProcessedHash, blockNumber);
     let block = await getBlockData(blockNumber);
     block.difficulty = web3.utils.toHex(block.difficulty);
-    console.log(block);
+    console.log(block.number.toString(16));
+    console.log(typeof block.number);
+    console.log(typeof block.number);
+    
     let unlockProof = await generateUnlockProof(responseData, block);
 
     let borshSer = borsh.serialize(
