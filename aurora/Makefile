@@ -40,5 +40,8 @@ get_near_account_id:
 get_token_aurora_address:
 	yarn hardhat get_token_aurora_address --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS)
 
+get_balance: 
+	yarn hardhat get_balance --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS)
+
 test:
 	yarn hardhat test --network testnet_aurora

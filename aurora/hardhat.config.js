@@ -129,6 +129,19 @@ task('get_token_aurora_address', '')
 
         await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
     });
+    
+    
+task('get_balance', '')
+    .addParam("silo", "Config file name without extension")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAddress', "Token address on Near")
+    .setAction(async taskArgs => {
+        const { get_balance } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await get_balance(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
+    });
 
 module.exports = {
     solidity: {
