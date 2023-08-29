@@ -49,6 +49,7 @@ async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress,
 async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAddress, amount) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
 
+    console.log("Withdraw from Near");
     let tx = await fastBridge.withdrawFromNear(nearTokenAddress, amount);
     let receipt = await tx.wait();
 }

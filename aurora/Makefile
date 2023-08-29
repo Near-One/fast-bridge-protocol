@@ -4,14 +4,14 @@ AURORA_FAST_BRIDGE_ADDRESS=0xE74FC2656FE07FF4915966BAE0808eBCb665415f
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
 # where <JSON_MESSAGE> is a init_token_transfer_arg in json format. More details in README.md in `../near/utils`
 # You will need the output in line which started with `Encoded message(hex):`
-NONCE=41
-VALID_TILL_BLOCK_HIEGHT=9595845
+NONCE=47
+VALID_TILL_BLOCK_HIEGHT=9587534
 
 NETWORK=testnet_aurora
 NEAR_TOKEN_ADDRESS="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
 ETH_TOKEN_ADDRESS="0x07865c6E87B9F70255377e024ace6630C1Eaa37F"
 AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
-TRANSFER_TOKEN_AMOUNT=200000
+TRANSFER_TOKEN_AMOUNT=200
 SILO="aurora-testnet"
 
 deploy:
