@@ -14,8 +14,6 @@ async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAdd
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
-    
-    
 
     let lockPeriod = 10800000000000;
     const validTill = Date.now() * 1000000 + lockPeriod;
