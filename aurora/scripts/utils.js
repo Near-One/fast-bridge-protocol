@@ -40,8 +40,7 @@ async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress,
     console.log("proof len: ", proof.length);
     
     let tx = await fastBridge.unlock(nonce, proof);
-    let receipt = await tx.wait();
-    //console.log(receipt.events[0].args);
+    await tx.wait();
 }
 
 async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAddress, amount) {

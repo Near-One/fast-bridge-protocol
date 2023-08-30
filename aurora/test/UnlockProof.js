@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { Web3, Web3RequestManager } = require("web3");
+const { Web3 } = require("web3");
 const {Header, Account} = require('eth-object');
 const _utils = require('ethereumjs-util');
 const borsh = require('borsh')
@@ -34,8 +34,36 @@ async function getProofOfData(contractAddress, slotKey, blockNumber) {
     return await web3.eth.getProof(contractAddress, [slotKey], blockNumber);
 }
 
+async function getWithdrawalsRoot(blockNumber) {
+    const response = await fetch('https://ethereum-goerli-rpc.allthatnode.com', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: `eth_getBlockByNumber`,
+            params: ["0x" + parseInt(blockNumber).toString(16), false],
+            id: 0
+        })
+    });
+    return (await response.json())["result"]["withdrawalsRoot"];
+}
+
 async function getBlockData(blockNumber) {
-    return await web3.eth.getBlock(blockNumber);
+    let block = await web3.eth.getBlock(blockNumber);
+    block.difficulty = web3.utils.toHex(block.difficulty);
+    block.number = web3.utils.toHex(parseInt(block.number));
+    block.nonce = "0x" + parseInt(block.nonce).toString(16).padStart(16, '0');
+    block.baseFeePerGas = web3.utils.toHex(parseInt(block.baseFeePerGas));
+    block.gasLimit = web3.utils.toHex(parseInt(block.gasLimit));
+    block.gasUsed = web3.utils.toHex(parseInt(block.gasUsed));
+    block.size = web3.utils.toHex(parseInt(block.size));
+    block.timestamp = web3.utils.toHex(parseInt(block.timestamp));
+    block.totalDifficulty = web3.utils.toHex(parseInt(block.totalDifficulty));
+    block.withdrawalsRoot = await getWithdrawalsRoot(blockNumber);
+
+    return block;
 }
 
 async function generateUnlockProof(getProofResponse, block){
@@ -72,17 +100,6 @@ async function getUnlockProof(contractAddress, data, blockNumber) {
     let slotKeyOfProcessedHash = getProcessedHashSlotKey(processHash);
     let responseData = await getProofOfData(contractAddress, slotKeyOfProcessedHash, blockNumber);
     let block = await getBlockData(blockNumber);
-    block.difficulty = web3.utils.toHex(block.difficulty);
-    block.number = web3.utils.toHex(parseInt(block.number));
-    block.nonce = "0x" + parseInt(block.nonce).toString(16).padStart(16, '0');
-    block.baseFeePerGas = web3.utils.toHex(parseInt(block.baseFeePerGas));
-    block.gasLimit = web3.utils.toHex(parseInt(block.gasLimit));
-    block.gasUsed = web3.utils.toHex(parseInt(block.gasUsed));
-    block.size = web3.utils.toHex(parseInt(block.size));
-    block.timestamp = web3.utils.toHex(parseInt(block.timestamp));
-    block.totalDifficulty = web3.utils.toHex(parseInt(block.totalDifficulty));
-    block.withdrawalsRoot = "0xb2c385352467131eec9f3920d29ec5b49fd20dce7c9b24ffab69413a606aa7b7"
-    
     let unlockProof = await generateUnlockProof(responseData, block);
 
     let borshSer = borsh.serialize(
