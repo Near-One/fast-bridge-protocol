@@ -110,7 +110,7 @@ task('withdraw', 'Withdraw tokens to user on Aurora')
         await withdraw(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
     });
 
-task('get_near_account_id', '')
+task('get_near_account_id', 'Get near account id for aurora fast bridge contract')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .setAction(async taskArgs => {
@@ -121,7 +121,7 @@ task('get_near_account_id', '')
         await get_near_account_id(signer, config, taskArgs.fastBridgeAddress);
     });
     
-task('get_token_aurora_address', '')
+task('get_token_aurora_address', 'Get aurora token address from aurora fast bridge')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAddress', "Token address on Near")
@@ -134,7 +134,7 @@ task('get_token_aurora_address', '')
     });
     
     
-task('get_balance', '')
+task('get_balance', 'Get user balance in aurora fast bridge contract')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAddress', "Token address on Near")
@@ -144,6 +144,18 @@ task('get_balance', '')
         const config = require(`./configs/${taskArgs.silo}.json`);
 
         await get_balance(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
+    });
+
+task('set_whitelist_mode_for_users', 'Set whitelist mode for users')
+    .addParam("silo", "Config file name without extension")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('userAddress', "User address")
+    .setAction(async taskArgs => {
+        const { set_whitelist_mode_for_users } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.silo}.json`);
+
+        await set_whitelist_mode_for_users(signer, config, taskArgs.fastBridgeAddress, taskArgs.userAddress);
     });
 
 module.exports = {
