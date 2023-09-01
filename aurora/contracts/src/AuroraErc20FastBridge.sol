@@ -337,7 +337,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token);
+        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token, signerBalance);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
