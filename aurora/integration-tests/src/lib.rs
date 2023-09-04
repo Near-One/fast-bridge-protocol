@@ -49,7 +49,7 @@ mod tests {
     }
 
     impl TestsInfrastructure {
-        pub async fn init() -> Self {
+        pub async fn init(whitelist_mode: bool) -> Self {
             let worker = workspaces::sandbox().await.unwrap();
             let engine = aurora_engine::deploy_latest(&worker).await.unwrap();
 
@@ -79,6 +79,7 @@ mod tests {
                 &user_account,
                 wnear.aurora_token.address,
                 &near_fast_bridge,
+                whitelist_mode
             )
             .await;
 
@@ -373,7 +374,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_init_token_transfer() {
-        let infra = TestsInfrastructure::init().await;
+        let infra = TestsInfrastructure::init(false).await;
 
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
@@ -478,7 +479,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_double_spend() {
-        let infra = TestsInfrastructure::init().await;
+        let infra = TestsInfrastructure::init(false).await;
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
         let second_user_account = infra.worker.dev_create_account().await.unwrap();
@@ -746,7 +747,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_token_transfer_fail() {
-        let infra = TestsInfrastructure::init().await;
+        let infra = TestsInfrastructure::init(false).await;
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
         infra
             .mint_wnear(None, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT)
@@ -847,7 +848,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_withdraw_without_withdraw_from_near() {
-        let infra = TestsInfrastructure::init().await;
+        let infra = TestsInfrastructure::init(false).await;
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
         let second_user_account = infra.worker.dev_create_account().await.unwrap();
@@ -1001,7 +1002,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_near_address_test() {
-        let infra = TestsInfrastructure::init().await;
+        let infra = TestsInfrastructure::init(false).await;
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
         infra
             .mint_wnear(None, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT)
@@ -1015,6 +1016,20 @@ mod tests {
             .await
             .unwrap()
             .contains(&output.receipt_outcomes()[1].executor_id.to_string()));
+    }
+
+
+    #[tokio::test]
+    async fn whitelist_mode_test() {
+        let infra = TestsInfrastructure::init(false).await;
+        let second_user_account = infra.worker.dev_create_account().await.unwrap();
+        let second_user_address =
+            aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
+                second_user_account.id().as_bytes(),
+            );
+
+        
+
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
@@ -1085,6 +1100,7 @@ mod tests {
         user_account: &workspaces::Account,
         wnear_address: Address,
         near_fast_bridge: &Contract,
+        whitelist_mode: bool
     ) -> DeployedContract {
         let contract_path = "../contracts";
 
@@ -1136,7 +1152,7 @@ mod tests {
                 ethabi::Token::Address(wnear_address.raw()),
                 ethabi::Token::String(near_fast_bridge.id().to_string()),
                 ethabi::Token::String(engine.inner.id().to_string()),
-                ethabi::Token::Bool(false),
+                ethabi::Token::Bool(whitelist_mode),
             ],
         );
 
