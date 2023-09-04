@@ -388,12 +388,28 @@ mod tests {
                 .await;
 
             let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
-            
+
             if let TransactionStatus::Succeed(res) = result.status {
                 return Some(res[res.len() - 1] != 0);
             }
 
             return None;
+        }
+
+        pub async fn set_whitelist_mode(&self, is_enabled: bool) {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args("setWhitelistMode", &[
+                    ethabi::Token::Bool(is_enabled)
+                ]);
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                None,
+            ).await.unwrap();
         }
     }
 
@@ -1056,6 +1072,76 @@ mod tests {
         assert_eq!(infra.is_user_whitelisted(second_user_address).await, Some(false));
         assert_eq!(infra.is_user_whitelisted(infra.user_aurora_address).await, Some(true));
 
+        mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
+        infra.mint_wnear(Some(infra.aurora_fast_bridge_contract.address), WNEAR_FOR_TOKENS_TRANSFERS).await;
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
+
+        infra.mint_wnear(None, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT).await;
+        infra.mint_wnear(Some(second_user_address), TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT).await;
+
+        infra.approve_spend_wnear(None).await;
+        infra.approve_spend_wnear(Some(second_user_account.clone())).await;
+
+        infra.register_token(None, true).await.unwrap();
+
+        engine_mint_tokens(infra.user_aurora_address, &infra.aurora_mock_token, TRANSFER_TOKENS_AMOUNT, &infra.engine).await;
+        engine_mint_tokens(second_user_address, &infra.aurora_mock_token, TRANSFER_TOKENS_AMOUNT, &infra.engine).await;
+
+        infra.approve_spend_mock_tokens(None).await;
+        infra.approve_spend_mock_tokens(Some(second_user_account.clone())).await;
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                None,
+                Some(second_user_address),
+                Some(second_user_account.clone()),
+                false,
+                None,
+            ).await;
+        assert_eq!(
+            infra.get_mock_token_balance_on_aurora_for(Some(second_user_address))
+                .await.as_u64(),
+            TRANSFER_TOKENS_AMOUNT
+        );
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                None,
+                None,
+                None,
+                true,
+                None,
+            ).await;
+        assert_eq!(
+            infra.get_mock_token_balance_on_aurora_for(None)
+                .await.as_u64(),
+            0
+        );
+
+        infra.set_whitelist_mode(false).await;
+        assert_eq!(infra.is_user_whitelisted(second_user_address).await, Some(true));
+        assert_eq!(infra.is_user_whitelisted(infra.user_aurora_address).await, Some(true));
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                None,
+                Some(second_user_address),
+                Some(second_user_account),
+                true,
+                None,
+            ).await;
+        assert_eq!(
+            infra.get_mock_token_balance_on_aurora_for(Some(second_user_address))
+                .await.as_u64(),
+            0
+        );
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
