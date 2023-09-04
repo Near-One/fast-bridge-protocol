@@ -370,6 +370,31 @@ mod tests {
 
             return None;
         }
+
+        pub async fn is_user_whitelisted(&self, user_address: Address) -> Option<bool> {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args("isUserWhitelisted", &[
+                    ethabi::Token::Address(user_address.raw())
+                ]);
+            let outcome = call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                None,
+            )
+                .await;
+
+            let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
+            
+            if let TransactionStatus::Succeed(res) = result.status {
+                return Some(res[res.len() - 1] != 0);
+            }
+
+            return None;
+        }
     }
 
     #[tokio::test]
@@ -1021,14 +1046,15 @@ mod tests {
 
     #[tokio::test]
     async fn whitelist_mode_test() {
-        let infra = TestsInfrastructure::init(false).await;
+        let infra = TestsInfrastructure::init(true).await;
         let second_user_account = infra.worker.dev_create_account().await.unwrap();
         let second_user_address =
             aurora_sdk_integration_tests::aurora_engine_sdk::types::near_account_to_evm_address(
                 second_user_account.id().as_bytes(),
             );
 
-        
+        assert_eq!(infra.is_user_whitelisted(second_user_address).await, Some(false));
+        assert_eq!(infra.is_user_whitelisted(infra.user_aurora_address).await, Some(true));
 
     }
 
