@@ -411,6 +411,24 @@ mod tests {
                 None,
             ).await.unwrap();
         }
+
+        pub async fn set_whitelist_mode_for_user(&self, users: Vec<Address>, states: Vec<bool>) {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args("setWhitelistModeForUsers", &[
+                    ethabi::Token::Array(users.into_iter().map(|x| ethabi::Token::Address(x.raw())).collect()),
+                    ethabi::Token::Array(states.into_iter().map(|x| ethabi::Token::Bool(x)).collect())
+                ]);
+
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                None,
+            ).await.unwrap();
+        }
     }
 
     #[tokio::test]
@@ -1133,7 +1151,7 @@ mod tests {
                 0,
                 None,
                 Some(second_user_address),
-                Some(second_user_account),
+                Some(second_user_account.clone()),
                 true,
                 None,
             ).await;
@@ -1141,6 +1159,47 @@ mod tests {
             infra.get_mock_token_balance_on_aurora_for(Some(second_user_address))
                 .await.as_u64(),
             0
+        );
+
+        infra.set_whitelist_mode(true).await;
+        infra.set_whitelist_mode_for_user(vec![infra.user_aurora_address, second_user_address], vec![false, true]).await;
+
+        assert_eq!(infra.is_user_whitelisted(second_user_address).await, Some(true));
+        assert_eq!(infra.is_user_whitelisted(infra.user_aurora_address).await, Some(false));
+
+        engine_mint_tokens(infra.user_aurora_address, &infra.aurora_mock_token, TRANSFER_TOKENS_AMOUNT, &infra.engine).await;
+        engine_mint_tokens(second_user_address, &infra.aurora_mock_token, TRANSFER_TOKENS_AMOUNT, &infra.engine).await;
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                None,
+                Some(second_user_address),
+                Some(second_user_account.clone()),
+                false,
+                None,
+            ).await;
+        assert_eq!(
+            infra.get_mock_token_balance_on_aurora_for(Some(second_user_address))
+                .await.as_u64(),
+            0
+        );
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                None,
+                None,
+                None,
+                true,
+                None,
+            ).await;
+        assert_eq!(
+            infra.get_mock_token_balance_on_aurora_for(None)
+                .await.as_u64(),
+            TRANSFER_TOKENS_AMOUNT
         );
     }
 
