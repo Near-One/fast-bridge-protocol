@@ -22,7 +22,7 @@ After deploying, you will get the address of the newly created contract. Save it
 To operate with the fast bridge, you first need to put a storage deposit for the implicit NEAR account of `AURORA_FAST_BRIDGE`  (e.g. if `AURORA_FAST_BRIDGE_ADDRESS` is `0xabcd..cdba` and the Silo's Account ID is `silo1.aurora`, the implicit NEAR account will be equal to `abcd..cdba.silo1.aurora`).
 After that, there should be created a binding between the Aurora ERC-20 token and the NEAR NEP-141 token inside `AuroraErc20FastBridge` contract. To perform both of these actions, call:
 ```bash
-$ NEAR_TOKEN_ADDRESS=<put NEP-141 token address here> AURORA_TOKEN_ADDRESS=<put Aurora ERC-20 token address here> make register_token
+$ NEAR_TOKEN_ACCOUNT_ID=<put NEP-141 token account id here> AURORA_TOKEN_ADDRESS=<put Aurora ERC-20 token address here> make register_token
 ```
 
 Before running the `init_token_transfer` first you should set up the `INIT_TOKEN_TRANSFER_ARG` in Makefile.

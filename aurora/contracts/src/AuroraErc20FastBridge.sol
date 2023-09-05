@@ -38,14 +38,14 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     uint128 constant NO_DEPOSIT = 0;
 
     NEAR public near;
-    string public bridgeAddressOnNear;
+    string public fastBridgeAccountIdOnNear;
     string public auroraEngineAccountIdOnNear;
     bool public isWhitelistModeEnabled;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
     mapping(address => bool) whitelistedUsers;
 
-    //By the token address on near returns correspondent ERC20 Aurora token.
+    //By the token account id on near returns correspondent ERC20 Aurora token.
     //token_near_account_id => aurora_erc20_token
     mapping(string => IEvmErc20) registeredTokens;
 
@@ -63,7 +63,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     );
     event SetWhitelistModeForUsers(address[] users, bool[] states);
     event SetWhitelistMode(bool);
-    event TokenRegistered(address auroraAddress, string nearAddress);
+    event TokenRegistered(address tokenAuroraAddress, string tokenNearAccountId);
     event Withdraw(address recipient, string token, uint128 amount);
     event WithdrawFromNear(string token, uint128 amount);
     event InitTokenTransfer(
@@ -78,10 +78,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     struct TransferMessage {
         uint64 validTill;
-        string transferTokenAddressOnNear;
+        string transferTokenAccountIdOnNear;
         address transferTokenAddressOnEth;
         uint128 transferTokenAmount;
-        string feeTokenAddressOnNear;
+        string feeTokenAccountIdOnNear;
         uint128 feeTokenAmount;
         address recipient;
         uint64 validTillBlockHeight;
@@ -90,7 +90,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function initialize(
         address wnearAddress,
-        string calldata bridgeAddress,
+        string calldata fastBridgeAccountId,
         string calldata auroraEngineAccountId,
         bool _isWhitelistModeEnabled
     ) external initializer {
@@ -98,7 +98,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         __AccessControl_init();
         __UUPSUpgradeable_init();
         near = AuroraSdk.initNear(IERC20_NEAR(wnearAddress));
-        bridgeAddressOnNear = bridgeAddress;
+        fastBridgeAccountIdOnNear = fastBridgeAccountId;
         auroraEngineAccountIdOnNear = auroraEngineAccountId;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
@@ -140,14 +140,14 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function registerToken(
         address auroraTokenAddress,
-        string calldata nearTokenAddress
+        string calldata nearTokenAccountId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         bytes memory args = bytes(
-            string.concat('{"account_id": "', getNearAddress(), '", "registration_only": true }')
+            string.concat('{"account_id": "', getNearAccountId(), '", "registration_only": true }')
         );
 
         PromiseCreateArgs memory callStorageDeposit = near.call(
-            nearTokenAddress,
+            nearTokenAccountId,
             "storage_deposit",
             args,
             NEAR_STORAGE_DEPOSIT,
@@ -155,8 +155,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
         callStorageDeposit.transact();
 
-        registeredTokens[nearTokenAddress] = IEvmErc20(auroraTokenAddress);
-        emit TokenRegistered(auroraTokenAddress, nearTokenAddress);
+        registeredTokens[nearTokenAccountId] = IEvmErc20(auroraTokenAddress);
+        emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
     }
 
     function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
@@ -169,11 +169,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
 
         require(
-            _isStrEqual(transferMessage.transferTokenAddressOnNear, transferMessage.feeTokenAddressOnNear),
+            _isStrEqual(transferMessage.transferTokenAccountIdOnNear, transferMessage.feeTokenAccountIdOnNear),
             "The transfer and fee tokens should be the same"
         );
 
-        IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
+        IEvmErc20 token = registeredTokens[transferMessage.transferTokenAccountIdOnNear];
         require(address(token) != address(0), "The token is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
@@ -184,13 +184,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         // As a result, there is no guarantee that this method will be completed before `initTransfer()`.
         // In case of such an error, the user will be able to call the `withdraw()` method and get his tokens back.
         // We expect such an error not to happen as long as transactions are executed in one shard.
-        token.withdrawToNear(bytes(getNearAddress()), totalTokenAmount);
+        token.withdrawToNear(bytes(getNearAccountId()), totalTokenAmount);
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id": "',
-                bridgeAddressOnNear,
+                fastBridgeAccountIdOnNear,
                 '", "amount": "',
                 Strings.toString(totalTokenAmount),
                 '", "msg": "',
@@ -201,7 +201,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         PromiseCreateArgs memory callFtTransfer = _callWithoutTransferWNear(
             near,
-            transferMessage.transferTokenAddressOnNear,
+            transferMessage.transferTokenAccountIdOnNear,
             "ft_transfer_call",
             args,
             ONE_YOCTO,
@@ -233,14 +233,14 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             transferMessage.feeTokenAmount -
             transferredAmount);
         if (refundAmount > 0) {
-            balance[transferMessage.transferTokenAddressOnNear][signer] += refundAmount;
+            balance[transferMessage.transferTokenAccountIdOnNear][signer] += refundAmount;
         }
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
         emit InitTokenTransfer(
             signer,
             initArgsBase64,
-            transferMessage.transferTokenAddressOnNear,
+            transferMessage.transferTokenAccountIdOnNear,
             transferMessage.transferTokenAmount,
             transferMessage.feeTokenAmount,
             transferMessage.recipient,
@@ -252,7 +252,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
 
         PromiseCreateArgs memory callUnlock = near.call(
-            bridgeAddressOnNear,
+            fastBridgeAccountIdOnNear,
             "unlock",
             args,
             NO_DEPOSIT,
@@ -269,16 +269,16 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
 
-        balance[transferMessage.transferTokenAddressOnNear][transferMessage.auroraSender] += transferMessage
+        balance[transferMessage.transferTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
             .transferTokenAmount;
-        balance[transferMessage.feeTokenAddressOnNear][transferMessage.auroraSender] += transferMessage.feeTokenAmount;
+        balance[transferMessage.feeTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage.feeTokenAmount;
 
         emit Unlock(
             nonce,
             transferMessage.auroraSender,
-            transferMessage.transferTokenAddressOnNear,
+            transferMessage.transferTokenAccountIdOnNear,
             transferMessage.transferTokenAmount,
-            transferMessage.feeTokenAddressOnNear,
+            transferMessage.feeTokenAccountIdOnNear,
             transferMessage.feeTokenAmount
         );
     }
@@ -290,7 +290,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
         PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
             near,
-            bridgeAddressOnNear,
+            fastBridgeAccountIdOnNear,
             "withdraw",
             args,
             ONE_YOCTO,
@@ -367,10 +367,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         TransferMessage memory result;
         Borsh.Data memory borsh = Borsh.from(transferMessageBorsh);
         result.validTill = borsh.decodeU64();
-        result.transferTokenAddressOnNear = string(borsh.decodeBytes());
+        result.transferTokenAccountIdOnNear = string(borsh.decodeBytes());
         result.transferTokenAddressOnEth = address(borsh.decodeBytes20());
         result.transferTokenAmount = borsh.decodeU128();
-        result.feeTokenAddressOnNear = string(borsh.decodeBytes());
+        result.feeTokenAccountIdOnNear = string(borsh.decodeBytes());
         result.feeTokenAmount = borsh.decodeU128();
         result.recipient = address(borsh.decodeBytes20());
         uint8 optionValidTill = borsh.decodeU8();
@@ -384,16 +384,16 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         return result;
     }
 
-    function getNearAddress() public view returns (string memory) {
+    function getNearAccountId() public view returns (string memory) {
         return string.concat(_addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
     }
 
-    function getTokenAuroraAddress(string calldata nearTokenAddress) external view returns (address) {
-        return address(registeredTokens[nearTokenAddress]);
+    function getTokenAuroraAddress(string calldata nearTokenAccountId) external view returns (address) {
+        return address(registeredTokens[nearTokenAccountId]);
     }
 
-    function getUserBalance(string calldata nearTokenAddress, address userAddress) external view returns (uint128) {
-        return balance[nearTokenAddress][userAddress];
+    function getUserBalance(string calldata nearTokenAccountId, address userAddress) external view returns (uint128) {
+        return balance[nearTokenAccountId][userAddress];
     }
 
     function _addressToString(address auroraAddress) private pure returns (string memory) {

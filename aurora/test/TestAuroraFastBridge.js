@@ -9,7 +9,7 @@ const {encodeInitMsgToBorsh} = require("./EncodeInitMsgToBorsh");
 const borsh = require("borsh");
 
 const WNEAR_AURORA_ADDRESS = "0x4861825E75ab14553E5aF711EbbE6873d369d146";
-const NEAR_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet";
+const NEAR_TOKEN_ACCOUNT_ID = "07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet";
 const ETH_TOKEN_ADDRESS = "07865c6e87b9f70255377e024ace6630c1eaa37f";
 const AURORA_TOKEN_ADDRESS="0x901fb725c106E182614105335ad0E230c91B67C8";
 const ETH_CLIENT_ACCOUNT="client-eth2.goerli.testnet";
@@ -111,14 +111,14 @@ async function deployFastBridgeOnNear() {
 
     await nearFastBridgeContract.set_token_whitelist_mode({
         args: {
-            token: NEAR_TOKEN_ADDRESS,
+            token: NEAR_TOKEN_ACCOUNT_ID,
             mode: "CheckToken"
         }
     });
 
     const nearTokenContract = new Contract(
         master_account,
-        NEAR_TOKEN_ADDRESS,
+        NEAR_TOKEN_ACCOUNT_ID,
         {
             changeMethods: ["storage_deposit"],
         }
@@ -164,8 +164,8 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
 
     console.log("Blanace of wNEAR of signer: ", await wnear.balanceOf(deployerWallet.address));
 
-    await proxy.registerToken(AURORA_TOKEN_ADDRESS, NEAR_TOKEN_ADDRESS, options);
-    console.log("Aurora Fast Bridge Address on Near: ", await proxy.getNearAddress());
+    await proxy.registerToken(AURORA_TOKEN_ADDRESS, NEAR_TOKEN_ACCOUNT_ID, options);
+    console.log("Aurora Fast Bridge Account Id on Near: ", await proxy.getNearAccountId());
     await sleep(15000);
 
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
@@ -176,7 +176,7 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
 
     await sleep(15000);
     const balanceBefore = await usdc.balanceOf(deployerWallet.address);
-    const transferMsgHex = encodeInitMsgToBorsh(validTill, NEAR_TOKEN_ADDRESS, ETH_TOKEN_ADDRESS,
+    const transferMsgHex = encodeInitMsgToBorsh(validTill, NEAR_TOKEN_ACCOUNT_ID, ETH_TOKEN_ADDRESS,
         100, 100, deployerWallet.address, deployerWallet.address);
 
     await proxy.initTokenTransfer(transferMsgHex, options);
@@ -188,7 +188,7 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
     const balanceAfterInitTransfer = await usdc.balanceOf(deployerWallet.address);
     expect(balanceBefore - balanceAfterInitTransfer).to.equals(200);
 
-    await proxy.withdraw(NEAR_TOKEN_ADDRESS, options);
+    await proxy.withdraw(NEAR_TOKEN_ACCOUNT_ID, options);
     await sleep(20000);
     const balanceAfterWithdraw = await usdc.balanceOf(deployerWallet.address);
     expect(balanceAfterInitTransfer).to.equals(balanceAfterWithdraw);
@@ -224,11 +224,11 @@ async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight,
     await sleep(15000);
 
     console.log("Withdraw from near");
-    await fastbridge.withdrawFromNear(NEAR_TOKEN_ADDRESS, 200, options);
+    await fastbridge.withdrawFromNear(NEAR_TOKEN_ACCOUNT_ID, 200, options);
     await sleep(15000);
 
     console.log("Withdraw");
-    await fastbridge.withdraw(NEAR_TOKEN_ADDRESS, options);
+    await fastbridge.withdraw(NEAR_TOKEN_ACCOUNT_ID, options);
     await sleep(150000);
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
     const balanceAfterUnlock = await usdc.balanceOf(deployerWallet.address);

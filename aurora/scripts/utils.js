@@ -1,11 +1,11 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-async function registerToken(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
+async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId, auroraTokenAddress) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
-    await fastBridge.registerToken(auroraTokenAddress, nearTokenAddress);
+    await fastBridge.registerToken(auroraTokenAddress, nearTokenAccountId);
 
-    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
+    console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getNearAccountId());
 }
 
 async function initTokenTransfer(signer, config, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {
@@ -28,17 +28,17 @@ async function unlock(signer, config, fastBridgeAddress, nonce) {
     console.log(receipt.events[0].args);
 }
 
-async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAddress, amount) {
+async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAccountId, amount) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
 
-    let tx = await fastBridge.withdrawFromNear(nearTokenAddress, amount);
+    let tx = await fastBridge.withdrawFromNear(nearTokenAccountId, amount);
     let receipt = await tx.wait();
 }
 
-async function withdraw(signer, config, fastBridgeAddress, nearTokenAddress) {
+async function withdraw(signer, config, fastBridgeAddress, nearTokenAccountId) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
 
-    let tx = await fastBridge.withdraw(nearTokenAddress);
+    let tx = await fastBridge.withdraw(nearTokenAccountId);
     let receipt = await tx.wait();
 }
 
