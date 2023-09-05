@@ -19,10 +19,10 @@ $ make deploy
 ```
 After deploying, you will get the address of the newly created contract. Save it to the `AURORA_FAST_BRIDGE_ADDRESS` variable in Makefile. Also, please specify the values of `NETWORK`, `SILO` variables in the Makefile prior to the proceeding.
 
-
-For registration USDC tokens and init contract on Near run:
+To operate with the fast bridge, you first need to put a storage deposit for the implicit NEAR account of `AURORA_FAST_BRIDGE`  (e.g. if `AURORA_FAST_BRIDGE_ADDRESS` is `0xabcd..cdba` and the Silo's Account ID is `silo1.aurora`, the implicit NEAR account will be equal to `abcd..cdba.silo1.aurora`).
+After that, there should be created a binding between the Aurora ERC-20 token and the NEAR NEP-141 token inside `AuroraErc20FastBridge` contract. To perform both of these actions, call:
 ```bash
-$ make tokens_registration
+$ NEAR_TOKEN_ADDRESS=<put NEP-141 token address here> AURORA_TOKEN_ADDRESS=<put Aurora ERC-20 token address here> make register_token
 ```
 
 Before running the `init_token_transfer` first you should set up the `INIT_TOKEN_TRANSFER_ARG` in Makefile.

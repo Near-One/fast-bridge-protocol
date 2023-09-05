@@ -1,7 +1,7 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-async function tokensRegistration(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
+async function registerToken(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
     await fastBridge.registerToken(auroraTokenAddress, nearTokenAddress);
 
@@ -81,7 +81,7 @@ async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
 exports.setWhitelistMode = setWhitelistMode;
 exports.initTokenTransfer = initTokenTransfer;
-exports.tokensRegistration = tokensRegistration;
+exports.registerToken = registerToken;
 exports.unlock = unlock;
 exports.withdraw_from_near = withdraw_from_near;
 exports.withdraw = withdraw;

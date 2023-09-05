@@ -19,8 +19,8 @@ deploy:
 upgrade:
 	yarn hardhat upgrade --silo $(SILO) --proxy $(AURORA_FAST_BRIDGE_ADDRESS) --network $(NETWORK)
 
-tokens_registration:
-	yarn hardhat tokens_registration --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+register_token:
+	yarn hardhat register_token --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-address $(NEAR_TOKEN_ADDRESS) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
 
 init_token_transfer:
 	yarn hardhat init_token_transfer --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --init-token-transfer-arg $(INIT_TOKEN_TRANSFER_ARG) --aurora-token-address $(AURORA_TOKEN_ADDRESS)

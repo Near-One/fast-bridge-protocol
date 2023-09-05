@@ -43,17 +43,17 @@ task("upgrade", "Upgrade aurora fast bridge proxy contract")
         });
     });
 
-task('tokens_registration', 'Register tokens and storage deposit on NEAR for the contract')
+task('register_token', 'Registers a binding of "nearTokenAddress:auroraTokenAddress" in "AuroraFastBridge" contract, and puts a storage deposit in "nearTokenAddress" for the "AuroraFastBridge" implicit NEAR Account ID.')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAddress', "Token address on Near")
     .addParam('auroraTokenAddress', "Token address on Aurora")
     .setAction(async taskArgs => {
-        const { tokensRegistration } = require('./scripts/utils');
+        const { registerToken } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.silo}.json`);
 
-        await tokensRegistration(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.auroraTokenAddress);
+        await registerToken(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.auroraTokenAddress);
     });
 
 task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
