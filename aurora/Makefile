@@ -37,6 +37,12 @@ withdraw:
 set_whitelist_mode_for_users:
 	yarn hardhat set_whitelist_mode_for_users --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --user-address $(USER_ADDRESS)
 
+disable_whitelist_mode:
+	yarn hardhat set_whitelist_mode --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled false
+
+enable_whitelist_mode:
+	yarn hardhat set_whitelist_mode --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled true
+
 
 test:
 	yarn hardhat test --network testnet_aurora

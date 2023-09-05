@@ -118,6 +118,20 @@ task('set_whitelist_mode_for_users', 'Set whitelist mode for users')
         await set_whitelist_mode_for_users(signer, config, taskArgs.fastBridgeAddress, taskArgs.userAddress);
     });
 
+task("set_whitelist_mode", "Set whitelist mode")
+  .addParam("silo", "Config file name without extension")
+  .addParam("fastBridgeAddress", "Aurora Fast Bridge address")
+  .addParam(
+    "enabled",
+    "Pass `true` to enable or `false` to disable the whitelist mode"
+  )
+  .setAction(async (taskArgs) => {
+    const { setWhitelistMode } = require("./scripts/utils");
+    const [signer] = await hre.ethers.getSigners();
+    const config = require(`./configs/${taskArgs.silo}.json`);
+
+    await setWhitelistMode(signer, config, taskArgs.fastBridgeAddress);
+  });
 
 module.exports = {
     solidity: {

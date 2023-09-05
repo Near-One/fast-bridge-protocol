@@ -49,6 +49,17 @@ async function set_whitelist_mode_for_users(signer, config, fastBridgeAddress, u
     let receipt = await tx.wait();
 }
 
+async function setWhitelistMode(signer, config, fastBridgeAddress) {
+  const fastBridge = await beforeWorkWithFastBridge(
+    signer,
+    config,
+    fastBridgeAddress
+  );
+  let tx = await fastBridge.setWhitelistMode(false);
+  let receipt = await tx.wait();
+  console.log("Transaction hash: ", receipt.hash);
+}
+
 async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
     console.log("Sending transaction with the account:", signer.address);
 
@@ -68,6 +79,7 @@ async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
 }
 
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
+exports.setWhitelistMode = setWhitelistMode;
 exports.initTokenTransfer = initTokenTransfer;
 exports.tokensRegistration = tokensRegistration;
 exports.unlock = unlock;
