@@ -17407,7 +17407,7 @@ impl FastBridge {
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
         if true {
-            let msg: &str = &"Only the transfer originator can perform the unlock";
+            let msg: &str = &"Only the original creator of the transfer can perform the unlock";
             if !(transfer_data.aurora_sender.is_none() || recipient_id == sender_id) {
                 {
                     ::core::panicking::panic_display(&msg);
@@ -17415,7 +17415,7 @@ impl FastBridge {
             }
         } else if !(transfer_data.aurora_sender.is_none() || recipient_id == sender_id) {
             ::near_sdk::env::panic_str(
-                &"Only the transfer originator can perform the unlock",
+                &"Only the original creator of the transfer can perform the unlock",
             )
         }
         if true {
