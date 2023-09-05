@@ -65,7 +65,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     event SetWhitelistMode(bool);
     event TokenRegistered(address tokenAuroraAddress, string tokenNearAccountId);
     event Withdraw(address recipient, string token, uint128 amount);
-    event WithdrawFromNear(string token, uint128 amount);
+    event FastBridgeWithdrawOnNear(string token, uint128 amount);
     event InitTokenTransfer(
         address sender,
         string initTransferArg,
@@ -283,7 +283,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
     }
 
-    function withdrawFromNear(string calldata tokenId, uint128 amount) external whenNotPaused {
+    function fastBridgeWithdrawOnNear(string calldata tokenId, uint128 amount) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
@@ -296,19 +296,19 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromNearCallback.selector, tokenId, amount);
+        bytes memory callbackArg = abi.encodeWithSelector(this.fastBridgeWithdrawOnNearCallback.selector, tokenId, amount);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
 
-    function withdrawFromNearCallback(string calldata tokenId, uint128 amount) external onlyRole(CALLBACK_ROLE) {
+    function fastBridgeWithdrawOnNearCallback(string calldata tokenId, uint128 amount) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
             "ERROR: The `Withdraw From Near` XCC is fail"
         );
 
-        emit WithdrawFromNear(tokenId, amount);
+        emit FastBridgeWithdrawOnNear(tokenId, amount);
     }
 
     function withdraw(string calldata token) external whenNotPaused {

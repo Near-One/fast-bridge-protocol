@@ -81,17 +81,17 @@ task('unlock', 'Unlock tokens on Near')
         await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce);
     });
 
-task('withdraw_from_near', 'Withdraw tokens on Near side')
+task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
     .addParam('tokenAmount', "Withdraw tokens amount")
     .setAction(async taskArgs => {
-        const { withdraw_from_near } = require('./scripts/utils');
+        const { fast_bridge_withdraw_on_near } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.silo}.json`);
 
-        await withdraw_from_near(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.tokenAmount);
+        await fast_bridge_withdraw_on_near(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.tokenAmount);
     });
 
 task('withdraw', 'Withdraw tokens to user on Aurora')

@@ -224,11 +224,11 @@ mod tests {
             self.call_aurora_contract(contract_args).await;
         }
 
-        pub async fn withdraw_from_near(&self) {
+        pub async fn fast_bridge_withdraw_on_near(&self) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
-                    "withdrawFromNear",
+                    "fastBridgeWithdrawOnNear",
                     &[
                         ethabi::Token::String(self.mock_token.id().to_string()),
                         ethabi::Token::Uint(U256::from(TRANSFER_TOKENS_AMOUNT)),
@@ -346,7 +346,7 @@ mod tests {
         infra
             .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT)
             .await;
-        infra.withdraw_from_near().await;
+        infra.fast_bridge_withdraw_on_near().await;
         infra
             .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT)
             .await;

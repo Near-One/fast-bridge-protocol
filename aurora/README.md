@@ -56,7 +56,7 @@ This method unlocks tokens on the Near side and increases the Aurora user's bala
 
 To withdraw already unlocked tokens on the Near side for the contract, run:
 ```bash
-$ make withdraw_from_near
+$ make fast_bridge_withdraw_on_near
 ```
 
 And finally, to withdraw tokens on the Aurora side to the Aurora user, run:

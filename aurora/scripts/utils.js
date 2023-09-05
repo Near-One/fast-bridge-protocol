@@ -28,10 +28,10 @@ async function unlock(signer, config, fastBridgeAddress, nonce) {
     console.log(receipt.events[0].args);
 }
 
-async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAccountId, amount) {
+async function fast_bridge_withdraw_on_near(signer, config, fastBridgeAddress, nearTokenAccountId, amount) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
 
-    let tx = await fastBridge.withdrawFromNear(nearTokenAccountId, amount);
+    let tx = await fastBridge.fastBridgeWithdrawOnNear(nearTokenAccountId, amount);
     let receipt = await tx.wait();
 }
 
@@ -83,5 +83,5 @@ exports.setWhitelistMode = setWhitelistMode;
 exports.initTokenTransfer = initTokenTransfer;
 exports.registerToken = registerToken;
 exports.unlock = unlock;
-exports.withdraw_from_near = withdraw_from_near;
+exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw = withdraw;
