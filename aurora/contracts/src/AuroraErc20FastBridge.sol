@@ -46,11 +46,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     mapping(address => bool) whitelistedUsers;
 
     //By the token address on near returns correspondent ERC20 Aurora token.
-    //[token_address_on_near] => aurora_erc20_token
+    //token_near_account_id => aurora_erc20_token
     mapping(string => IEvmErc20) registeredTokens;
 
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
-    //[token_address_on_near][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
+    //[token_near_account_id][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
     mapping(string => mapping(address => uint128)) balance;
 
     event Unlock(
@@ -165,25 +165,25 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
         require(
             transferMessage.auroraSender == msg.sender,
-            "Aurora sender in transfer message doesn't equal to signer"
+            "Aurora sender address in the transfer message doesn't match the signer"
         );
 
         require(
             _isStrEqual(transferMessage.transferTokenAddressOnNear, transferMessage.feeTokenAddressOnNear),
-            "The transfer and fee tokens are different. Different tokens not supported yet."
+            "The transfer and fee tokens should be the same"
         );
 
         IEvmErc20 token = registeredTokens[transferMessage.transferTokenAddressOnNear];
-        require(address(token) != address(0), "The token is not registered!");
+        require(address(token) != address(0), "The token is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         token.transferFrom(msg.sender, address(this), totalTokenAmount);
 
         // WARNING: The `withdrawToNear` method works asynchronously.
-        // As a result, there is no guarantee that this method will be completed before `initTransfer`.
-        // In case of such an error, the user will be able to call `withdraw` method and get his/her tokens back.
-        // We expect such an error not to happen as long as transactions were executed in one shard.
+        // As a result, there is no guarantee that this method will be completed before `initTransfer()`.
+        // In case of such an error, the user will be able to call the `withdraw()` method and get his tokens back.
+        // We expect such an error not to happen as long as transactions are executed in one shard.
         token.withdrawToNear(bytes(getNearAddress()), totalTokenAmount);
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
@@ -265,7 +265,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function unlockCallback(uint128 nonce) external onlyRole(CALLBACK_ROLE) {
-        require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC is fail");
+        require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC failed");
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
 

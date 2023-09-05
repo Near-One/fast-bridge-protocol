@@ -72,7 +72,7 @@ task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
 task('unlock', 'Unlock tokens on Near')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nonce', 'nonce')
+    .addParam('nonce', 'Nonce of the Fast Bridge transfer')
     .setAction(async taskArgs => {
         const { unlock } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();

@@ -462,7 +462,7 @@ impl FastBridge {
 
         require!(
             transfer_data.aurora_sender.is_none() || recipient_id == sender_id,
-            "Only the transfer originator can perform the unlock"
+            "Only the original creator of the transfer can perform the unlock"
         );
 
         require!(
