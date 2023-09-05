@@ -442,7 +442,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     /// Unpauses all the operations in Fast Bridge. It affects only user-accessible operations.
-    function unPause() external onlyRole(UNPAUSABLE_ADMIN_ROLE) {
+    function unpause() external onlyRole(UNPAUSABLE_ADMIN_ROLE) {
         _unpause();
     }
 
