@@ -43,7 +43,7 @@ class Assignable {
 
 class BorshStruct extends Assignable { }
 
-async function getLastBlockNumber() {
+async function getLastBlockNumberOnNear() {
     const nearConnection = await connect(connectionConfig);
     const masterAccount = await nearConnection.account(masterAccountStr);
 
@@ -62,7 +62,7 @@ async function getLastBlockNumber() {
 }
 
 
-async function deployFastBridge() {
+async function deployFastBridgeOnNear() {
     const nearConnection = await connect(connectionConfig);
 
     let keyPair = await myKeyStore.getKey(connectionConfig.networkId, nearFastBridgeAccountStr);
@@ -181,7 +181,7 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
 
     await proxy.initTokenTransfer(transferMsgHex, options);
 
-    const lastBlockHeight = await getLastBlockNumber();
+    const lastBlockHeight = await getLastBlockNumberOnNear();
     const validTillBlockHeight = Math.ceil((lastBlockHeight + lockPeriod / ETH_BLOCK_TIME));
 
     await sleep(20000);
@@ -236,9 +236,9 @@ async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight,
 }
 
 async function waitForBlockHeight(blockHeight) {
-    let currentBlockNumber = await getLastBlockNumber();
+    let currentBlockNumber = await getLastBlockNumberOnNear();
     while (currentBlockNumber < blockHeight) {
-        currentBlockNumber = await getLastBlockNumber();
+        currentBlockNumber = await getLastBlockNumberOnNear();
         console.log("Current block number = ", currentBlockNumber, "; wait for = ", blockHeight);
         await sleep(10000);
     }
@@ -248,7 +248,7 @@ describe("Aurora Fast Bridge", function () {
     it("The Basic Aurora->Eth transfer with unlock", async function () {
         const config = require(`../configs/aurora-testnet.json`);
 
-        await deployFastBridge();
+        await deployFastBridgeOnNear();
         console.log("Near fast bridge account: " + nearFastBridgeAccountStr);
 
         let [auroraFastBridgeAddress, validTillBlockHeight, balanceBefore] =
