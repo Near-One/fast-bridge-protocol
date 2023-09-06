@@ -165,6 +165,7 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
     console.log("Blanace of wNEAR of signer: ", await wnear.balanceOf(deployerWallet.address));
 
     await proxy.registerToken(NEAR_TOKEN_ACCOUNT_ID, options);
+    await proxy.storageDeposit(NEAR_TOKEN_ACCOUNT_ID, "12500000000000000000000", options);
     console.log("Aurora Fast Bridge Account Id on Near: ", await proxy.getImplicitNearAccountIdForSelf());
     await sleep(15000);
 

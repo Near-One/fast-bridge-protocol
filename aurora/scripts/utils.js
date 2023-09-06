@@ -8,6 +8,11 @@ async function registerToken(signer, config, fastBridgeAddress, nearTokenAccount
     console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getImplicitNearAccountIdForSelf());
 }
 
+async function storageDeposit(signer, config, fastBridgeAddress, nearTokenAccountId) {
+    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    await fastBridge.storageDeposit(nearTokenAccountId, "12500000000000000000000");
+}
+
 async function initTokenTransfer(signer, config, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
@@ -82,6 +87,7 @@ exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
 exports.setWhitelistMode = setWhitelistMode;
 exports.initTokenTransfer = initTokenTransfer;
 exports.registerToken = registerToken;
+exports.storageDeposit = storageDeposit;
 exports.unlock = unlock;
 exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
