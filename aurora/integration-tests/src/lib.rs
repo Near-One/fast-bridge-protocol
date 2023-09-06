@@ -169,11 +169,11 @@ mod tests {
             self.call_aurora_contract(contract_args).await;
         }
 
-        pub async fn withdraw(&self) {
+        pub async fn withdraw_from_implicit_near_account(&self) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
-                    "withdraw",
+                    "withdrawFromImplicitNearAccount",
                     &[ethabi::Token::String(self.mock_token.id().to_string())],
                 );
 
@@ -333,7 +333,7 @@ mod tests {
         let balance1 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
 
-        infra.withdraw().await;
+        infra.withdraw_from_implicit_near_account().await;
         let balance2 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance2, balance1);
 
@@ -350,7 +350,7 @@ mod tests {
         infra
             .assert_user_balance_in_fast_bridge_on_aurora(None, TRANSFER_TOKENS_AMOUNT)
             .await;
-        infra.withdraw().await;
+        infra.withdraw_from_implicit_near_account().await;
 
         let balance3 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance3, balance0);

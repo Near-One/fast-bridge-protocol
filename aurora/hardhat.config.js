@@ -94,16 +94,16 @@ task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
         await fast_bridge_withdraw_on_near(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.tokenAmount);
     });
 
-task('withdraw', 'Withdraw tokens to user on Aurora')
+task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora Fast Bridge Implicit Near Account')
     .addParam("silo", "Config file name without extension")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
-        const { withdraw } = require('./scripts/utils');
+        const { withdraw_from_implicit_near_account } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.silo}.json`);
 
-        await withdraw(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+        await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
 
 task('set_whitelist_mode_for_users', 'Set whitelist mode for users')

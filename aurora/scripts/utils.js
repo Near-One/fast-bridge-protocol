@@ -35,10 +35,10 @@ async function fast_bridge_withdraw_on_near(signer, config, fastBridgeAddress, n
     let receipt = await tx.wait();
 }
 
-async function withdraw(signer, config, fastBridgeAddress, nearTokenAccountId) {
+async function withdraw_from_implicit_near_account(signer, config, fastBridgeAddress, nearTokenAccountId) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
 
-    let tx = await fastBridge.withdraw(nearTokenAccountId);
+    let tx = await fastBridge.withdrawFromImplicitNearAccount(nearTokenAccountId);
     let receipt = await tx.wait();
 }
 
@@ -84,4 +84,4 @@ exports.initTokenTransfer = initTokenTransfer;
 exports.registerToken = registerToken;
 exports.unlock = unlock;
 exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
-exports.withdraw = withdraw;
+exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;

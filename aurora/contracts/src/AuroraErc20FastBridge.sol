@@ -64,7 +64,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     event SetWhitelistModeForUsers(address[] users, bool[] states);
     event SetWhitelistMode(bool);
     event TokenRegistered(address tokenAuroraAddress, string tokenNearAccountId);
-    event Withdraw(address recipient, string token, uint128 amount);
+    event WithdrawFromImplicitNearAccount(address recipient, string token, uint128 amount);
     event FastBridgeWithdrawOnNear(string token, uint128 amount);
     event InitTokenTransfer(
         address sender,
@@ -311,7 +311,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         emit FastBridgeWithdrawOnNear(tokenId, amount);
     }
 
-    function withdraw(string calldata token) external whenNotPaused {
+    function withdrawFromImplicitNearAccount(string calldata token) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         uint128 signerBalance = balance[token][msg.sender];
         require(signerBalance > 0, "The signer token balance = 0");
@@ -337,13 +337,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawCallback.selector, msg.sender, token, signerBalance);
+        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromImplicitNearAccountCallback.selector, msg.sender, token, signerBalance);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
 
-    function withdrawCallback(address signer, string calldata token, uint128 amount) external onlyRole(CALLBACK_ROLE) {
+    function withdrawFromImplicitNearAccountCallback(address signer, string calldata token, uint128 amount) external onlyRole(CALLBACK_ROLE) {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
@@ -357,7 +357,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
 
         if (transferredAmount > 0) {
-            emit Withdraw(signer, token, transferredAmount);
+            emit WithdrawFromImplicitNearAccount(signer, token, transferredAmount);
         }
     }
 

@@ -35,7 +35,7 @@ $ make init_token_transfer
 
 To withdraw tokens in case of error during transfer initialization, run:
 ```bash
-$ make withdraw
+$ make withdraw_from_implicit_near_account
 ```
 
 ### Unlock tokens
@@ -61,7 +61,7 @@ $ make fast_bridge_withdraw_on_near
 
 And finally, to withdraw tokens on the Aurora side to the Aurora user, run:
 ```bash
-$ make withdraw
+$ make withdraw_from_implicit_near_account
 ```
 
 The tokens unlock is complete!
