@@ -165,7 +165,7 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
     console.log("Blanace of wNEAR of signer: ", await wnear.balanceOf(deployerWallet.address));
 
     await proxy.registerToken(AURORA_TOKEN_ADDRESS, NEAR_TOKEN_ACCOUNT_ID, options);
-    console.log("Aurora Fast Bridge Account Id on Near: ", await proxy.getNearAccountId());
+    console.log("Aurora Fast Bridge Account Id on Near: ", await proxy.getImplicitNearAccountIdForSelf());
     await sleep(15000);
 
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);

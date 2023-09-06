@@ -5,7 +5,7 @@ async function registerToken(signer, config, fastBridgeAddress, nearTokenAccount
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
     await fastBridge.registerToken(auroraTokenAddress, nearTokenAccountId);
 
-    console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getNearAccountId());
+    console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getImplicitNearAccountIdForSelf());
 }
 
 async function initTokenTransfer(signer, config, fastBridgeAddress, initTokenTransferArg, auroraTokenAddress) {

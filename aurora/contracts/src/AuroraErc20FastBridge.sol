@@ -143,7 +143,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         string calldata nearTokenAccountId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         bytes memory args = bytes(
-            string.concat('{"account_id": "', getNearAccountId(), '", "registration_only": true }')
+            string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')
         );
 
         PromiseCreateArgs memory callStorageDeposit = near.call(
@@ -184,7 +184,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         // As a result, there is no guarantee that this method will be completed before `initTransfer()`.
         // In case of such an error, the user will be able to call the `withdraw()` method and get his tokens back.
         // We expect such an error not to happen as long as transactions are executed in one shard.
-        token.withdrawToNear(bytes(getNearAccountId()), totalTokenAmount);
+        token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
         bytes memory args = bytes(
@@ -384,7 +384,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         return result;
     }
 
-    function getNearAccountId() public view returns (string memory) {
+    function getImplicitNearAccountIdForSelf() public view returns (string memory) {
         return string.concat(_addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
     }
 
