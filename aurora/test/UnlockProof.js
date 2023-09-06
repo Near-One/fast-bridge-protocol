@@ -4,8 +4,10 @@ const {Header, Account} = require('eth-object');
 const _utils = require('ethereumjs-util');
 const borsh = require('borsh')
 
-const provider = new ethers.getDefaultProvider('https://ethereum-goerli-rpc.allthatnode.com');
-const web3 = new Web3('https://ethereum-goerli-rpc.allthatnode.com');
+const ETH_RPC_ENDPOINT_URL = 'https://ethereum-goerli-rpc.allthatnode.com';
+
+const provider = new ethers.getDefaultProvider(ETH_RPC_ENDPOINT_URL);
+const web3 = new Web3(ETH_RPC_ENDPOINT_URL);
 
 const mappingSlotNumber = 303;
 
