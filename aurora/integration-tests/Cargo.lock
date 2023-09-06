@@ -1222,7 +1222,6 @@ dependencies = [
  "hex 0.4.3",
  "near-contract-standards",
  "near-plugins",
- "near-plugins-derive",
  "near-sdk",
  "parse_duration",
  "rlp 0.4.6",

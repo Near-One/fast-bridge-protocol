@@ -19,7 +19,6 @@ parse_duration = "2.1.1"
 eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", rev = "3e859904f445105850c2a08b5a4b0fdc7680c841", default-features = false, features = ["eip1559"] }
 fast-bridge-common = { git = "https://github.com/aurora-is-near/fast-bridge-common.git", tag = "0.2.1" }
 near-plugins = { git = "https://github.com/aurora-is-near/near-plugins", tag = "v0.1.0" }
-near-plugins-derive = { git = "https://github.com/aurora-is-near/near-plugins", tag = "v0.1.0" }
 
 [dev-dependencies]
 uint = { version = "0.8.3", default-features = false }
