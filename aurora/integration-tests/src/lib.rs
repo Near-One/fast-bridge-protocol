@@ -11,7 +11,7 @@ mod tests {
         aurora_engine_types::{
             parameters::engine::{CallArgs, FunctionCallArgsV1, SubmitResult, TransactionStatus},
             types::{Address, Wei},
-            H160, U256,
+            U256,
         },
         ethabi, tokio,
         utils::{ethabi::DeployedContract, forge},
@@ -72,7 +72,7 @@ mod tests {
                 &mock_eth_client.id().to_string(),
                 &mock_eth_prover.id().to_string(),
             )
-            .await;
+                .await;
 
             let aurora_fast_bridge_contract = deploy_aurora_fast_bridge_contract(
                 &engine,
@@ -80,7 +80,7 @@ mod tests {
                 wnear.aurora_token.address,
                 &near_fast_bridge,
             )
-            .await;
+                .await;
 
             let aurora_mock_token = engine.bridge_nep141(mock_token.id()).await.unwrap();
 
@@ -117,19 +117,37 @@ mod tests {
                 &user_account.unwrap_or(self.user_account.clone()),
                 &self.engine,
             )
-            .await;
+                .await;
         }
 
         pub async fn register_token(&self, user_account: Option<Account>, check_result: bool) {
             aurora_fast_bridge_register_token(
                 &self.aurora_fast_bridge_contract,
-                self.aurora_mock_token.address.raw(),
                 self.mock_token.id().to_string(),
                 &user_account.unwrap_or(self.user_account.clone()),
                 &self.engine,
                 check_result,
+            ).await;
+        }
+
+        pub async fn aurora_storage_deposit(&self, user_account: Option<Account>, check_result: bool) {
+            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
+                "storageDeposit",
+                &[
+                    ethabi::Token::String(self.mock_token.id().to_string()),
+                    ethabi::Token::Uint(TOKEN_STORAGE_DEPOSIT.into())
+                ],
+            );
+
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &user_account.unwrap_or(self.user_account.clone()),
+                self.engine.inner.id(),
+                check_result,
             )
-            .await;
+                .await
+                .unwrap();
         }
 
         pub async fn approve_spend_mock_tokens(&self) {
@@ -302,6 +320,7 @@ mod tests {
         infra.approve_spend_wnear(None).await;
 
         infra.register_token(None, true).await;
+        infra.aurora_storage_deposit(None, true).await;
 
         storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
         storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
@@ -379,7 +398,6 @@ mod tests {
 
     async fn aurora_fast_bridge_register_token(
         aurora_fast_bridge: &DeployedContract,
-        engine_mock_token_address: H160,
         near_mock_token_account_id: String,
         user_account: &Account,
         engine: &AuroraEngine,
@@ -388,7 +406,6 @@ mod tests {
         let contract_args = aurora_fast_bridge.create_call_method_bytes_with_args(
             "registerToken",
             &[
-                ethabi::Token::Address(engine_mock_token_address),
                 ethabi::Token::String(near_mock_token_account_id),
             ],
         );

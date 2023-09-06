@@ -1,9 +1,9 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId, auroraTokenAddress) {
+async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId) {
     const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
-    await fastBridge.registerToken(auroraTokenAddress, nearTokenAccountId);
+    await fastBridge.registerToken(nearTokenAccountId);
 
     console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getImplicitNearAccountIdForSelf());
 }

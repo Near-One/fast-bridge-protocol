@@ -13,6 +13,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./IEvmErc20.sol";
 
+struct TokenInfo {
+    IEvmErc20 auroraTokenAddress;
+    bool isStorageRegistered;
+}
+
 contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using AuroraSdk for NEAR;
     using AuroraSdk for PromiseCreateArgs;
@@ -47,7 +52,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     //By the token account id on near returns correspondent ERC20 Aurora token.
     //token_near_account_id => aurora_erc20_token
-    mapping(string => IEvmErc20) registeredTokens;
+    mapping(string => TokenInfo) registeredTokens;
 
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_near_account_id][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
@@ -75,6 +80,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address recipient,
         bool isSuccessful
     );
+    event StorageDeposit(string tokenNearAccountId);
 
     struct TransferMessage {
         uint64 validTill;
@@ -139,9 +145,43 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function registerToken(
-        address auroraTokenAddress,
         string calldata nearTokenAccountId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        PromiseCreateArgs memory callGetErc20FromNep141 = near.call(
+            auroraEngineAccountIdOnNear,
+            "get_erc20_from_nep141",
+            abi.encodePacked(Utils.swapBytes4(uint32(bytes(nearTokenAccountId).length)), nearTokenAccountId),
+            NO_DEPOSIT,
+            BASE_NEAR_GAS
+        );
+
+        PromiseCreateArgs memory callback = near.auroraCall(
+            address(this),
+            abi.encodeWithSelector(this.getErc20FromNep141Callback.selector, nearTokenAccountId),
+            NO_DEPOSIT,
+            BASE_NEAR_GAS
+        );
+
+        callGetErc20FromNep141.then(callback).transact();
+    }
+
+    function getErc20FromNep141Callback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `get_erc20_from_nep141()` XCC call failed"
+        );
+
+        address auroraTokenAddress = address(uint160(bytes20(AuroraSdk.promiseResult(0).output)));
+
+        registeredTokens[nearTokenAccountId] = TokenInfo(IEvmErc20(auroraTokenAddress), false);
+        emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
+    }
+
+    function storageDeposit(string calldata nearTokenAccountId, uint128 storageDepositAmount) external {
+        require(registeredTokens[nearTokenAccountId].isStorageRegistered == false, "The token's storage is already registered");
+        IEvmErc20 token = registeredTokens[nearTokenAccountId].auroraTokenAddress;
+        require(address(token) != address(0), "The token is not registered");
+
         bytes memory args = bytes(
             string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')
         );
@@ -150,13 +190,29 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             nearTokenAccountId,
             "storage_deposit",
             args,
-            NEAR_STORAGE_DEPOSIT,
+            storageDepositAmount,
             BASE_NEAR_GAS
         );
-        callStorageDeposit.transact();
 
-        registeredTokens[nearTokenAccountId] = IEvmErc20(auroraTokenAddress);
-        emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
+        PromiseCreateArgs memory callback = near.auroraCall(
+            address(this),
+            abi.encodeWithSelector(this.storageDepositCallback.selector, nearTokenAccountId),
+            NO_DEPOSIT,
+            BASE_NEAR_GAS
+        );
+
+        callStorageDeposit.then(callback).transact();
+    }
+
+    function storageDepositCallback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `storage_deposit()` XCC call failed"
+        );
+
+        registeredTokens[nearTokenAccountId].isStorageRegistered = true;
+
+        emit StorageDeposit(nearTokenAccountId);
     }
 
     function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
@@ -173,8 +229,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             "The transfer and fee tokens should be the same"
         );
 
-        IEvmErc20 token = registeredTokens[transferMessage.transferTokenAccountIdOnNear];
-        require(address(token) != address(0), "The token is not registered");
+        TokenInfo memory tokenInfo = registeredTokens[transferMessage.transferTokenAccountIdOnNear];
+        IEvmErc20 token = tokenInfo.auroraTokenAddress;
+        require(tokenInfo.isStorageRegistered == true, "The token storage is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
@@ -389,11 +446,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function getTokenAuroraAddress(string calldata nearTokenAccountId) external view returns (address) {
-        return address(registeredTokens[nearTokenAccountId]);
+        return address(registeredTokens[nearTokenAccountId].auroraTokenAddress);
     }
 
     function getUserBalance(string calldata nearTokenAccountId, address userAddress) external view returns (uint128) {
         return balance[nearTokenAccountId][userAddress];
+    }
+
+    function isStorageRegistered(string calldata nearTokenAccountId) public view returns (bool) {
+        return registeredTokens[nearTokenAccountId].isStorageRegistered;
     }
 
     function _addressToString(address auroraAddress) private pure returns (string memory) {
