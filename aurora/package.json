@@ -8,6 +8,7 @@
     "@openzeppelin/contracts": "^4.9.2",
     "@openzeppelin/contracts-upgradeable": "^4.9.2",
     "@openzeppelin/hardhat-upgrades": "^2.0.1",
+    "alchemy-sdk": "^2.10.0",
     "borsh": "^0.7.0",
     "chai": "^4.2.0",
     "dotenv": "^16.3.1",

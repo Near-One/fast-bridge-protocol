@@ -1,3 +1,4 @@
+const { Utils } = require("alchemy-sdk");
 const { ethers } = require('hardhat');
 const { Web3 } = require("web3");
 const {Header, Account} = require('eth-object');
@@ -11,14 +12,8 @@ const web3 = new Web3(ETH_RPC_ENDPOINT_URL);
 
 const mappingSlotNumber = 303;
 
-function parseHexString(str) {
-    var result = [];
-    while (str.length >= 2) {
-        result.push(parseInt(str.substring(0, 2), 16));
-        str = str.substring(2, str.length);
-    }
-
-    return result;
+function hexToBytes(str) {
+    return Utils.arrayify("0x" + str);
 }
 
 function processedHash(_token, _recipient, _nonce, _amount) {
@@ -40,22 +35,22 @@ async function getBlockData(blockNumber) {
     return await web3.eth.getBlock(blockNumber);
 }
 
-async function generateUnlockProof(getProofResponse, block){
+async function generateUnlockProof(getProofResponse, block) {
     let headerRlp = (Header.fromRpc(block).serialize()).toString('hex');
-    let accountProof = getProofResponse.accountProof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));  //converts to bytes array of account proof
+    let accountProof = getProofResponse.accountProof.map((proof_data) => (hexToBytes(_utils.toBuffer(proof_data).toString('hex'))));  //converts to bytes array of account proof
     let res = getProofResponse;
     res.nonce = web3.utils.toHex(res.nonce);   // done for fixing error in eth-object for Account
     res.balance = web3.utils.toHex(res.balance);  // done for fixing error in eth-object for Account
     let accountData = (Account.fromRpc(res).serialize()).toString('hex');
     console.log("getProof_response: ", getProofResponse);
-    let storageProof = getProofResponse.storageProof[0].proof.map((proof_data) => (parseHexString(_utils.toBuffer(proof_data).toString('hex'))));
+    let storageProof = getProofResponse.storageProof[0].proof.map((proof_data) => (hexToBytes(_utils.toBuffer(proof_data).toString('hex'))));
 
     console.log("header data:", headerRlp);
 
     const unlockProof = {
-        header_data: parseHexString(headerRlp),
+        header_data: hexToBytes(headerRlp),
         account_proof: accountProof,
-        account_data: parseHexString(accountData),
+        account_data: hexToBytes(accountData),
         storage_proof: storageProof,
     }
 
