@@ -11,37 +11,40 @@ NETWORK=testnet_aurora
 NEAR_TOKEN_ACCOUNT_ID="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
 AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
 TRANSFER_TOKEN_AMOUNT=200000
-SILO="aurora-testnet"
+CONFIG_NAME="aurora-testnet"
 
 deploy:
-	yarn hardhat deploy --silo $(SILO) --network $(NETWORK)
+	yarn hardhat deploy --aurora-fast-bridge-config-name $(CONFIG_NAME) --network $(NETWORK)
 
 upgrade:
-	yarn hardhat upgrade --silo $(SILO) --proxy $(AURORA_FAST_BRIDGE_ADDRESS) --network $(NETWORK)
+	yarn hardhat upgrade --aurora-fast-bridge-config-name $(CONFIG_NAME) --proxy $(AURORA_FAST_BRIDGE_ADDRESS) --network $(NETWORK)
 
 register_token:
-	yarn hardhat register_token --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+	yarn hardhat register_token --network $(NETWORK)  --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+
+storage_deposit:
+	yarn hardhat storage_deposit --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
 
 init_token_transfer:
-	yarn hardhat init_token_transfer --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --init-token-transfer-arg $(INIT_TOKEN_TRANSFER_ARG) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+	yarn hardhat init_token_transfer --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --init-token-transfer-arg $(INIT_TOKEN_TRANSFER_ARG) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
 
 unlock:
-	yarn hardhat unlock --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE)
+	yarn hardhat unlock --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE)
 
 fast_bridge_withdraw_on_near:
-	yarn hardhat fast_bridge_withdraw_on_near --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --token-amount $(TRANSFER_TOKEN_AMOUNT)
+	yarn hardhat fast_bridge_withdraw_on_near --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --token-amount $(TRANSFER_TOKEN_AMOUNT)
 
 withdraw_from_implicit_near_account:
-	yarn hardhat withdraw_from_implicit_near_account --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
+	yarn hardhat withdraw_from_implicit_near_account --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
 
 set_whitelist_mode_for_users:
-	yarn hardhat set_whitelist_mode_for_users --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --user-address $(USER_ADDRESS)
+	yarn hardhat set_whitelist_mode_for_users --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --user-address $(USER_ADDRESS)
 
 disable_whitelist_mode:
-	yarn hardhat set_whitelist_mode --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled false
+	yarn hardhat set_whitelist_mode --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled false
 
 enable_whitelist_mode:
-	yarn hardhat set_whitelist_mode --network $(NETWORK) --silo $(SILO) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled true
+	yarn hardhat set_whitelist_mode --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled true
 
 test:
 	yarn hardhat test --network testnet_aurora
