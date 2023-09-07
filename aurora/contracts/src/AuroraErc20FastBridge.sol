@@ -4,7 +4,6 @@ pragma solidity ^0.8.17;
 import {IERC20 as IERC20_NEAR} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "@auroraisnear/aurora-sdk/aurora-sdk/AuroraSdk.sol";
 import "@auroraisnear/aurora-sdk/aurora-sdk/Borsh.sol";
-import "@auroraisnear/aurora-sdk/aurora-sdk/Utils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -12,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./IEvmErc20.sol";
+import "./UtilsFastBridge.sol";
 
 contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using AuroraSdk for NEAR;
@@ -32,8 +32,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
 
-    uint128 constant ASCII_0 = 48;
-    uint128 constant ASCII_9 = 57;
     uint128 constant ONE_YOCTO = 1;
     uint128 constant NO_DEPOSIT = 0;
 
@@ -169,7 +167,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
 
         require(
-            _isStrEqual(transferMessage.transferTokenAccountIdOnNear, transferMessage.feeTokenAccountIdOnNear),
+            UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, transferMessage.feeTokenAccountIdOnNear),
             "The transfer and fee tokens should be the same"
         );
 
@@ -199,7 +197,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             )
         );
 
-        PromiseCreateArgs memory callFtTransfer = _callWithoutTransferWNear(
+        PromiseCreateArgs memory callFtTransfer = UtilsFastBridge.callWithoutTransferWNear(
             near,
             transferMessage.transferTokenAccountIdOnNear,
             "ft_transfer_call",
@@ -229,7 +227,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = UtilsFastBridge.stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
@@ -294,7 +292,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
+        PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             fastBridgeAccountIdOnNear,
             "withdraw",
@@ -336,13 +334,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
                 '", "amount": "',
                 Strings.toString(signerBalance),
                 '", "msg": "',
-                _addressToString(msg.sender),
+                UtilsFastBridge.addressToString(msg.sender),
                 '"}'
             )
         );
         balance[token][msg.sender] -= signerBalance;
 
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
+        PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             token,
             "ft_transfer_call",
@@ -369,7 +367,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = UtilsFastBridge.stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
         uint128 refundAmount = amount - transferredAmount;
@@ -407,7 +405,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function getImplicitNearAccountIdForSelf() public view returns (string memory) {
-        return string.concat(_addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
+        return string.concat(UtilsFastBridge.addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
     }
 
     function getTokenAuroraAddress(string calldata nearTokenAccountId) external view returns (address) {
@@ -416,46 +414,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function getUserBalance(string calldata nearTokenAccountId, address userAddress) external view returns (uint128) {
         return balance[nearTokenAccountId][userAddress];
-    }
-
-    function _addressToString(address auroraAddress) private pure returns (string memory) {
-        return Utils.bytesToHex(abi.encodePacked(auroraAddress));
-    }
-
-    function _stringToUint(bytes memory b) private pure returns (uint128) {
-        uint128 result = 0;
-
-        for (uint128 i = 0; i < b.length; i++) {
-            uint128 v = uint128(uint8(b[i]));
-
-            if (v >= ASCII_0 && v <= ASCII_9) {
-                result = result * 10 + (v - ASCII_0);
-            }
-        }
-
-        return result;
-    }
-
-    /// Creates a base promise. This is not immediately scheduled for execution
-    /// until transact is called. It can be combined with other promises using
-    /// `then` combinator.
-    ///
-    /// Input is not checekd during promise creation. If it is invalid, the
-    /// transaction will be scheduled either way, but it will fail during execution.
-    function _callWithoutTransferWNear(
-        NEAR storage _near,
-        string memory targetAccountId,
-        string memory method,
-        bytes memory args,
-        uint128 nearBalance,
-        uint64 nearGas
-    ) private view returns (PromiseCreateArgs memory) {
-        require(_near.initialized, "Near isn't initialized");
-        return PromiseCreateArgs(targetAccountId, method, args, nearBalance, nearGas);
-    }
-
-    function _isStrEqual(string memory str1, string memory str2) private pure returns (bool) {
-        return keccak256(abi.encodePacked(str1)) == keccak256(abi.encodePacked(str2));
     }
 
     /// Pauses all the operations in Fast Bridge. It affects only user-accessible operations.
