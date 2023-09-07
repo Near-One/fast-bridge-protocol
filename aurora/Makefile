@@ -46,5 +46,8 @@ disable_whitelist_mode:
 enable_whitelist_mode:
 	yarn hardhat set_whitelist_mode --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled true
 
+fmt:
+	yarn prettier contracts/src/AuroraErc20FastBridge.sol --write --plugin=prettier-plugin-solidity
+
 test:
 	yarn hardhat test --network testnet_aurora
