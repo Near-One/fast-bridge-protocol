@@ -999,14 +999,14 @@ checksum = "e48c92028aaa870e83d51c64e5d4e0b6981b360c522198c23959f219a4e1b15b"
 [[package]]
 name = "eth-types"
 version = "0.1.0"
-source = "git+https://github.com/aurora-is-near/rainbow-bridge?rev=3e859904f445105850c2a08b5a4b0fdc7680c841#3e859904f445105850c2a08b5a4b0fdc7680c841"
+source = "git+https://github.com/aurora-is-near/rainbow-bridge?tag=eth2-client-0.3.1#a5f3c9148901d4c0c975bcc56a16653bc68cc035"
 dependencies = [
  "borsh 0.9.3",
  "derive_more",
- "ethereum-types 0.9.2",
+ "ethereum-types 0.14.1",
  "hex 0.4.3",
  "near-sdk",
- "rlp 0.4.6",
+ "rlp 0.5.2",
  "rlp-derive",
  "serde",
  "serde-big-array",
@@ -1224,7 +1224,7 @@ dependencies = [
  "near-plugins",
  "near-sdk",
  "parse_duration",
- "rlp 0.4.6",
+ "rlp 0.5.2",
  "serde",
 ]
 
