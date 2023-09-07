@@ -80,7 +80,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address recipient,
         bool isSuccessful
     );
-    event StorageDeposit(string tokenNearAccountId);
+    event TokenStorageDeposit(string tokenNearAccountId, address tokenAuroraAddress, string registeredAccountId);
 
     struct TransferMessage {
         uint64 validTill;
@@ -212,7 +212,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         registeredTokens[nearTokenAccountId].isStorageRegistered = true;
 
-        emit StorageDeposit(nearTokenAccountId);
+        emit TokenStorageDeposit(nearTokenAccountId,
+            address(registeredTokens[nearTokenAccountId].auroraTokenAddress),
+            getImplicitNearAccountIdForSelf());
     }
 
     function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
