@@ -1,0 +1,3 @@
+[submodule "aurora/integration-tests/aurora-contracts-sdk"]
+	path = aurora/integration-tests/aurora-contracts-sdk
+	url = https://github.com/aurora-is-near/aurora-contracts-sdk

@@ -410,7 +410,7 @@ impl FastBridge {
             .verify_storage_proof(
                 proof.header_data,
                 proof.account_proof,
-                self.eth_bridge_contract.to_vec(),
+                self.eth_bridge_contract.0.to_vec(),
                 proof.account_data,
                 storage_key_hash,
                 proof.storage_proof,
@@ -447,19 +447,23 @@ impl FastBridge {
     /// This function panics if the transfer specified by the nonce is not found;
     /// if the valid time of the transfer is incorrect; or if the verification of the unlock proof fails.
     #[private]
+    #[result_serializer(borsh)]
     pub fn unlock_callback(
         &mut self,
         #[callback]
         #[serializer(borsh)]
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-        #[allow(unused_variables)]
-        #[serializer(borsh)]
-        sender_id: AccountId,
-    ) {
+        #[serializer(borsh)] sender_id: AccountId,
+    ) -> TransferMessage {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+
+        require!(
+            transfer_data.aurora_sender.is_none() || recipient_id == sender_id,
+            "Only the original creator of the transfer can perform the unlock"
+        );
 
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -486,9 +490,11 @@ impl FastBridge {
         Event::FastBridgeUnlockEvent {
             nonce,
             recipient_id,
-            transfer_message: transfer_data,
+            transfer_message: transfer_data.clone(),
         }
         .emit();
+
+        transfer_data
     }
 
     /// Unlocks tokens that were transferred on the Ethereum. The function increases the balance
@@ -514,8 +520,8 @@ impl FastBridge {
             parsed_proof.eth_bridge_contract,
             self.eth_bridge_contract,
             "Event's address {} does not match the eth bridge address {}",
-            hex::encode(parsed_proof.eth_bridge_contract),
-            hex::encode(self.eth_bridge_contract),
+            hex::encode(parsed_proof.eth_bridge_contract.0),
+            hex::encode(self.eth_bridge_contract.0),
         );
 
         ext_prover::ext(self.prover_account.clone())
@@ -1332,6 +1338,7 @@ mod unit_tests {
             },
             recipient: fast_bridge_common::get_eth_address(eth_recipient_address()),
             valid_till_block_height: None,
+            aurora_sender: None,
         };
         assert_eq!(
             serde_json::to_string(&original).unwrap(),
@@ -1777,6 +1784,7 @@ mod unit_tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
+
         contract.unlock_callback(true, nonce, signer_account_id());
 
         let transfer_token_amount = contract
@@ -1987,7 +1995,6 @@ mod unit_tests {
 
         let context = get_context_for_unlock(false);
         testing_env!(context);
-
         let nonce = U128(9);
         contract.unlock_callback(true, nonce, signer_account_id());
         let transfer_token_amount = contract
@@ -2061,7 +2068,6 @@ mod unit_tests {
 
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
-
         let nonce = U128(1);
         contract.unlock_callback(true, nonce, signer_account_id());
         let transfer_token_amount = contract
@@ -2146,7 +2152,7 @@ mod unit_tests {
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_eth_bridge_contract_address(valid_address);
 
-        assert_eq!(contract.eth_bridge_contract, valid_eth_address[..]);
+        assert_eq!(contract.eth_bridge_contract.0, valid_eth_address[..]);
     }
 
     #[test]

@@ -1,0 +1,24 @@
+{
+  "name": "hardhat-project",
+  "license": "MIT",
+  "dependencies": {
+    "@auroraisnear/aurora-sdk": "^0.0.1",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.1",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@openzeppelin/contracts": "^4.9.2",
+    "@openzeppelin/contracts-upgradeable": "^4.9.2",
+    "@openzeppelin/hardhat-upgrades": "^2.0.1",
+    "alchemy-sdk": "^2.10.0",
+    "borsh": "^0.7.0",
+    "chai": "^4.2.0",
+    "dotenv": "^16.3.1",
+    "eth-object": "^1.0.3",
+    "ethereumjs-util": "^7.1.5",
+    "ethers": "^6.1.0",
+    "hardhat": "2.17",
+    "near-api-js": "^2.1.4",
+    "prettier": "^3.0.3",
+    "prettier-plugin-solidity": "^1.1.3",
+    "web3": "^4.0.3"
+  }
+}

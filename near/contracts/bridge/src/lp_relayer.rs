@@ -78,11 +78,11 @@ impl EthTransferEvent {
             .unwrap();
 
         Self {
-            eth_bridge_contract: locker_address,
+            eth_bridge_contract: EthAddress(locker_address),
             nonce,
-            relayer,
-            token,
-            recipient,
+            relayer: EthAddress(relayer),
+            token: EthAddress(token),
+            recipient: EthAddress(recipient),
             amount,
             unlock_recipient,
             transfer_id,
@@ -125,11 +125,11 @@ mod tests {
             let params: Vec<ParamType> = event.inputs.iter().map(|p| p.kind.clone()).collect();
             let topics = indexes.into_iter().map(H256::from).collect();
             let log_entry = LogEntry {
-                address: locker_address.into(),
+                address: locker_address.0.into(),
                 topics: vec![vec![long_signature(&event.name, &params).0.into()], topics].concat(),
                 data: ethabi::encode(&values),
             };
-            rlp::encode(&log_entry)
+            rlp::encode(&log_entry).to_vec()
         }
     }
 
@@ -163,9 +163,9 @@ mod tests {
                 event.transfer_id.0 .0.to_vec(),
             ],
             vec![
-                Token::Address(event.relayer.into()),
-                Token::Address(event.token.into()),
-                Token::Address(event.recipient.into()),
+                Token::Address(event.relayer.0.into()),
+                Token::Address(event.token.0.into()),
+                Token::Address(event.recipient.0.into()),
                 Token::Uint(event.amount.into()),
                 Token::String(event.unlock_recipient.clone()),
             ],
@@ -193,8 +193,8 @@ mod tests {
         let recipient = get_eth_address("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string());
         let amount: u128 = 161;
         let transfer_id = [
-            token.to_vec(),
-            recipient.to_vec(),
+            token.0.to_vec(),
+            recipient.0.to_vec(),
             nonce.to_be_bytes().to_vec(),
             amount.to_be_bytes().to_vec(),
         ]
