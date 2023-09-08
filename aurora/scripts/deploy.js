@@ -8,7 +8,7 @@ const hre = require("hardhat");
 
 async function deploy({
                           signer,
-                          nearFastBridgeAccount,
+                          nearFastBridgeAccountId,
                           auroraEngineAccountId,
                           wNearAddress,
                           auroraSdkAddress,
@@ -29,7 +29,7 @@ async function deploy({
     })).connect(signer);
 
     let proxy = await hre.upgrades.deployProxy(AuroraErc20FastBridge,
-        [wNearAddress, nearFastBridgeAccount, auroraEngineAccountId, true],
+        [wNearAddress, nearFastBridgeAccountId, auroraEngineAccountId, false],
         {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,

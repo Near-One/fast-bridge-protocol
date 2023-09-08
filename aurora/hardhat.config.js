@@ -10,16 +10,18 @@ require('dotenv').config();
 const AURORA_PRIVATE_KEY = process.env.AURORA_PRIVATE_KEY;
 
 task("deploy", "Deploy aurora fast bridge proxy contract")
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .setAction(async (taskArgs, hre) => {
         const { deploy } = require("./scripts/deploy.js");
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
         await hre.run("compile");
         await deploy({
             signer,
-            nearFastBridgeAccount: config.nearFastBridgeAccount,
+            nearFastBridgeAccountId: config.nearFastBridgeAccountId,
             auroraEngineAccountId: config.auroraEngineAccountId,
             wNearAddress: config.wNearAddress,
             auroraSdkAddress: config.auroraSdkAddress,
@@ -28,12 +30,14 @@ task("deploy", "Deploy aurora fast bridge proxy contract")
     });
 
 task("upgrade", "Upgrade aurora fast bridge proxy contract")
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam("proxy", "Current proxy address of the AuroraErc20FastBridge contract")
     .setAction(async (taskArgs, hre) => {
         const { upgrade } = require("./scripts/deploy.js");
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
         await hre.run("compile");
         await upgrade({
@@ -44,118 +48,153 @@ task("upgrade", "Upgrade aurora fast bridge proxy contract")
         });
     });
 
-task('tokens_registration', 'Register tokens and storage deposit on NEAR for the contract')
-    .addParam("silo", "Config file name without extension")
+task('register_token', 'Registers a binding of "nearTokenAccountId:auroraTokenAddress" in "AuroraFastBridge" contract, and puts a storage deposit in "nearTokenAccountId" for the "AuroraFastBridge" implicit NEAR Account ID.')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .addParam('auroraTokenAddress', "Token address on Aurora")
     .setAction(async taskArgs => {
-        const { tokensRegistration } = require('./scripts/utils');
+        const { registerToken } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await tokensRegistration(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.auroraTokenAddress);
+        await registerToken(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.auroraTokenAddress);
     });
 
 task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .addParam('auroraTokenAddress', "Token address on Aurora")
     .addParam('ethTokenAddress', "Token address on Eth")
     .setAction(async taskArgs => {
         const { initTokenTransfer } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.auroraTokenAddress, taskArgs.ethTokenAddress);
+        await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.auroraTokenAddress, taskArgs.ethTokenAddress);
     });
 
 task('unlock', 'Unlock tokens on Near')
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nonce', 'nonce')
+    .addParam('nonce', 'Nonce of the Fast Bridge transfer')
     .addParam('ethTokenAddress', "Token address on Eth")
     .addParam('validTillBlockHeight', "Valid till block height")
     .setAction(async taskArgs => {
         const { unlock } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
         await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce, taskArgs.ethTokenAddress, taskArgs.validTillBlockHeight);
     });
 
-task('withdraw_from_near', 'Withdraw tokens on Near side')
-    .addParam("silo", "Config file name without extension")
+task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .addParam('tokenAmount', "Withdraw tokens amount")
     .setAction(async taskArgs => {
-        const { withdraw_from_near } = require('./scripts/utils');
+        const { fast_bridge_withdraw_on_near } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await withdraw_from_near(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress, taskArgs.tokenAmount);
+        await fast_bridge_withdraw_on_near(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.tokenAmount);
     });
 
-task('withdraw', 'Withdraw tokens to user on Aurora')
-    .addParam("silo", "Config file name without extension")
+task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora Fast Bridge Implicit Near Account')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
-        const { withdraw } = require('./scripts/utils');
+        const { withdraw_from_implicit_near_account } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await withdraw(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
+        await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
 
-task('get_near_account_id', 'Get near account id for aurora fast bridge contract')
-    .addParam("silo", "Config file name without extension")
+task('get_implicit_near_account_id', 'Get near account id for aurora fast bridge contract')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .setAction(async taskArgs => {
-        const { get_near_account_id } = require('./scripts/utils');
+        const { get_implicit_near_account_id } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await get_near_account_id(signer, config, taskArgs.fastBridgeAddress);
+        await get_implicit_near_account_id(signer, config, taskArgs.fastBridgeAddress);
     });
     
 task('get_token_aurora_address', 'Get aurora token address from aurora fast bridge')
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
         const { get_token_aurora_address } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
+        await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
     
     
 task('get_balance', 'Get user balance in aurora fast bridge contract')
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('nearTokenAddress', "Token address on Near")
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
         const { get_balance } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await get_balance(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAddress);
+        await get_balance(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
 
 task('set_whitelist_mode_for_users', 'Set whitelist mode for users')
-    .addParam("silo", "Config file name without extension")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('userAddress', "User address")
     .setAction(async taskArgs => {
         const { set_whitelist_mode_for_users } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.silo}.json`);
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
         await set_whitelist_mode_for_users(signer, config, taskArgs.fastBridgeAddress, taskArgs.userAddress);
+    });
+
+task("set_whitelist_mode", "Set whitelist mode")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam("fastBridgeAddress", "Aurora Fast Bridge address")
+    .addParam(
+        "enabled",
+        "Pass `true` to enable or `false` to disable the whitelist mode"
+    )
+    .setAction(async (taskArgs) => {
+        const { setWhitelistMode } = require("./scripts/utils");
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await setWhitelistMode(signer, config, taskArgs.fastBridgeAddress);
     });
 
 module.exports = {

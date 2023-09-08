@@ -2,32 +2,38 @@ require('dotenv').config();
 const hre = require("hardhat");
 const {encodeInitMsgToBorsh} = require("../test/EncodeInitMsgToBorsh");
 
-async function tokensRegistration(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
-    await fastBridge.registerToken(auroraTokenAddress, nearTokenAddress);
+async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId, auroraTokenAddress) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
-    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
+    await wnear.approve(fastBridgeAddress, "2012500000000000000000000"); //storage deposit for creating implicit account + token storage deposit
+
+    await fastBridge.registerToken(auroraTokenAddress, nearTokenAccountId);
+
+    console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getImplicitNearAccountIdForSelf());
 }
 
-async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAddress, auroraTokenAddress, ethTokenAddress) {
+async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAccountId, auroraTokenAddress, ethTokenAddress) {
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", auroraTokenAddress);
     await usdc.approve(fastBridgeAddress, "2000000000000000000000000");
 
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
     let lockPeriod = 10800000000000;
     const validTill = Date.now() * 1000000 + lockPeriod;
 
-    const initTokenTransferArg = encodeInitMsgToBorsh(validTill, nearTokenAddress, ethTokenAddress.substring(2), 100, 100, signer.address, signer.address);
-     
+    const initTokenTransferArg = encodeInitMsgToBorsh(validTill, nearTokenAccountId, ethTokenAddress.substring(2), 100, 100, signer.address, signer.address);
+
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
+    await wnear.transfer(fastBridgeAddress, 1);
+
     const options = { gasLimit: 5000000 };
     let tx = await fastBridge.initTokenTransfer(initTokenTransferArg, options);
-    let receipt = await tx.wait();
-    console.log(receipt.events[0].args);
+    await tx.wait();
 }
 
 async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress, validTillBlockHeight) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
     
     const { getUnlockProof } = require('../test/UnlockProof');
     const proof = await getUnlockProof("0x00763f30eEB0eEF506907e18f2a6ceC2DAb30Df8",
@@ -43,51 +49,62 @@ async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress,
     await tx.wait();
 }
 
-async function withdraw_from_near(signer, config, fastBridgeAddress, nearTokenAddress, amount) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+async function fast_bridge_withdraw_on_near(signer, config, fastBridgeAddress, nearTokenAccountId, amount) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
-    console.log("Withdraw from Near");
-    let tx = await fastBridge.withdrawFromNear(nearTokenAddress, amount);
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
+    await wnear.transfer(fastBridgeAddress, 1);
+
+    let tx = await fastBridge.fastBridgeWithdrawOnNear(nearTokenAccountId, amount);
     let receipt = await tx.wait();
 }
 
-async function withdraw(signer, config, fastBridgeAddress, nearTokenAddress) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+async function withdraw_from_implicit_near_account(signer, config, fastBridgeAddress, nearTokenAccountId) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
-    let tx = await fastBridge.withdraw(nearTokenAddress);
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
+    await wnear.transfer(fastBridgeAddress, 1);
+
+    let tx = await fastBridge.withdrawFromImplicitNearAccount(nearTokenAccountId);
     let receipt = await tx.wait();
 }
 
-async function get_near_account_id(signer, config, fastBridgeAddress) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
-    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getNearAddress());
+async function get_implicit_near_account_id(signer, config, fastBridgeAddress) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
+    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getImplicitNearAccountIdForSelf());
 }
 
-async function get_token_aurora_address(signer, config, fastBridgeAddress, nearTokenAddress) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
-    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getTokenAuroraAddress(nearTokenAddress));
+async function get_token_aurora_address(signer, config, fastBridgeAddress, nearTokenAccountId) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
+    console.log("Aurora Fast Bridge Address on Near: ", await fastBridge.getTokenAuroraAddress(nearTokenAccountId));
 }
-
 
 async function get_balance(signer, config, fastBridgeAddress, nearTokenAccountId) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
     console.log("Token balance: ", await fastBridge.getUserBalance(nearTokenAccountId, signer.address));
 }
 
 async function set_whitelist_mode_for_users(signer, config, fastBridgeAddress, userAddress) {
-    const fastBridge = await beforeWorkWithFastBridge(signer, config, fastBridgeAddress);
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
     let tx = await fastBridge.setWhitelistModeForUsers([userAddress], [true]);
     let receipt = await tx.wait();
 }
 
-async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
+async function setWhitelistMode(signer, config, fastBridgeAddress) {
+  const fastBridge = await getFastBridgeContract(
+    signer,
+    config,
+    fastBridgeAddress
+  );
+  let tx = await fastBridge.setWhitelistMode(false);
+  let receipt = await tx.wait();
+  console.log("Transaction hash: ", receipt.hash);
+}
+
+async function getFastBridgeContract(signer, config, fastBridgeAddress) {
     console.log("Sending transaction with the account:", signer.address);
 
-    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
-    await wnear.approve(fastBridgeAddress, "4012500000000000000000000");
-    
-    await wnear.transfer(fastBridgeAddress, 1);
     const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
             "AuroraSdk": config.auroraSdkAddress,
@@ -101,11 +118,12 @@ async function beforeWorkWithFastBridge(signer, config, fastBridgeAddress) {
 }
 
 exports.get_token_aurora_address = get_token_aurora_address;
-exports.get_near_account_id = get_near_account_id;
+exports.get_implicit_near_account_id = get_implicit_near_account_id;
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
+exports.setWhitelistMode = setWhitelistMode;
 exports.initTokenTransfer = initTokenTransfer;
-exports.tokensRegistration = tokensRegistration;
+exports.registerToken = registerToken;
 exports.unlock = unlock;
-exports.withdraw_from_near = withdraw_from_near;
-exports.withdraw = withdraw;
+exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
+exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
 exports.get_balance = get_balance;
