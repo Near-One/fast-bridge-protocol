@@ -129,7 +129,7 @@ mod tests {
                 topics: vec![vec![long_signature(&event.name, &params).0.into()], topics].concat(),
                 data: ethabi::encode(&values),
             };
-            rlp::encode(&log_entry)
+            rlp::encode(&log_entry).to_vec()
         }
     }
 

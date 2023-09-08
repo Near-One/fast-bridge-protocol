@@ -195,11 +195,11 @@ mod tests {
                 .await;
         }
 
-        pub async fn withdraw(&self, user_account: Option<Account>, check_output: bool) {
+        pub async fn withdraw_from_implicit_near_account(&self, user_account: Option<Account>, check_output: bool) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
-                    "withdraw",
+                    "withdrawFromImplicitNearAccount",
                     &[ethabi::Token::String(self.mock_token.id().to_string())],
                 );
 
@@ -252,11 +252,11 @@ mod tests {
                 .await;
         }
 
-        pub async fn withdraw_from_near(&self, user_account: Option<Account>) {
+        pub async fn fast_bridge_withdraw_on_near(&self, user_account: Option<Account>) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
-                    "withdrawFromNear",
+                    "fastBridgeWithdrawOnNear",
                     &[
                         ethabi::Token::String(self.mock_token.id().to_string()),
                         ethabi::Token::Uint(U256::from(TRANSFER_TOKENS_AMOUNT)),
@@ -353,7 +353,7 @@ mod tests {
         pub async fn get_implicit_near_account_id_for_self(&self) -> Option<String> {
             let contract_args = self
                 .aurora_fast_bridge_contract
-                .create_call_method_bytes_with_args("getNearAddress", &[]);
+                .create_call_method_bytes_with_args("getImplicitNearAccountIdForSelf", &[]);
             let outcome = call_aurora_contract(
                 self.aurora_fast_bridge_contract.address,
                 contract_args,
@@ -492,7 +492,7 @@ mod tests {
         let balance1 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
 
-        infra.withdraw(None, true).await;
+        infra.withdraw_from_implicit_near_account(None, true).await;
         let balance2 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance2, balance1);
 
@@ -515,7 +515,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw_from_near(None).await;
+        infra.fast_bridge_withdraw_on_near(None).await;
         assert_eq!(
             infra
                 .user_balance_in_fast_bridge_on_aurora(None)
@@ -524,7 +524,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw(None, true).await;
+        infra.withdraw_from_implicit_near_account(None, true).await;
 
         let balance3 = infra.get_mock_token_balance_on_aurora_for(None).await;
         assert_eq!(balance3, balance0);
@@ -704,9 +704,9 @@ mod tests {
             0
         );
 
-        infra.withdraw_from_near(None).await;
+        infra.fast_bridge_withdraw_on_near(None).await;
         infra
-            .withdraw_from_near(Some(second_user_account.clone()))
+            .fast_bridge_withdraw_on_near(Some(second_user_account.clone()))
             .await;
 
         assert_eq!(
@@ -739,8 +739,8 @@ mod tests {
             0
         );
 
-        infra.withdraw(None, true).await;
-        infra.withdraw(None, true).await;
+        infra.withdraw_from_implicit_near_account(None, true).await;
+        infra.withdraw_from_implicit_near_account(None, true).await;
 
         assert_eq!(
             infra
@@ -773,7 +773,7 @@ mod tests {
         );
 
         infra
-            .withdraw(Some(second_user_account.clone()), true)
+            .withdraw_from_implicit_near_account(Some(second_user_account.clone()), true)
             .await;
         assert_eq!(
             infra
@@ -863,7 +863,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw(None, true).await;
+        infra.withdraw_from_implicit_near_account(None, true).await;
         assert_eq!(
             infra
                 .get_mock_token_balance_on_aurora_for(None)
@@ -908,7 +908,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_withdraw_without_withdraw_from_near() {
+    async fn test_withdraw_without_fast_bridge_withdraw_on_near() {
         let infra = TestsInfrastructure::init(false).await;
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
 
@@ -990,7 +990,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw(None, false).await;
+        infra.withdraw_from_implicit_near_account(None, false).await;
         assert_eq!(
             infra
                 .user_balance_in_fast_bridge_on_aurora(None)
@@ -1006,11 +1006,11 @@ mod tests {
             0
         );
 
-        infra.withdraw_from_near(None).await;
+        infra.fast_bridge_withdraw_on_near(None).await;
         infra
-            .withdraw(Some(second_user_account.clone()), false)
+            .withdraw_from_implicit_near_account(Some(second_user_account.clone()), false)
             .await;
-        infra.withdraw(None, false).await;
+        infra.withdraw_from_implicit_near_account(None, false).await;
 
         assert_eq!(
             infra
@@ -1042,8 +1042,8 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw_from_near(None).await;
-        infra.withdraw(None, false).await;
+        infra.fast_bridge_withdraw_on_near(None).await;
+        infra.withdraw_from_implicit_near_account(None, false).await;
 
         assert_eq!(
             infra

@@ -6,30 +6,31 @@
 require('dotenv').config();
 const hre = require("hardhat");
 
-async function main() {
-    // Hardhat always runs the compile task when running scripts with its command
-    // line interface.
-    //
-    // If this script is run directly using `node` you may want to call compile
-    // manually to make sure everything is compiled
-    // await hre.run('compile');
-
-    const provider = hre.ethers.provider;
-    const deployerWallet = new hre.ethers.Wallet(process.env.AURORA_PRIVATE_KEY, provider);
-
+async function deploy({
+                          signer,
+                          nearFastBridgeAccountId,
+                          auroraEngineAccountId,
+                          wNearAddress,
+                          auroraSdkAddress,
+                          auroraUtilsAddress
+                      }
+) {
+    console.log("Deploying contracts with the account:", signer.address);
     console.log(
-        "Deploying contracts with the account:",
-        deployerWallet.address
+        "Account balance:",
+        (await signer.provider.getBalance(signer.address)).toString(),
     );
 
-    const AuroraErc20FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
+    const AuroraErc20FastBridge = (await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
         libraries: {
-            "AuroraSdk": process.env.AURORA_SDK_ADDRESS,
-            "Utils": process.env.AURORA_UTILS_ADDRESS
+            "AuroraSdk": auroraSdkAddress,
+            "Utils": auroraUtilsAddress
         },
-    });
-    const fastbridge = await AuroraErc20FastBridge.connect(deployerWallet);
-    let proxy = await hre.upgrades.deployProxy(fastbridge, [process.env.WNEAR_AURORA_ADDRESS, process.env.NEAR_FAST_BRIDGE_ACCOUNT, "aurora", true], {
+    })).connect(signer);
+
+    let proxy = await hre.upgrades.deployProxy(AuroraErc20FastBridge,
+        [wNearAddress, nearFastBridgeAccountId, auroraEngineAccountId, false],
+        {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,
         gasLimit: 6000000
@@ -37,13 +38,48 @@ async function main() {
     await proxy.waitForDeployment();
 
     console.log("AuroraErc20FastBridge proxy deployed to:", await proxy.getAddress());
+    console.log(
+        "AuroraErc20FastBridge impl deployed to: ",
+        await hre.upgrades.erc1967.getImplementationAddress(await proxy.getAddress()),
+    );
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main()
-    .then(() => process.exit(0))
-    .catch(error => {
-        console.error(error);
-        process.exit(1);
+async function upgrade({signer,
+                        proxyAddress,
+                        auroraSdkAddress,
+                        auroraUtilsAddress,
+                       }) {
+    console.log("Upgrading contracts with the account:", signer.address);
+    console.log(
+        "Account balance:",
+        (await signer.provider.getBalance(signer.address)).toString(),
+    );
+
+    const AuroraErc20FastBridge = (
+        await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
+            libraries: {
+                AuroraSdk: auroraSdkAddress,
+                Utils: auroraUtilsAddress,
+            },
+        })
+    ).connect(signer);
+
+    console.log(
+        "Current implementation address:",
+        await hre.upgrades.erc1967.getImplementationAddress(proxyAddress),
+    );
+    console.log("Upgrade AuroraErc20FastBridge contract, proxy address", proxyAddress);
+    const proxy = await hre.upgrades.upgradeProxy(proxyAddress, AuroraErc20FastBridge, {
+        unsafeAllowLinkedLibraries: true,
+        gasLimit: 6000000,
     });
+    await proxy.waitForDeployment();
+
+    console.log(
+        "AuroraErc20FastBridge impl deployed to: ",
+        await hre.upgrades.erc1967.getImplementationAddress(await proxy.getAddress()),
+    );
+}
+
+exports.deploy = deploy;
+exports.upgrade = upgrade;
