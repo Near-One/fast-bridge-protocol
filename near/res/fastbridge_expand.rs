@@ -405,15 +405,14 @@ mod ft {
                             let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
                             let mut __field2: _serde::__private::Option<String> = _serde::__private::None;
-                            while let _serde::__private::Some(__key)
-                                = match _serde::de::MapAccess::next_key::<
-                                    __Field,
-                                >(&mut __map) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                } {
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -1868,15 +1867,14 @@ mod whitelist {
                         {
                             let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<WhitelistMode> = _serde::__private::None;
-                            while let _serde::__private::Some(__key)
-                                = match _serde::de::MapAccess::next_key::<
-                                    __Field,
-                                >(&mut __map) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                } {
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2152,15 +2150,14 @@ mod whitelist {
                                 Option<AccountId>,
                             > = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                            while let _serde::__private::Some(__key)
-                                = match _serde::de::MapAccess::next_key::<
-                                    __Field,
-                                >(&mut __map) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                } {
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2438,15 +2435,14 @@ mod whitelist {
                                 Option<AccountId>,
                             > = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                            while let _serde::__private::Some(__key)
-                                = match _serde::de::MapAccess::next_key::<
-                                    __Field,
-                                >(&mut __map) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                } {
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2720,15 +2716,14 @@ mod whitelist {
                         {
                             let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                            while let _serde::__private::Some(__key)
-                                = match _serde::de::MapAccess::next_key::<
-                                    __Field,
-                                >(&mut __map) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                } {
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2976,15 +2971,14 @@ mod whitelist {
                             __A: _serde::de::MapAccess<'de>,
                         {
                             let mut __field0: _serde::__private::Option<bool> = _serde::__private::None;
-                            while let _serde::__private::Some(__key)
-                                = match _serde::de::MapAccess::next_key::<
-                                    __Field,
-                                >(&mut __map) {
-                                    _serde::__private::Ok(__val) => __val,
-                                    _serde::__private::Err(__err) => {
-                                        return _serde::__private::Err(__err);
-                                    }
-                                } {
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                                __Field,
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -4116,13 +4110,14 @@ const _: () = {
                     let mut __field1: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
                     let mut __field2: _serde::__private::Option<Vec<u8>> = _serde::__private::None;
                     let mut __field3: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
-                    while let _serde::__private::Some(__key)
-                        = match _serde::de::MapAccess::next_key::<__Field>(&mut __map) {
-                            _serde::__private::Ok(__val) => __val,
-                            _serde::__private::Err(__err) => {
-                                return _serde::__private::Err(__err);
-                            }
-                        } {
+                    while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                        __Field,
+                    >(&mut __map) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         match __key {
                             __Field::__field0 => {
                                 if _serde::__private::Option::is_some(&__field0) {
@@ -4543,13 +4538,14 @@ const _: () = {
                     let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                     let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
                     let mut __field2: _serde::__private::Option<U128> = _serde::__private::None;
-                    while let _serde::__private::Some(__key)
-                        = match _serde::de::MapAccess::next_key::<__Field>(&mut __map) {
-                            _serde::__private::Ok(__val) => __val,
-                            _serde::__private::Err(__err) => {
-                                return _serde::__private::Err(__err);
-                            }
-                        } {
+                    while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                        __Field,
+                    >(&mut __map) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         match __key {
                             __Field::__field0 => {
                                 if _serde::__private::Option::is_some(&__field0) {
@@ -4978,13 +4974,14 @@ const _: () = {
                 {
                     let mut __field0: _serde::__private::Option<Duration> = _serde::__private::None;
                     let mut __field1: _serde::__private::Option<Duration> = _serde::__private::None;
-                    while let _serde::__private::Some(__key)
-                        = match _serde::de::MapAccess::next_key::<__Field>(&mut __map) {
-                            _serde::__private::Ok(__val) => __val,
-                            _serde::__private::Err(__err) => {
-                                return _serde::__private::Err(__err);
-                            }
-                        } {
+                    while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                        __Field,
+                    >(&mut __map) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         match __key {
                             __Field::__field0 => {
                                 if _serde::__private::Option::is_some(&__field0) {
@@ -7294,15 +7291,14 @@ pub extern "C" fn pa_is_paused() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -7527,15 +7523,14 @@ pub extern "C" fn pa_pause_feature() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -7751,15 +7746,14 @@ pub extern "C" fn pa_unpause_feature() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -8673,15 +8667,14 @@ pub extern "C" fn up_deploy_code() {
                         let mut __field0: _serde::__private::Option<
                             Option<near_plugins::upgradable::FunctionCallArgs>,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -8913,15 +8906,14 @@ pub extern "C" fn up_init_staging_duration() {
                         let mut __field0: _serde::__private::Option<
                             near_sdk::Duration,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -9150,15 +9142,14 @@ pub extern "C" fn up_stage_update_staging_duration() {
                         let mut __field0: _serde::__private::Option<
                             near_sdk::Duration,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11466,15 +11457,14 @@ pub extern "C" fn acl_init_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11694,15 +11684,14 @@ pub extern "C" fn acl_add_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11929,15 +11918,14 @@ pub extern "C" fn acl_is_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12156,15 +12144,14 @@ pub extern "C" fn acl_revoke_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12386,15 +12373,14 @@ pub extern "C" fn acl_transfer_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12641,15 +12627,14 @@ pub extern "C" fn acl_add_admin() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12924,15 +12909,14 @@ pub extern "C" fn acl_is_admin() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13209,15 +13193,14 @@ pub extern "C" fn acl_revoke_admin() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13466,15 +13449,14 @@ pub extern "C" fn acl_renounce_admin() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13719,15 +13701,14 @@ pub extern "C" fn acl_revoke_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13976,15 +13957,14 @@ pub extern "C" fn acl_renounce_role() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -14229,15 +14209,14 @@ pub extern "C" fn acl_grant_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -14512,15 +14491,14 @@ pub extern "C" fn acl_has_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -14794,15 +14772,14 @@ pub extern "C" fn acl_has_any_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -15074,15 +15051,14 @@ pub extern "C" fn acl_get_super_admins() {
                     {
                         let mut __field0: _serde::__private::Option<u64> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<u64> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -15373,15 +15349,14 @@ pub extern "C" fn acl_get_admins() {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<u64> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<u64> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -15701,15 +15676,14 @@ pub extern "C" fn acl_get_grantees() {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<u64> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<u64> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -18612,15 +18586,14 @@ pub extern "C" fn new() {
                         let mut __field5: _serde::__private::Option<Duration> = _serde::__private::None;
                         let mut __field6: _serde::__private::Option<bool> = _serde::__private::None;
                         let mut __field7: _serde::__private::Option<U128> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19106,15 +19079,14 @@ pub extern "C" fn init_transfer() {
                         let mut __field0: _serde::__private::Option<
                             near_sdk::json_types::Base64VecU8,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19440,15 +19412,14 @@ pub extern "C" fn unlock() {
                         let mut __field1: _serde::__private::Option<
                             near_sdk::json_types::Base64VecU8,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19776,15 +19747,14 @@ pub extern "C" fn lp_unlock() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<Proof> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -20041,15 +20011,14 @@ pub extern "C" fn unlock_stuck_transfer() {
                     {
                         let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -20389,15 +20358,14 @@ pub extern "C" fn get_user_balance() {
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -20690,15 +20658,14 @@ pub extern "C" fn withdraw() {
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<Option<U128>> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -21018,15 +20985,14 @@ pub extern "C" fn withdraw_callback() {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -21314,15 +21280,14 @@ pub extern "C" fn set_prover_account() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -21543,15 +21508,14 @@ pub extern "C" fn set_eth_client_account() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -21776,15 +21740,14 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -22017,15 +21980,14 @@ pub extern "C" fn get_pending_balance() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -22282,15 +22244,14 @@ pub extern "C" fn get_pending_transfers() {
                     {
                         let mut __field0: _serde::__private::Option<usize> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<usize> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -22545,15 +22506,14 @@ pub extern "C" fn get_pending_transfer() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -22808,15 +22768,14 @@ pub extern "C" fn set_lock_time() {
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key)
-                            = match _serde::de::MapAccess::next_key::<
-                                __Field,
-                            >(&mut __map) {
-                                _serde::__private::Ok(__val) => __val,
-                                _serde::__private::Err(__err) => {
-                                    return _serde::__private::Err(__err);
-                                }
-                            } {
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
