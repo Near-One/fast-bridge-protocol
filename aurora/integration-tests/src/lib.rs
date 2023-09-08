@@ -348,7 +348,7 @@ mod tests {
             return None;
         }
 
-        pub async fn get_near_address(&self) -> Option<String> {
+        pub async fn get_implicit_near_account_id_for_self(&self) -> Option<String> {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args("getNearAddress", &[]);
@@ -1060,7 +1060,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_near_address_test() {
+    async fn get_implicit_near_account_id_for_self_test() {
         let infra = TestsInfrastructure::init(false).await;
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
         infra
@@ -1071,7 +1071,7 @@ mod tests {
         let output = infra.register_token(None, true).await;
 
         assert!(infra
-            .get_near_address()
+            .get_implicit_near_account_id_for_self()
             .await
             .unwrap()
             .contains(&output.receipt_outcomes()[1].executor_id.to_string()));
