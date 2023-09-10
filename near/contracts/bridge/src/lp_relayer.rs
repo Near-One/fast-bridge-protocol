@@ -2,13 +2,11 @@ use eth_types::{LogEntry, H256};
 use ethabi::{Event, EventParam, Hash, ParamType, RawLog};
 use fast_bridge_common::*;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::near_bindgen;
 
 type EthEventParams = Vec<(String, ParamType, bool)>;
 
 const EVENT_NAME: &str = "TransferTokens";
 
-#[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct EthTransferEvent {
     pub eth_bridge_contract: EthAddress,
