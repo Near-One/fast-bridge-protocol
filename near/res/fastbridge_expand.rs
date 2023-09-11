@@ -58,26 +58,46 @@ mod ft {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "sender_id",
                                 &self.sender_id,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "amount",
                                 &self.amount,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "msg",
                                 &self.msg,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -314,9 +334,14 @@ mod ft {
                         where
                             __A: _serde::de::SeqAccess<'de>,
                         {
-                            let __field0 = match _serde::de::SeqAccess::next_element::<
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
                                 AccountId,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -327,9 +352,14 @@ mod ft {
                                     );
                                 }
                             };
-                            let __field1 = match _serde::de::SeqAccess::next_element::<
+                            let __field1 = match match _serde::de::SeqAccess::next_element::<
                                 U128,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -340,9 +370,14 @@ mod ft {
                                     );
                                 }
                             };
-                            let __field2 = match _serde::de::SeqAccess::next_element::<
+                            let __field2 = match match _serde::de::SeqAccess::next_element::<
                                 String,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -370,9 +405,14 @@ mod ft {
                             let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
                             let mut __field2: _serde::__private::Option<String> = _serde::__private::None;
-                            while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                                 __Field,
-                            >(&mut __map)? {
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -383,7 +423,14 @@ mod ft {
                                             );
                                         }
                                         __field0 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                AccountId,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     __Field::__field1 => {
@@ -393,7 +440,14 @@ mod ft {
                                             );
                                         }
                                         __field1 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<U128>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                U128,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     __Field::__field2 => {
@@ -403,32 +457,59 @@ mod ft {
                                             );
                                         }
                                         __field2 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                String,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     _ => {
-                                        let _ = _serde::de::MapAccess::next_value::<
+                                        let _ = match _serde::de::MapAccess::next_value::<
                                             _serde::de::IgnoredAny,
-                                        >(&mut __map)?;
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
                                     }
                                 }
                             }
                             let __field0 = match __field0 {
                                 _serde::__private::Some(__field0) => __field0,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("sender_id")?
+                                    match _serde::__private::de::missing_field("sender_id") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             let __field1 = match __field1 {
                                 _serde::__private::Some(__field1) => __field1,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("amount")?
+                                    match _serde::__private::de::missing_field("amount") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             let __field2 = match __field2 {
                                 _serde::__private::Some(__field2) => __field2,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("msg")?
+                                    match _serde::__private::de::missing_field("msg") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             _serde::__private::Ok(Input {
@@ -835,17 +916,37 @@ mod whitelist {
                     where
                         __A: _serde::de::EnumAccess<'de>,
                     {
-                        match _serde::de::EnumAccess::variant(__data)? {
+                        match match _serde::de::EnumAccess::variant(__data) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             (__Field::__field0, __variant) => {
-                                _serde::de::VariantAccess::unit_variant(__variant)?;
+                                match _serde::de::VariantAccess::unit_variant(__variant) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
                                 _serde::__private::Ok(WhitelistMode::Blocked)
                             }
                             (__Field::__field1, __variant) => {
-                                _serde::de::VariantAccess::unit_variant(__variant)?;
+                                match _serde::de::VariantAccess::unit_variant(__variant) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
                                 _serde::__private::Ok(WhitelistMode::CheckToken)
                             }
                             (__Field::__field2, __variant) => {
-                                _serde::de::VariantAccess::unit_variant(__variant)?;
+                                match _serde::de::VariantAccess::unit_variant(__variant) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
                                 _serde::__private::Ok(WhitelistMode::CheckAccountAndToken)
                             }
                         }
@@ -974,21 +1075,36 @@ mod whitelist {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "token",
                                 &self.token,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "mode",
                                 &self.mode,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -1037,21 +1153,36 @@ mod whitelist {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "token",
                                 &self.token,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "account",
                                 &self.account,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -1100,21 +1231,36 @@ mod whitelist {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "token",
                                 &self.token,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "account",
                                 &self.account,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -1163,21 +1309,36 @@ mod whitelist {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "token",
                                 &self.token,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "account",
                                 &self.account,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -1221,16 +1382,26 @@ mod whitelist {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "enabled",
                                 &self.enabled,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -1612,9 +1783,14 @@ mod whitelist {
                         where
                             __A: _serde::de::SeqAccess<'de>,
                         {
-                            let __field0 = match _serde::de::SeqAccess::next_element::<
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
                                 AccountId,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -1625,9 +1801,14 @@ mod whitelist {
                                     );
                                 }
                             };
-                            let __field1 = match _serde::de::SeqAccess::next_element::<
+                            let __field1 = match match _serde::de::SeqAccess::next_element::<
                                 WhitelistMode,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -1653,9 +1834,14 @@ mod whitelist {
                         {
                             let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<WhitelistMode> = _serde::__private::None;
-                            while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                                 __Field,
-                            >(&mut __map)? {
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -1664,7 +1850,14 @@ mod whitelist {
                                             );
                                         }
                                         __field0 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                AccountId,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     __Field::__field1 => {
@@ -1674,28 +1867,48 @@ mod whitelist {
                                             );
                                         }
                                         __field1 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<
+                                            match _serde::de::MapAccess::next_value::<
                                                 WhitelistMode,
-                                            >(&mut __map)?,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     _ => {
-                                        let _ = _serde::de::MapAccess::next_value::<
+                                        let _ = match _serde::de::MapAccess::next_value::<
                                             _serde::de::IgnoredAny,
-                                        >(&mut __map)?;
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
                                     }
                                 }
                             }
                             let __field0 = match __field0 {
                                 _serde::__private::Some(__field0) => __field0,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("token")?
+                                    match _serde::__private::de::missing_field("token") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             let __field1 = match __field1 {
                                 _serde::__private::Some(__field1) => __field1,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("mode")?
+                                    match _serde::__private::de::missing_field("mode") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             _serde::__private::Ok(Input {
@@ -1851,9 +2064,14 @@ mod whitelist {
                         where
                             __A: _serde::de::SeqAccess<'de>,
                         {
-                            let __field0 = match _serde::de::SeqAccess::next_element::<
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
                                 Option<AccountId>,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -1864,9 +2082,14 @@ mod whitelist {
                                     );
                                 }
                             };
-                            let __field1 = match _serde::de::SeqAccess::next_element::<
+                            let __field1 = match match _serde::de::SeqAccess::next_element::<
                                 AccountId,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -1894,9 +2117,14 @@ mod whitelist {
                                 Option<AccountId>,
                             > = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                            while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                                 __Field,
-                            >(&mut __map)? {
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -1905,9 +2133,14 @@ mod whitelist {
                                             );
                                         }
                                         __field0 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<
+                                            match _serde::de::MapAccess::next_value::<
                                                 Option<AccountId>,
-                                            >(&mut __map)?,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     __Field::__field1 => {
@@ -1919,26 +2152,48 @@ mod whitelist {
                                             );
                                         }
                                         __field1 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                AccountId,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     _ => {
-                                        let _ = _serde::de::MapAccess::next_value::<
+                                        let _ = match _serde::de::MapAccess::next_value::<
                                             _serde::de::IgnoredAny,
-                                        >(&mut __map)?;
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
                                     }
                                 }
                             }
                             let __field0 = match __field0 {
                                 _serde::__private::Some(__field0) => __field0,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("token")?
+                                    match _serde::__private::de::missing_field("token") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             let __field1 = match __field1 {
                                 _serde::__private::Some(__field1) => __field1,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("account")?
+                                    match _serde::__private::de::missing_field("account") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             _serde::__private::Ok(Input {
@@ -2094,9 +2349,14 @@ mod whitelist {
                         where
                             __A: _serde::de::SeqAccess<'de>,
                         {
-                            let __field0 = match _serde::de::SeqAccess::next_element::<
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
                                 Option<AccountId>,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -2107,9 +2367,14 @@ mod whitelist {
                                     );
                                 }
                             };
-                            let __field1 = match _serde::de::SeqAccess::next_element::<
+                            let __field1 = match match _serde::de::SeqAccess::next_element::<
                                 AccountId,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -2137,9 +2402,14 @@ mod whitelist {
                                 Option<AccountId>,
                             > = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                            while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                                 __Field,
-                            >(&mut __map)? {
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2148,9 +2418,14 @@ mod whitelist {
                                             );
                                         }
                                         __field0 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<
+                                            match _serde::de::MapAccess::next_value::<
                                                 Option<AccountId>,
-                                            >(&mut __map)?,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     __Field::__field1 => {
@@ -2162,26 +2437,48 @@ mod whitelist {
                                             );
                                         }
                                         __field1 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                AccountId,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     _ => {
-                                        let _ = _serde::de::MapAccess::next_value::<
+                                        let _ = match _serde::de::MapAccess::next_value::<
                                             _serde::de::IgnoredAny,
-                                        >(&mut __map)?;
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
                                     }
                                 }
                             }
                             let __field0 = match __field0 {
                                 _serde::__private::Some(__field0) => __field0,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("token")?
+                                    match _serde::__private::de::missing_field("token") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             let __field1 = match __field1 {
                                 _serde::__private::Some(__field1) => __field1,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("account")?
+                                    match _serde::__private::de::missing_field("account") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             _serde::__private::Ok(Input {
@@ -2335,9 +2632,14 @@ mod whitelist {
                         where
                             __A: _serde::de::SeqAccess<'de>,
                         {
-                            let __field0 = match _serde::de::SeqAccess::next_element::<
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
                                 AccountId,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -2348,9 +2650,14 @@ mod whitelist {
                                     );
                                 }
                             };
-                            let __field1 = match _serde::de::SeqAccess::next_element::<
+                            let __field1 = match match _serde::de::SeqAccess::next_element::<
                                 AccountId,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -2376,9 +2683,14 @@ mod whitelist {
                         {
                             let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                             let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                            while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                                 __Field,
-                            >(&mut __map)? {
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2387,7 +2699,14 @@ mod whitelist {
                                             );
                                         }
                                         __field0 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                AccountId,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     __Field::__field1 => {
@@ -2399,26 +2718,48 @@ mod whitelist {
                                             );
                                         }
                                         __field1 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                AccountId,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     _ => {
-                                        let _ = _serde::de::MapAccess::next_value::<
+                                        let _ = match _serde::de::MapAccess::next_value::<
                                             _serde::de::IgnoredAny,
-                                        >(&mut __map)?;
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
                                     }
                                 }
                             }
                             let __field0 = match __field0 {
                                 _serde::__private::Some(__field0) => __field0,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("token")?
+                                    match _serde::__private::de::missing_field("token") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             let __field1 = match __field1 {
                                 _serde::__private::Some(__field1) => __field1,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("account")?
+                                    match _serde::__private::de::missing_field("account") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             _serde::__private::Ok(Input {
@@ -2568,9 +2909,14 @@ mod whitelist {
                         where
                             __A: _serde::de::SeqAccess<'de>,
                         {
-                            let __field0 = match _serde::de::SeqAccess::next_element::<
+                            let __field0 = match match _serde::de::SeqAccess::next_element::<
                                 bool,
-                            >(&mut __seq)? {
+                            >(&mut __seq) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 _serde::__private::Some(__value) => __value,
                                 _serde::__private::None => {
                                     return _serde::__private::Err(
@@ -2592,9 +2938,14 @@ mod whitelist {
                             __A: _serde::de::MapAccess<'de>,
                         {
                             let mut __field0: _serde::__private::Option<bool> = _serde::__private::None;
-                            while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                            while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                                 __Field,
-                            >(&mut __map)? {
+                            >(&mut __map) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            } {
                                 match __key {
                                     __Field::__field0 => {
                                         if _serde::__private::Option::is_some(&__field0) {
@@ -2605,20 +2956,37 @@ mod whitelist {
                                             );
                                         }
                                         __field0 = _serde::__private::Some(
-                                            _serde::de::MapAccess::next_value::<bool>(&mut __map)?,
+                                            match _serde::de::MapAccess::next_value::<
+                                                bool,
+                                            >(&mut __map) {
+                                                _serde::__private::Ok(__val) => __val,
+                                                _serde::__private::Err(__err) => {
+                                                    return _serde::__private::Err(__err);
+                                                }
+                                            },
                                         );
                                     }
                                     _ => {
-                                        let _ = _serde::de::MapAccess::next_value::<
+                                        let _ = match _serde::de::MapAccess::next_value::<
                                             _serde::de::IgnoredAny,
-                                        >(&mut __map)?;
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        };
                                     }
                                 }
                             }
                             let __field0 = match __field0 {
                                 _serde::__private::Some(__field0) => __field0,
                                 _serde::__private::None => {
-                                    _serde::__private::de::missing_field("enabled")?
+                                    match _serde::__private::de::missing_field("enabled") {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    }
                                 }
                             };
                             _serde::__private::Ok(Input { enabled: __field0 })
@@ -3013,26 +3381,46 @@ pub mod ext_token {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "receiver_id",
                                 &self.receiver_id,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "amount",
                                 &self.amount,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "memo",
                                 &self.memo,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -3144,26 +3532,46 @@ pub mod ext_self {
                         where
                             __S: near_sdk::serde::Serializer,
                         {
-                            let mut __serde_state = _serde::Serializer::serialize_struct(
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
                                 false as usize + 1 + 1 + 1,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "token_id",
                                 &self.token_id,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "amount",
                                 &self.amount,
-                            )?;
-                            _serde::ser::SerializeStruct::serialize_field(
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
                                 "recipient_id",
                                 &self.recipient_id,
-                            )?;
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::ser::SerializeStruct::end(__serde_state)
                         }
                     }
@@ -3405,31 +3813,56 @@ const _: () = {
         where
             __S: _serde::Serializer,
         {
-            let mut __serde_state = _serde::Serializer::serialize_struct(
+            let mut __serde_state = match _serde::Serializer::serialize_struct(
                 __serializer,
                 "UnlockProof",
                 false as usize + 1 + 1 + 1 + 1,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "header_data",
                 &self.header_data,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "account_proof",
                 &self.account_proof,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "account_data",
                 &self.account_data,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "storage_proof",
                 &self.storage_proof,
-            )?;
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
             _serde::ser::SerializeStruct::end(__serde_state)
         }
     }
@@ -3553,9 +3986,14 @@ const _: () = {
                 where
                     __A: _serde::de::SeqAccess<'de>,
                 {
-                    let __field0 = match _serde::de::SeqAccess::next_element::<
+                    let __field0 = match match _serde::de::SeqAccess::next_element::<
                         Vec<u8>,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3566,9 +4004,14 @@ const _: () = {
                             );
                         }
                     };
-                    let __field1 = match _serde::de::SeqAccess::next_element::<
+                    let __field1 = match match _serde::de::SeqAccess::next_element::<
                         Vec<Vec<u8>>,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3579,9 +4022,14 @@ const _: () = {
                             );
                         }
                     };
-                    let __field2 = match _serde::de::SeqAccess::next_element::<
+                    let __field2 = match match _serde::de::SeqAccess::next_element::<
                         Vec<u8>,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3592,9 +4040,14 @@ const _: () = {
                             );
                         }
                     };
-                    let __field3 = match _serde::de::SeqAccess::next_element::<
+                    let __field3 = match match _serde::de::SeqAccess::next_element::<
                         Vec<Vec<u8>>,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3624,9 +4077,14 @@ const _: () = {
                     let mut __field1: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
                     let mut __field2: _serde::__private::Option<Vec<u8>> = _serde::__private::None;
                     let mut __field3: _serde::__private::Option<Vec<Vec<u8>>> = _serde::__private::None;
-                    while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                    while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                         __Field,
-                    >(&mut __map)? {
+                    >(&mut __map) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         match __key {
                             __Field::__field0 => {
                                 if _serde::__private::Option::is_some(&__field0) {
@@ -3637,7 +4095,14 @@ const _: () = {
                                     );
                                 }
                                 __field0 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<Vec<u8>>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<u8>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             __Field::__field1 => {
@@ -3649,9 +4114,14 @@ const _: () = {
                                     );
                                 }
                                 __field1 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<
+                                    match _serde::de::MapAccess::next_value::<
                                         Vec<Vec<u8>>,
-                                    >(&mut __map)?,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             __Field::__field2 => {
@@ -3663,7 +4133,14 @@ const _: () = {
                                     );
                                 }
                                 __field2 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<Vec<u8>>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        Vec<u8>,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             __Field::__field3 => {
@@ -3675,40 +4152,70 @@ const _: () = {
                                     );
                                 }
                                 __field3 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<
+                                    match _serde::de::MapAccess::next_value::<
                                         Vec<Vec<u8>>,
-                                    >(&mut __map)?,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             _ => {
-                                let _ = _serde::de::MapAccess::next_value::<
+                                let _ = match _serde::de::MapAccess::next_value::<
                                     _serde::de::IgnoredAny,
-                                >(&mut __map)?;
+                                >(&mut __map) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
                             }
                         }
                     }
                     let __field0 = match __field0 {
                         _serde::__private::Some(__field0) => __field0,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("header_data")?
+                            match _serde::__private::de::missing_field("header_data") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     let __field1 = match __field1 {
                         _serde::__private::Some(__field1) => __field1,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("account_proof")?
+                            match _serde::__private::de::missing_field("account_proof") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     let __field2 = match __field2 {
                         _serde::__private::Some(__field2) => __field2,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("account_data")?
+                            match _serde::__private::de::missing_field("account_data") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     let __field3 = match __field3 {
                         _serde::__private::Some(__field3) => __field3,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("storage_proof")?
+                            match _serde::__private::de::missing_field("storage_proof") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     _serde::__private::Ok(UnlockProof {
@@ -3769,26 +4276,46 @@ const _: () = {
         where
             __S: near_sdk::serde::Serializer,
         {
-            let mut __serde_state = _serde::Serializer::serialize_struct(
+            let mut __serde_state = match _serde::Serializer::serialize_struct(
                 __serializer,
                 "UpdateBalance",
                 false as usize + 1 + 1 + 1,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "sender_id",
                 &self.sender_id,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "token",
                 &self.token,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "amount",
                 &self.amount,
-            )?;
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
             _serde::ser::SerializeStruct::end(__serde_state)
         }
     }
@@ -3907,9 +4434,14 @@ const _: () = {
                 where
                     __A: _serde::de::SeqAccess<'de>,
                 {
-                    let __field0 = match _serde::de::SeqAccess::next_element::<
+                    let __field0 = match match _serde::de::SeqAccess::next_element::<
                         AccountId,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3920,9 +4452,14 @@ const _: () = {
                             );
                         }
                     };
-                    let __field1 = match _serde::de::SeqAccess::next_element::<
+                    let __field1 = match match _serde::de::SeqAccess::next_element::<
                         AccountId,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3933,9 +4470,14 @@ const _: () = {
                             );
                         }
                     };
-                    let __field2 = match _serde::de::SeqAccess::next_element::<
+                    let __field2 = match match _serde::de::SeqAccess::next_element::<
                         U128,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -3963,9 +4505,14 @@ const _: () = {
                     let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                     let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
                     let mut __field2: _serde::__private::Option<U128> = _serde::__private::None;
-                    while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                    while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                         __Field,
-                    >(&mut __map)? {
+                    >(&mut __map) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         match __key {
                             __Field::__field0 => {
                                 if _serde::__private::Option::is_some(&__field0) {
@@ -3976,7 +4523,14 @@ const _: () = {
                                     );
                                 }
                                 __field0 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        AccountId,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             __Field::__field1 => {
@@ -3986,7 +4540,14 @@ const _: () = {
                                     );
                                 }
                                 __field1 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        AccountId,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             __Field::__field2 => {
@@ -3996,32 +4557,59 @@ const _: () = {
                                     );
                                 }
                                 __field2 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<U128>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        U128,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             _ => {
-                                let _ = _serde::de::MapAccess::next_value::<
+                                let _ = match _serde::de::MapAccess::next_value::<
                                     _serde::de::IgnoredAny,
-                                >(&mut __map)?;
+                                >(&mut __map) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
                             }
                         }
                     }
                     let __field0 = match __field0 {
                         _serde::__private::Some(__field0) => __field0,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("sender_id")?
+                            match _serde::__private::de::missing_field("sender_id") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     let __field1 = match __field1 {
                         _serde::__private::Some(__field1) => __field1,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("token")?
+                            match _serde::__private::de::missing_field("token") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     let __field2 = match __field2 {
                         _serde::__private::Some(__field2) => __field2,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("amount")?
+                            match _serde::__private::de::missing_field("amount") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     _serde::__private::Ok(UpdateBalance {
@@ -4158,21 +4746,36 @@ const _: () = {
         where
             __S: near_sdk::serde::Serializer,
         {
-            let mut __serde_state = _serde::Serializer::serialize_struct(
+            let mut __serde_state = match _serde::Serializer::serialize_struct(
                 __serializer,
                 "LockDuration",
                 false as usize + 1 + 1,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "lock_time_min",
                 &self.lock_time_min,
-            )?;
-            _serde::ser::SerializeStruct::serialize_field(
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
+            match _serde::ser::SerializeStruct::serialize_field(
                 &mut __serde_state,
                 "lock_time_max",
                 &self.lock_time_max,
-            )?;
+            ) {
+                _serde::__private::Ok(__val) => __val,
+                _serde::__private::Err(__err) => {
+                    return _serde::__private::Err(__err);
+                }
+            };
             _serde::ser::SerializeStruct::end(__serde_state)
         }
     }
@@ -4287,9 +4890,14 @@ const _: () = {
                 where
                     __A: _serde::de::SeqAccess<'de>,
                 {
-                    let __field0 = match _serde::de::SeqAccess::next_element::<
+                    let __field0 = match match _serde::de::SeqAccess::next_element::<
                         Duration,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -4300,9 +4908,14 @@ const _: () = {
                             );
                         }
                     };
-                    let __field1 = match _serde::de::SeqAccess::next_element::<
+                    let __field1 = match match _serde::de::SeqAccess::next_element::<
                         Duration,
-                    >(&mut __seq)? {
+                    >(&mut __seq) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         _serde::__private::Some(__value) => __value,
                         _serde::__private::None => {
                             return _serde::__private::Err(
@@ -4328,9 +4941,14 @@ const _: () = {
                 {
                     let mut __field0: _serde::__private::Option<Duration> = _serde::__private::None;
                     let mut __field1: _serde::__private::Option<Duration> = _serde::__private::None;
-                    while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                    while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                         __Field,
-                    >(&mut __map)? {
+                    >(&mut __map) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         match __key {
                             __Field::__field0 => {
                                 if _serde::__private::Option::is_some(&__field0) {
@@ -4341,7 +4959,14 @@ const _: () = {
                                     );
                                 }
                                 __field0 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<Duration>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        Duration,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             __Field::__field1 => {
@@ -4353,26 +4978,48 @@ const _: () = {
                                     );
                                 }
                                 __field1 = _serde::__private::Some(
-                                    _serde::de::MapAccess::next_value::<Duration>(&mut __map)?,
+                                    match _serde::de::MapAccess::next_value::<
+                                        Duration,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    },
                                 );
                             }
                             _ => {
-                                let _ = _serde::de::MapAccess::next_value::<
+                                let _ = match _serde::de::MapAccess::next_value::<
                                     _serde::de::IgnoredAny,
-                                >(&mut __map)?;
+                                >(&mut __map) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                };
                             }
                         }
                     }
                     let __field0 = match __field0 {
                         _serde::__private::Some(__field0) => __field0,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("lock_time_min")?
+                            match _serde::__private::de::missing_field("lock_time_min") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     let __field1 = match __field1 {
                         _serde::__private::Some(__field1) => __field1,
                         _serde::__private::None => {
-                            _serde::__private::de::missing_field("lock_time_max")?
+                            match _serde::__private::de::missing_field("lock_time_max") {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            }
                         }
                     };
                     _serde::__private::Ok(LockDuration {
@@ -5806,49 +6453,109 @@ const _: () = {
                 where
                     __A: _serde::de::EnumAccess<'de>,
                 {
-                    match _serde::de::EnumAccess::variant(__data)? {
+                    match match _serde::de::EnumAccess::variant(__data) {
+                        _serde::__private::Ok(__val) => __val,
+                        _serde::__private::Err(__err) => {
+                            return _serde::__private::Err(__err);
+                        }
+                    } {
                         (__Field::__field0, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::PauseManager)
                         }
                         (__Field::__field1, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::UnrestrictedUnlock)
                         }
                         (__Field::__field2, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::UnrestrictedLpUnlock)
                         }
                         (__Field::__field3, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::UnrestrictedWithdraw)
                         }
                         (__Field::__field4, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::WhitelistManager)
                         }
                         (__Field::__field5, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::ConfigManager)
                         }
                         (__Field::__field6, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::UnlockManager)
                         }
                         (__Field::__field7, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::DAO)
                         }
                         (__Field::__field8, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::CodeStager)
                         }
                         (__Field::__field9, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::CodeDeployer)
                         }
                         (__Field::__field10, __variant) => {
-                            _serde::de::VariantAccess::unit_variant(__variant)?;
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
                             _serde::__private::Ok(Role::DurationManager)
                         }
                     }
@@ -6126,16 +6833,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "key",
                             &self.key,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -6183,16 +6900,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "key",
                             &self.key,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -6229,16 +6956,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "key",
                             &self.key,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -6492,9 +7229,14 @@ pub extern "C" fn pa_is_paused() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -6516,9 +7258,14 @@ pub extern "C" fn pa_is_paused() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -6527,20 +7274,37 @@ pub extern "C" fn pa_is_paused() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("key")?
+                                match _serde::__private::de::missing_field("key") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { key: __field0 })
@@ -6697,9 +7461,14 @@ pub extern "C" fn pa_pause_feature() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -6721,9 +7490,14 @@ pub extern "C" fn pa_pause_feature() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -6732,20 +7506,37 @@ pub extern "C" fn pa_pause_feature() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("key")?
+                                match _serde::__private::de::missing_field("key") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { key: __field0 })
@@ -6893,9 +7684,14 @@ pub extern "C" fn pa_unpause_feature() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -6917,9 +7713,14 @@ pub extern "C" fn pa_unpause_feature() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -6928,20 +7729,37 @@ pub extern "C" fn pa_unpause_feature() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("key")?
+                                match _serde::__private::de::missing_field("key") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { key: __field0 })
@@ -7157,16 +7975,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "function_call_args",
                             &self.function_call_args,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -7208,16 +8036,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "staging_duration",
                             &self.staging_duration,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -7259,16 +8097,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "staging_duration",
                             &self.staging_duration,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -7753,9 +8601,14 @@ pub extern "C" fn up_deploy_code() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             Option<near_plugins::upgradable::FunctionCallArgs>,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -7781,9 +8634,14 @@ pub extern "C" fn up_deploy_code() {
                         let mut __field0: _serde::__private::Option<
                             Option<near_plugins::upgradable::FunctionCallArgs>,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -7794,22 +8652,39 @@ pub extern "C" fn up_deploy_code() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             Option<near_plugins::upgradable::FunctionCallArgs>,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("function_call_args")?
+                                match _serde::__private::de::missing_field(
+                                    "function_call_args",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -7965,9 +8840,14 @@ pub extern "C" fn up_init_staging_duration() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             near_sdk::Duration,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -7993,9 +8873,14 @@ pub extern "C" fn up_init_staging_duration() {
                         let mut __field0: _serde::__private::Option<
                             near_sdk::Duration,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -8006,22 +8891,39 @@ pub extern "C" fn up_init_staging_duration() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             near_sdk::Duration,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("staging_duration")?
+                                match _serde::__private::de::missing_field(
+                                    "staging_duration",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -8174,9 +9076,14 @@ pub extern "C" fn up_stage_update_staging_duration() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             near_sdk::Duration,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -8202,9 +9109,14 @@ pub extern "C" fn up_stage_update_staging_duration() {
                         let mut __field0: _serde::__private::Option<
                             near_sdk::Duration,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -8215,22 +9127,39 @@ pub extern "C" fn up_stage_update_staging_duration() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             near_sdk::Duration,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("staging_duration")?
+                                match _serde::__private::de::missing_field(
+                                    "staging_duration",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -8950,16 +9879,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -8999,16 +9938,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9059,16 +10008,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9108,16 +10067,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9157,16 +10126,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9208,21 +10187,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9267,21 +10261,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9326,21 +10335,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9380,16 +10404,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9431,21 +10465,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9485,16 +10534,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9536,21 +10595,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9595,21 +10669,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9654,21 +10743,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "roles",
                             &self.roles,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9709,21 +10813,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "skip",
                             &self.skip,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "limit",
                             &self.limit,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9770,26 +10889,46 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "skip",
                             &self.skip,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "limit",
                             &self.limit,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -9837,26 +10976,46 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "role",
                             &self.role,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "skip",
                             &self.skip,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "limit",
                             &self.limit,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -10234,9 +11393,14 @@ pub extern "C" fn acl_init_super_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -10260,9 +11424,14 @@ pub extern "C" fn acl_init_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -10273,22 +11442,37 @@ pub extern "C" fn acl_init_super_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { account_id: __field0 })
@@ -10436,9 +11620,14 @@ pub extern "C" fn acl_add_super_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -10462,9 +11651,14 @@ pub extern "C" fn acl_add_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -10475,22 +11669,37 @@ pub extern "C" fn acl_add_super_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { account_id: __field0 })
@@ -10645,9 +11854,14 @@ pub extern "C" fn acl_is_super_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -10671,9 +11885,14 @@ pub extern "C" fn acl_is_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -10684,22 +11903,37 @@ pub extern "C" fn acl_is_super_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { account_id: __field0 })
@@ -10846,9 +12080,14 @@ pub extern "C" fn acl_revoke_super_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -10872,9 +12111,14 @@ pub extern "C" fn acl_revoke_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -10885,22 +12129,37 @@ pub extern "C" fn acl_revoke_super_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { account_id: __field0 })
@@ -11050,9 +12309,14 @@ pub extern "C" fn acl_transfer_super_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11076,9 +12340,14 @@ pub extern "C" fn acl_transfer_super_admin() {
                         let mut __field0: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11089,22 +12358,37 @@ pub extern "C" fn acl_transfer_super_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { account_id: __field0 })
@@ -11257,9 +12541,14 @@ pub extern "C" fn acl_add_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11270,9 +12559,14 @@ pub extern "C" fn acl_add_admin() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11300,9 +12594,14 @@ pub extern "C" fn acl_add_admin() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11311,7 +12610,14 @@ pub extern "C" fn acl_add_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -11323,28 +12629,48 @@ pub extern "C" fn acl_add_admin() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -11497,9 +12823,14 @@ pub extern "C" fn acl_is_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11510,9 +12841,14 @@ pub extern "C" fn acl_is_admin() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11540,9 +12876,14 @@ pub extern "C" fn acl_is_admin() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11551,7 +12892,14 @@ pub extern "C" fn acl_is_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -11563,28 +12911,48 @@ pub extern "C" fn acl_is_admin() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -11739,9 +13107,14 @@ pub extern "C" fn acl_revoke_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11752,9 +13125,14 @@ pub extern "C" fn acl_revoke_admin() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -11782,9 +13160,14 @@ pub extern "C" fn acl_revoke_admin() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -11793,7 +13176,14 @@ pub extern "C" fn acl_revoke_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -11805,28 +13195,48 @@ pub extern "C" fn acl_revoke_admin() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -11977,9 +13387,14 @@ pub extern "C" fn acl_renounce_admin() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12001,9 +13416,14 @@ pub extern "C" fn acl_renounce_admin() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12012,20 +13432,37 @@ pub extern "C" fn acl_renounce_admin() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { role: __field0 })
@@ -12178,9 +13615,14 @@ pub extern "C" fn acl_revoke_role() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12191,9 +13633,14 @@ pub extern "C" fn acl_revoke_role() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12221,9 +13668,14 @@ pub extern "C" fn acl_revoke_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12232,7 +13684,14 @@ pub extern "C" fn acl_revoke_role() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -12244,28 +13703,48 @@ pub extern "C" fn acl_revoke_role() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -12416,9 +13895,14 @@ pub extern "C" fn acl_renounce_role() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12440,9 +13924,14 @@ pub extern "C" fn acl_renounce_role() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12451,20 +13940,37 @@ pub extern "C" fn acl_renounce_role() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { role: __field0 })
@@ -12617,9 +14123,14 @@ pub extern "C" fn acl_grant_role() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12630,9 +14141,14 @@ pub extern "C" fn acl_grant_role() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12660,9 +14176,14 @@ pub extern "C" fn acl_grant_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12671,7 +14192,14 @@ pub extern "C" fn acl_grant_role() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -12683,28 +14211,48 @@ pub extern "C" fn acl_grant_role() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -12857,9 +14405,14 @@ pub extern "C" fn acl_has_role() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12870,9 +14423,14 @@ pub extern "C" fn acl_has_role() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -12900,9 +14458,14 @@ pub extern "C" fn acl_has_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -12911,7 +14474,14 @@ pub extern "C" fn acl_has_role() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -12923,28 +14493,48 @@ pub extern "C" fn acl_has_role() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -13096,9 +14686,14 @@ pub extern "C" fn acl_has_any_role() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             Vec<String>,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13109,9 +14704,14 @@ pub extern "C" fn acl_has_any_role() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             ::near_sdk::AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13139,9 +14739,14 @@ pub extern "C" fn acl_has_any_role() {
                         let mut __field1: _serde::__private::Option<
                             ::near_sdk::AccountId,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13150,9 +14755,14 @@ pub extern "C" fn acl_has_any_role() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             Vec<String>,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -13164,28 +14774,48 @@ pub extern "C" fn acl_has_any_role() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             ::near_sdk::AccountId,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("roles")?
+                                match _serde::__private::de::missing_field("roles") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -13337,9 +14967,14 @@ pub extern "C" fn acl_get_super_admins() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             u64,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13350,9 +14985,14 @@ pub extern "C" fn acl_get_super_admins() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             u64,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13378,9 +15018,14 @@ pub extern "C" fn acl_get_super_admins() {
                     {
                         let mut __field0: _serde::__private::Option<u64> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<u64> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13389,7 +15034,12 @@ pub extern "C" fn acl_get_super_admins() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<u64>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<u64>(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -13399,26 +15049,46 @@ pub extern "C" fn acl_get_super_admins() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<u64>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<u64>(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("skip")?
+                                match _serde::__private::de::missing_field("skip") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("limit")?
+                                match _serde::__private::de::missing_field("limit") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -13575,9 +15245,14 @@ pub extern "C" fn acl_get_admins() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13588,9 +15263,14 @@ pub extern "C" fn acl_get_admins() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             u64,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13601,9 +15281,14 @@ pub extern "C" fn acl_get_admins() {
                                 );
                             }
                         };
-                        let __field2 = match _serde::de::SeqAccess::next_element::<
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
                             u64,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13631,9 +15316,14 @@ pub extern "C" fn acl_get_admins() {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<u64> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<u64> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13642,7 +15332,14 @@ pub extern "C" fn acl_get_admins() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -13652,7 +15349,12 @@ pub extern "C" fn acl_get_admins() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<u64>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<u64>(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field2 => {
@@ -13662,32 +15364,57 @@ pub extern "C" fn acl_get_admins() {
                                         );
                                     }
                                     __field2 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<u64>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<u64>(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("skip")?
+                                match _serde::__private::de::missing_field("skip") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field2 = match __field2 {
                             _serde::__private::Some(__field2) => __field2,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("limit")?
+                                match _serde::__private::de::missing_field("limit") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -13845,9 +15572,14 @@ pub extern "C" fn acl_get_grantees() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13858,9 +15590,14 @@ pub extern "C" fn acl_get_grantees() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             u64,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13871,9 +15608,14 @@ pub extern "C" fn acl_get_grantees() {
                                 );
                             }
                         };
-                        let __field2 = match _serde::de::SeqAccess::next_element::<
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
                             u64,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -13901,9 +15643,14 @@ pub extern "C" fn acl_get_grantees() {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<u64> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<u64> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -13912,7 +15659,14 @@ pub extern "C" fn acl_get_grantees() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -13922,7 +15676,12 @@ pub extern "C" fn acl_get_grantees() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<u64>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<u64>(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field2 => {
@@ -13932,32 +15691,57 @@ pub extern "C" fn acl_get_grantees() {
                                         );
                                     }
                                     __field2 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<u64>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<u64>(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("role")?
+                                match _serde::__private::de::missing_field("role") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("skip")?
+                                match _serde::__private::de::missing_field("skip") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field2 = match __field2 {
                             _serde::__private::Some(__field2) => __field2,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("limit")?
+                                match _serde::__private::de::missing_field("limit") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -14038,51 +15822,96 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "eth_bridge_contract",
                             &self.eth_bridge_contract,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "prover_account",
                             &self.prover_account,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "eth_client_account",
                             &self.eth_client_account,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "lock_time_min",
                             &self.lock_time_min,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "lock_time_max",
                             &self.lock_time_max,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "eth_block_time",
                             &self.eth_block_time,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "whitelist_mode",
                             &self.whitelist_mode,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "start_nonce",
                             &self.start_nonce,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14131,16 +15960,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "msg",
                             &self.msg,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14227,21 +16066,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "nonce",
                             &self.nonce,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "proof",
                             &self.proof,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14321,16 +16175,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "proof",
                             &self.proof,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14372,21 +16236,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "nonce",
                             &self.nonce,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "recipient_id",
                             &self.recipient_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14464,21 +16343,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "token_id",
                             &self.token_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14523,21 +16417,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "token_id",
                             &self.token_id,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "amount",
                             &self.amount,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14584,26 +16493,46 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "token_id",
                             &self.token_id,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "amount",
                             &self.amount,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "recipient_id",
                             &self.recipient_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14644,16 +16573,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "prover_account",
                             &self.prover_account,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14692,16 +16631,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "account_id",
                             &self.account_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14738,16 +16687,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "address",
                             &self.address,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14795,16 +16754,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "token_id",
                             &self.token_id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14846,21 +16815,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "from_index",
                             &self.from_index,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "limit",
                             &self.limit,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14900,16 +16884,26 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "id",
                             &self.id,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -14951,21 +16945,36 @@ impl FastBridgeExt {
                     where
                         __S: near_sdk::serde::Serializer,
                     {
-                        let mut __serde_state = _serde::Serializer::serialize_struct(
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
                             false as usize + 1 + 1,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "lock_time_min",
                             &self.lock_time_min,
-                        )?;
-                        _serde::ser::SerializeStruct::serialize_field(
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
                             "lock_time_max",
                             &self.lock_time_max,
-                        )?;
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -16373,9 +18382,14 @@ pub extern "C" fn new() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16386,9 +18400,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16399,9 +18418,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field2 = match _serde::de::SeqAccess::next_element::<
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16412,9 +18436,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field3 = match _serde::de::SeqAccess::next_element::<
+                        let __field3 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16425,9 +18454,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field4 = match _serde::de::SeqAccess::next_element::<
+                        let __field4 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16438,9 +18472,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field5 = match _serde::de::SeqAccess::next_element::<
+                        let __field5 = match match _serde::de::SeqAccess::next_element::<
                             Duration,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16451,9 +18490,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field6 = match _serde::de::SeqAccess::next_element::<
+                        let __field6 = match match _serde::de::SeqAccess::next_element::<
                             bool,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16464,9 +18508,14 @@ pub extern "C" fn new() {
                                 );
                             }
                         };
-                        let __field7 = match _serde::de::SeqAccess::next_element::<
+                        let __field7 = match match _serde::de::SeqAccess::next_element::<
                             U128,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16504,9 +18553,14 @@ pub extern "C" fn new() {
                         let mut __field5: _serde::__private::Option<Duration> = _serde::__private::None;
                         let mut __field6: _serde::__private::Option<bool> = _serde::__private::None;
                         let mut __field7: _serde::__private::Option<U128> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -16517,7 +18571,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -16529,7 +18590,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field2 => {
@@ -16541,7 +18609,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field2 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field3 => {
@@ -16553,7 +18628,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field3 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field4 => {
@@ -16565,7 +18647,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field4 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field5 => {
@@ -16577,7 +18666,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field5 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<Duration>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            Duration,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field6 => {
@@ -16589,7 +18685,14 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field6 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<bool>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            bool,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field7 => {
@@ -16601,62 +18704,128 @@ pub extern "C" fn new() {
                                         );
                                     }
                                     __field7 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<U128>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("eth_bridge_contract")?
+                                match _serde::__private::de::missing_field(
+                                    "eth_bridge_contract",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("prover_account")?
+                                match _serde::__private::de::missing_field(
+                                    "prover_account",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field2 = match __field2 {
                             _serde::__private::Some(__field2) => __field2,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("eth_client_account")?
+                                match _serde::__private::de::missing_field(
+                                    "eth_client_account",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field3 = match __field3 {
                             _serde::__private::Some(__field3) => __field3,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("lock_time_min")?
+                                match _serde::__private::de::missing_field(
+                                    "lock_time_min",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field4 = match __field4 {
                             _serde::__private::Some(__field4) => __field4,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("lock_time_max")?
+                                match _serde::__private::de::missing_field(
+                                    "lock_time_max",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field5 = match __field5 {
                             _serde::__private::Some(__field5) => __field5,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("eth_block_time")?
+                                match _serde::__private::de::missing_field(
+                                    "eth_block_time",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field6 = match __field6 {
                             _serde::__private::Some(__field6) => __field6,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("whitelist_mode")?
+                                match _serde::__private::de::missing_field(
+                                    "whitelist_mode",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field7 = match __field7 {
                             _serde::__private::Some(__field7) => __field7,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("start_nonce")?
+                                match _serde::__private::de::missing_field("start_nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -16846,9 +19015,14 @@ pub extern "C" fn init_transfer() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             near_sdk::json_types::Base64VecU8,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -16872,9 +19046,14 @@ pub extern "C" fn init_transfer() {
                         let mut __field0: _serde::__private::Option<
                             near_sdk::json_types::Base64VecU8,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -16883,22 +19062,37 @@ pub extern "C" fn init_transfer() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             near_sdk::json_types::Base64VecU8,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("msg")?
+                                match _serde::__private::de::missing_field("msg") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { msg: __field0 })
@@ -17132,9 +19326,14 @@ pub extern "C" fn unlock() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             U128,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -17145,9 +19344,14 @@ pub extern "C" fn unlock() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             near_sdk::json_types::Base64VecU8,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -17175,9 +19379,14 @@ pub extern "C" fn unlock() {
                         let mut __field1: _serde::__private::Option<
                             near_sdk::json_types::Base64VecU8,
                         > = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -17186,7 +19395,14 @@ pub extern "C" fn unlock() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<U128>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -17196,28 +19412,48 @@ pub extern "C" fn unlock() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             near_sdk::json_types::Base64VecU8,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("nonce")?
+                                match _serde::__private::de::missing_field("nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("proof")?
+                                match _serde::__private::de::missing_field("proof") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -17449,9 +19685,14 @@ pub extern "C" fn lp_unlock() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             Proof,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -17473,9 +19714,14 @@ pub extern "C" fn lp_unlock() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<Proof> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -17484,20 +19730,37 @@ pub extern "C" fn lp_unlock() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<Proof>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            Proof,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("proof")?
+                                match _serde::__private::de::missing_field("proof") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { proof: __field0 })
@@ -17664,9 +19927,14 @@ pub extern "C" fn unlock_stuck_transfer() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             U128,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -17677,9 +19945,14 @@ pub extern "C" fn unlock_stuck_transfer() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -17705,9 +19978,14 @@ pub extern "C" fn unlock_stuck_transfer() {
                     {
                         let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -17716,7 +19994,14 @@ pub extern "C" fn unlock_stuck_transfer() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<U128>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -17728,26 +20013,48 @@ pub extern "C" fn unlock_stuck_transfer() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("nonce")?
+                                match _serde::__private::de::missing_field("nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("recipient_id")?
+                                match _serde::__private::de::missing_field("recipient_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -17967,9 +20274,14 @@ pub extern "C" fn get_user_balance() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -17980,9 +20292,14 @@ pub extern "C" fn get_user_balance() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18008,9 +20325,14 @@ pub extern "C" fn get_user_balance() {
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -18021,7 +20343,14 @@ pub extern "C" fn get_user_balance() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -18033,26 +20362,48 @@ pub extern "C" fn get_user_balance() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("token_id")?
+                                match _serde::__private::de::missing_field("token_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -18223,9 +20574,14 @@ pub extern "C" fn withdraw() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18236,9 +20592,14 @@ pub extern "C" fn withdraw() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             Option<U128>,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18264,9 +20625,14 @@ pub extern "C" fn withdraw() {
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<Option<U128>> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -18277,7 +20643,14 @@ pub extern "C" fn withdraw() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -18287,28 +20660,48 @@ pub extern "C" fn withdraw() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<
+                                        match _serde::de::MapAccess::next_value::<
                                             Option<U128>,
-                                        >(&mut __map)?,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("token_id")?
+                                match _serde::__private::de::missing_field("token_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("amount")?
+                                match _serde::__private::de::missing_field("amount") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -18488,9 +20881,14 @@ pub extern "C" fn withdraw_callback() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18501,9 +20899,14 @@ pub extern "C" fn withdraw_callback() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             U128,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18514,9 +20917,14 @@ pub extern "C" fn withdraw_callback() {
                                 );
                             }
                         };
-                        let __field2 = match _serde::de::SeqAccess::next_element::<
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18544,9 +20952,14 @@ pub extern "C" fn withdraw_callback() {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -18557,7 +20970,14 @@ pub extern "C" fn withdraw_callback() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -18567,7 +20987,14 @@ pub extern "C" fn withdraw_callback() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<U128>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field2 => {
@@ -18579,32 +21006,59 @@ pub extern "C" fn withdraw_callback() {
                                         );
                                     }
                                     __field2 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("token_id")?
+                                match _serde::__private::de::missing_field("token_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("amount")?
+                                match _serde::__private::de::missing_field("amount") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field2 = match __field2 {
                             _serde::__private::Some(__field2) => __field2,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("recipient_id")?
+                                match _serde::__private::de::missing_field("recipient_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -18764,9 +21218,14 @@ pub extern "C" fn set_prover_account() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18788,9 +21247,14 @@ pub extern "C" fn set_prover_account() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -18801,20 +21265,39 @@ pub extern "C" fn set_prover_account() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("prover_account")?
+                                match _serde::__private::de::missing_field(
+                                    "prover_account",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { prover_account: __field0 })
@@ -18963,9 +21446,14 @@ pub extern "C" fn set_eth_client_account() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -18987,9 +21475,14 @@ pub extern "C" fn set_eth_client_account() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19000,20 +21493,37 @@ pub extern "C" fn set_eth_client_account() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("account_id")?
+                                match _serde::__private::de::missing_field("account_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { account_id: __field0 })
@@ -19168,9 +21678,14 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -19192,9 +21707,14 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19205,20 +21725,37 @@ pub extern "C" fn set_eth_bridge_contract_address() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("address")?
+                                match _serde::__private::de::missing_field("address") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { address: __field0 })
@@ -19381,9 +21918,14 @@ pub extern "C" fn get_pending_balance() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             AccountId,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -19405,9 +21947,14 @@ pub extern "C" fn get_pending_balance() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19418,20 +21965,37 @@ pub extern "C" fn get_pending_balance() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<AccountId>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("token_id")?
+                                match _serde::__private::de::missing_field("token_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { token_id: __field0 })
@@ -19596,9 +22160,14 @@ pub extern "C" fn get_pending_transfers() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             usize,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -19609,9 +22178,14 @@ pub extern "C" fn get_pending_transfers() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             usize,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -19637,9 +22211,14 @@ pub extern "C" fn get_pending_transfers() {
                     {
                         let mut __field0: _serde::__private::Option<usize> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<usize> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19650,7 +22229,14 @@ pub extern "C" fn get_pending_transfers() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<usize>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            usize,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -19660,26 +22246,48 @@ pub extern "C" fn get_pending_transfers() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<usize>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            usize,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("from_index")?
+                                match _serde::__private::de::missing_field("from_index") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("limit")?
+                                match _serde::__private::de::missing_field("limit") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
@@ -19836,9 +22444,14 @@ pub extern "C" fn get_pending_transfer() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -19860,9 +22473,14 @@ pub extern "C" fn get_pending_transfer() {
                         __A: _serde::de::MapAccess<'de>,
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -19871,20 +22489,37 @@ pub extern "C" fn get_pending_transfer() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("id")?
+                                match _serde::__private::de::missing_field("id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input { id: __field0 })
@@ -20049,9 +22684,14 @@ pub extern "C" fn set_lock_time() {
                     where
                         __A: _serde::de::SeqAccess<'de>,
                     {
-                        let __field0 = match _serde::de::SeqAccess::next_element::<
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -20062,9 +22702,14 @@ pub extern "C" fn set_lock_time() {
                                 );
                             }
                         };
-                        let __field1 = match _serde::de::SeqAccess::next_element::<
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
                             String,
-                        >(&mut __seq)? {
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             _serde::__private::Some(__value) => __value,
                             _serde::__private::None => {
                                 return _serde::__private::Err(
@@ -20090,9 +22735,14 @@ pub extern "C" fn set_lock_time() {
                     {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<String> = _serde::__private::None;
-                        while let _serde::__private::Some(__key) = _serde::de::MapAccess::next_key::<
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
-                        >(&mut __map)? {
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
                             match __key {
                                 __Field::__field0 => {
                                     if _serde::__private::Option::is_some(&__field0) {
@@ -20103,7 +22753,14 @@ pub extern "C" fn set_lock_time() {
                                         );
                                     }
                                     __field0 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 __Field::__field1 => {
@@ -20115,26 +22772,52 @@ pub extern "C" fn set_lock_time() {
                                         );
                                     }
                                     __field1 = _serde::__private::Some(
-                                        _serde::de::MapAccess::next_value::<String>(&mut __map)?,
+                                        match _serde::de::MapAccess::next_value::<
+                                            String,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
                                     );
                                 }
                                 _ => {
-                                    let _ = _serde::de::MapAccess::next_value::<
+                                    let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
-                                    >(&mut __map)?;
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
                                 }
                             }
                         }
                         let __field0 = match __field0 {
                             _serde::__private::Some(__field0) => __field0,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("lock_time_min")?
+                                match _serde::__private::de::missing_field(
+                                    "lock_time_min",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         let __field1 = match __field1 {
                             _serde::__private::Some(__field1) => __field1,
                             _serde::__private::None => {
-                                _serde::__private::de::missing_field("lock_time_max")?
+                                match _serde::__private::de::missing_field(
+                                    "lock_time_max",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
                             }
                         };
                         _serde::__private::Ok(Input {
