@@ -26,6 +26,10 @@ library UtilsFastBridge {
         return result;
     }
 
+    function borshEncode(bytes memory value) internal pure returns (bytes memory) {
+        return abi.encodePacked(UtilsAuroraSdk.swapBytes4(uint32(value.length)), value);
+    }
+
     /// Creates a base promise. This is not immediately scheduled for execution
     /// until transact is called. It can be combined with other promises using
     /// `then` combinator.

@@ -191,7 +191,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         PromiseCreateArgs memory callGetErc20FromNep141 = near.call(
             auroraEngineAccountIdOnNear,
             "get_erc20_from_nep141",
-            abi.encodePacked(Utils.swapBytes4(uint32(bytes(nearTokenAccountId).length)), nearTokenAccountId),
+            UtilsFastBridge.borshEncode(bytes(nearTokenAccountId)),
             NO_DEPOSIT,
             BASE_NEAR_GAS
         );
