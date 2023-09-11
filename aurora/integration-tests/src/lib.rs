@@ -32,7 +32,7 @@ mod tests {
     const NEAR_DEPOSIT: u128 = 2 * near_sdk::ONE_NEAR;
     const WNEAR_FOR_TOKENS_TRANSFERS: u128 = 100 * near_sdk::ONE_YOCTO;
 
-    const TRANSFER_EXPIRATION_PERIOD_S: u64 = 30;
+    const TRANSFER_EXPIRATION_PERIOD_SEC: u64 = 30;
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
 
@@ -164,7 +164,7 @@ mod tests {
                     .duration_since(std::time::SystemTime::UNIX_EPOCH)
                     .unwrap()
                     .as_nanos()
-                    + Duration::from_secs(TRANSFER_EXPIRATION_PERIOD_S).as_nanos()) as u64,
+                    + Duration::from_secs(TRANSFER_EXPIRATION_PERIOD_SEC).as_nanos()) as u64,
             );
             let transfer_msg = fast_bridge_common::TransferMessage {
                 valid_till,
