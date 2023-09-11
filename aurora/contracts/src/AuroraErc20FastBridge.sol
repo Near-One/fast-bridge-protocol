@@ -185,9 +185,12 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * Effects:
       * - Call the get_erc20_from_nep141 function for extract the Aurora token address
     */
-    function registerToken(
-        string calldata nearTokenAccountId
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function registerToken(string calldata nearTokenAccountId) external {
+        require(
+            address(registeredTokens[nearTokenAccountId].auroraTokenAddress) == address(0),
+            "The token is already registered"
+        );
+
         PromiseCreateArgs memory callGetErc20FromNep141 = near.call(
             auroraEngineAccountIdOnNear,
             "get_erc20_from_nep141",
@@ -223,7 +226,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         address auroraTokenAddress = address(uint160(bytes20(AuroraSdk.promiseResult(0).output)));
 
-        registeredTokens[nearTokenAccountId] = TokenInfo(IEvmErc20(auroraTokenAddress), false);
+        registeredTokens[nearTokenAccountId].auroraTokenAddress = IEvmErc20(auroraTokenAddress);
         emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
     }
 
