@@ -17,7 +17,7 @@ Deploy contract
 ```bash
 $ make deploy
 ```
-After deploying, you will get the address of the newly created contract. Save it to the `AURORA_FAST_BRIDGE_ADDRESS` variable in Makefile. Also, please specify the values of `NETWORK`, `SILO` variables in the Makefile prior to the proceeding.
+After deploying, you will get the address of the newly created contract. Save it to the `AURORA_FAST_BRIDGE_ADDRESS` variable in Makefile. Also, please specify the values of `NETWORK`, `CONFIG_NAME` variables in the Makefile prior to the proceeding.
 
 To operate with the fast bridge, you first need to put a storage deposit for the implicit NEAR account of `AURORA_FAST_BRIDGE`  (e.g. if `AURORA_FAST_BRIDGE_ADDRESS` is `0xabcd..cdba` and the Silo's Account ID is `silo1.aurora`, the implicit NEAR account will be equal to `abcd..cdba.silo1.aurora`).
 After that, there should be created a binding between the Aurora ERC-20 token and the NEAR NEP-141 token inside `AuroraErc20FastBridge` contract. To perform both of these actions, call:
@@ -83,7 +83,7 @@ yarn hardhat test --network testnet_aurora
 ## Formatting
 To apply formatting for Solidity code run:
 ```bash
-yarn prettier contracts/src/AuroraErc20FastBridge.sol --write --plugin=prettier-plugin-solidity
+make fmt
 ```
 
 File with formatting rules: `.prettierrc.json`

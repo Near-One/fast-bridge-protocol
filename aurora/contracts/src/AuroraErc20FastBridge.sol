@@ -4,7 +4,6 @@ pragma solidity ^0.8.17;
 import {IERC20 as IERC20_NEAR} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AuroraSdk, NEAR, PromiseCreateArgs, PromiseResultStatus, PromiseWithCallback} from "@auroraisnear/aurora-sdk/aurora-sdk/AuroraSdk.sol";
 import "@auroraisnear/aurora-sdk/aurora-sdk/Borsh.sol";
-import "@auroraisnear/aurora-sdk/aurora-sdk/Utils.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -12,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./IEvmErc20.sol";
+import "./UtilsFastBridge.sol";
 
 struct TokenInfo {
     IEvmErc20 auroraTokenAddress;
@@ -37,8 +37,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     uint128 constant NEAR_STORAGE_DEPOSIT = 12_500_000_000_000_000_000_000;
 
-    uint128 constant ASCII_0 = 48;
-    uint128 constant ASCII_9 = 57;
     uint128 constant ONE_YOCTO = 1;
     uint128 constant NO_DEPOSIT = 0;
 
@@ -94,6 +92,16 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address auroraSender;
     }
 
+    /**
+      * @dev Initializes the Aurora Fast Bridge contract with essential parameters and access control roles.
+      * @param wnearAddress The address of the Wrapped NEAR (wNEAR) token contract.
+      * @param fastBridgeAccountId The Fast Bridge account ID ofon the NEAR blockchain.
+      * @param auroraEngineAccountId The Aurora Engine account ID on the NEAR blockchain.
+      * @param _isWhitelistModeEnabled A boolean indicating whether whitelist mode is initially enabled.
+      * Effects:
+      * - Initializes the contract with access control roles and configuration parameters.
+      * - Grants necessary roles to the contract owner and sets whitelist mode status.
+    */
     function initialize(
         address wnearAddress,
         string calldata fastBridgeAccountId,
@@ -117,12 +125,26 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         isWhitelistModeEnabled = _isWhitelistModeEnabled;
     }
 
+    /**
+     * @dev Sets the Whitelist Mode for the contract.
+     * @param isEnabled A boolean indicating whether to enable (true) or disable (false) Whitelist Mode.
+     * Requirements:
+     * - Caller must have the 'WHITELIST_MANAGER' role to execute this function.
+     * Effects:
+     * - Updates the contract's Whitelist Mode to the specified value.
+     * - Emits a 'SetWhitelistMode' event to signal the change in Whitelist Mode status.
+    */
     function setWhitelistMode(bool isEnabled) external onlyRole(WHITELIST_MANAGER) {
         isWhitelistModeEnabled = isEnabled;
 
         emit SetWhitelistMode(isEnabled);
     }
 
+    /**
+     * @dev Checks if a user is whitelisted based on the contract's Whitelist Mode.
+     * @param user The address of the user to check for whitelist status.
+     * @return A boolean indicating whether the user is whitelisted (true) or not (false).
+    */
     function isUserWhitelisted(address user) public view returns (bool) {
         if (isWhitelistModeEnabled == false) {
             return true;
@@ -131,6 +153,17 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
     }
 
+    /**
+     * @dev Sets the Whitelist Mode for multiple users in bulk.
+     * @param users An array of user addresses to set the Whitelist Mode for.
+     * @param states An array of booleans indicating the Whitelist Mode status for each user.
+     * Requirements:
+     * - Caller must have the 'WHITELIST_MANAGER' role to execute this function.
+     * - The 'users' and 'states' arrays must have the same length.
+     * Effects:
+     * - Updates the Whitelist Mode status for the specified users.
+     * - Emits a 'SetWhitelistModeForUsers' event to signal the changes in Whitelist Mode for the users.
+    */
     function setWhitelistModeForUsers(
         address[] calldata users,
         bool[] calldata states
@@ -144,6 +177,14 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         emit SetWhitelistModeForUsers(users, states);
     }
 
+    /**
+      * @dev Registers a binding of "nearTokenAccountId:auroraTokenAddress" in "AuroraFastBridge" contract.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * Requirements:
+      * - Caller must have the 'DEFAULT_ADMIN_ROLE' role to execute this function.
+      * Effects:
+      * - Call the get_erc20_from_nep141 function for extract the Aurora token address
+    */
     function registerToken(
         string calldata nearTokenAccountId
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -165,6 +206,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callGetErc20FromNep141.then(callback).transact();
     }
 
+    /**
+      * @dev The callback for a `registerToken` method.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Registers the Aurora token with the NEAR token account.
+      * - Emits a 'TokenRegistered' event to signal the successful registration.
+    */
     function getErc20FromNep141Callback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
@@ -177,6 +227,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
     }
 
+    /**
+      * @dev Puts a storage deposit in "nearTokenAccountId" for the "AuroraFastBridge" implicit NEAR Account ID.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * @param storageDepositAmount The amount of wNear for storage deposit
+      * Requirements:
+      * - Caller must have the 'DEFAULT_ADMIN_ROLE' role to execute this function.
+      * Effects:
+      * - Calls the NEAR blockchain to perform a storage deposit for the specified NEAR token account.
+    */
     function storageDeposit(string calldata nearTokenAccountId, uint128 storageDepositAmount) external {
         require(registeredTokens[nearTokenAccountId].isStorageRegistered == false, "The token's storage is already registered");
         IEvmErc20 token = registeredTokens[nearTokenAccountId].auroraTokenAddress;
@@ -204,6 +263,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callStorageDeposit.then(callback).transact();
     }
 
+    /**
+      * @dev The callback for a `storageDeposit` method.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Save the `isStorageRegistered` flag for token.
+      * - Emits a 'TokenStorageDeposit' event to signal the successful storageDeposit.
+    */
     function storageDepositCallback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
@@ -217,6 +285,20 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             getImplicitNearAccountIdForSelf());
     }
 
+    /**
+      * @dev Initiates a token transfer from the Aurora to the Ethereum blockchain.
+      * @param initTransferArgs The encoded transfer message arguments.
+      * Requirements:
+      * - The contract must not be paused to execute this function.
+      * - The contract must have a sufficient wNEAR balance for processing.
+      * - The sender initiating the transfer must be whitelisted or Whitelist Mode should be disabled.
+      * - The Aurora sender address in the transfer message must match the function caller.
+      * - The transfer and fee tokens in the transfer message must be the same.
+      * - The transfer token must be registered with the contract.
+      * - The contract must be allowed to spend the sender's tokens.
+      * Effects:
+      * - Initiates a token transfer from the sender on Aurora to the Ethereum.
+    */
     function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         require(isUserWhitelisted(address(msg.sender)), "Sender not whitelisted!");
@@ -227,13 +309,15 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
 
         require(
-            _isStrEqual(transferMessage.transferTokenAccountIdOnNear, transferMessage.feeTokenAccountIdOnNear),
+            UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, transferMessage.feeTokenAccountIdOnNear),
             "The transfer and fee tokens should be the same"
         );
 
         TokenInfo memory tokenInfo = registeredTokens[transferMessage.transferTokenAccountIdOnNear];
         IEvmErc20 token = tokenInfo.auroraTokenAddress;
         require(tokenInfo.isStorageRegistered == true, "The token storage is not registered");
+
+        require(address(token) != address(0), "The token is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
@@ -258,7 +342,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             )
         );
 
-        PromiseCreateArgs memory callFtTransfer = _callWithoutTransferWNear(
+        PromiseCreateArgs memory callFtTransfer = UtilsFastBridge.callWithoutTransferWNear(
             near,
             transferMessage.transferTokenAccountIdOnNear,
             "ft_transfer_call",
@@ -271,11 +355,26 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             msg.sender,
             initTransferArgs
         );
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, INIT_TRANSFER_CALLBACK_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(
+            address(this),
+            callbackArg,
+            NO_DEPOSIT,
+            INIT_TRANSFER_CALLBACK_NEAR_GAS
+        );
 
         callFtTransfer.then(callback).transact();
     }
 
+    /**
+      * @dev The callback for a initTokenTransfer method.
+      * @param signer The address of the signer who initiated the token transfer.
+      * @param initTransferArgs The encoded transfer message arguments.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Calculates and refunds any remaining tokens to the signer if the transfer was partial.
+      * - Emits an 'InitTokenTransfer' event to signal the completion of the token transfer initialization.
+    */
     function initTokenTransferCallback(
         address signer,
         bytes calldata initTransferArgs
@@ -283,7 +382,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = UtilsFastBridge.stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
@@ -307,6 +406,16 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
     }
 
+    /**
+      * @dev Initiates the unlocking of tokens on the Fast Bridge on Near blockchain.
+      * @param nonce The nonce of the fast bridge token transfer on Near.
+      * @param proof A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+      * Requirements:
+      * - The method must be called by token transfer initiator
+      * - The contract must not be paused to execute this function.
+      * Effects:
+      * - Initiates the unlocking process by making a call to the Fast Bridge contract on Near blockchain.
+    */
     function unlock(uint128 nonce, string calldata proof) external whenNotPaused {
         bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
 
@@ -323,6 +432,17 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         callUnlock.then(callback).transact();
     }
 
+    /**
+      * @dev The callback for a unlock method.
+      * @param nonce The nonce of the fast bridge token transfer on Near.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Checks if the 'Unlock' cross-contract call (XCC) on Aurora was successful.
+      * - Decodes the output of the XCC into a TransferMessage structure.
+      * - Updates the balances of the Aurora sender for the transferred and fee tokens.
+      * - Emits an 'Unlock' event to signal the completion of the token unlocking.
+    */
     function unlockCallback(uint128 nonce) external onlyRole(CALLBACK_ROLE) {
         require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC failed");
 
@@ -330,7 +450,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         balance[transferMessage.transferTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
             .transferTokenAmount;
-        balance[transferMessage.feeTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage.feeTokenAmount;
+
+        balance[transferMessage.feeTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
+            .feeTokenAmount;
 
         emit Unlock(
             nonce,
@@ -342,12 +464,23 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         );
     }
 
+    /**
+      * @dev Initiates a fast bridge withdrawal of tokens on the NEAR blockchain.
+      * @param tokenId The Account Id of the token to be withdrawn.
+      * @param amount The amount of tokens to withdraw.
+      * Requirements:
+      * - The contract must not be paused to execute this function.
+      * - The contract must have a sufficient wNEAR balance for processing.
+      * Effects:
+      * - Initiates the fast bridge withdrawal process by making a cross-contract call to the NEAR blockchain.
+    */
     function fastBridgeWithdrawOnNear(string calldata tokenId, uint128 amount) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
+
+        PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             fastBridgeAccountIdOnNear,
             "withdraw",
@@ -355,21 +488,50 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.fastBridgeWithdrawOnNearCallback.selector, tokenId, amount);
+
+        bytes memory callbackArg = abi.encodeWithSelector(
+            this.fastBridgeWithdrawOnNearCallback.selector,
+            tokenId,
+            amount
+        );
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
 
-    function fastBridgeWithdrawOnNearCallback(string calldata tokenId, uint128 amount) external onlyRole(CALLBACK_ROLE) {
+    /**
+      * @dev The callback for a fastBridgeWithdrawOnNear method.
+      * @param tokenId The Account Is of the token that was withdrawn on NEAR Fast Bridge to implicit account.
+      * @param amount The amount of tokens that were withdrawn.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Checks if the 'Withdraw' cross-contract call (XCC) was successful.
+      * - Emits a 'FastBridgeWithdrawOnNear' event to signal the completion of the withdrawal.
+    */
+    function fastBridgeWithdrawOnNearCallback(
+        string calldata tokenId,
+        uint128 amount
+    ) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `Withdraw From Near` XCC is fail"
+            "ERROR: The `Withdraw` XCC is fail"
         );
 
         emit FastBridgeWithdrawOnNear(tokenId, amount);
     }
 
+    /**
+      * @dev Initiates the withdrawal of tokens from the implicit NEAR account of this fast bridge contract to the signer on the Aurora blockchain.
+      * @param token The token NEAR account id to be withdrawn.
+      * Requirements:
+      * - The contract must not be paused to execute this function.
+      * - The contract must have a sufficient wNEAR balance for processing.
+      * - The caller must have a positive token balance for the specified token.
+      * Effects:
+      * - Initiates the withdrawal process by making a call to the NEAR blockchain.
+      * - Deducts the withdrawn amount from the caller's token balance.
+    */
     function withdrawFromImplicitNearAccount(string calldata token) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         uint128 signerBalance = balance[token][msg.sender];
@@ -382,13 +544,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
                 '", "amount": "',
                 Strings.toString(signerBalance),
                 '", "msg": "',
-                _addressToString(msg.sender),
+                UtilsFastBridge.addressToString(msg.sender),
                 '"}'
             )
         );
         balance[token][msg.sender] -= signerBalance;
 
-        PromiseCreateArgs memory callWithdraw = _callWithoutTransferWNear(
+        PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             token,
             "ft_transfer_call",
@@ -396,17 +558,39 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.withdrawFromImplicitNearAccountCallback.selector, msg.sender, token, signerBalance);
+
+        bytes memory callbackArg = abi.encodeWithSelector(
+            this.withdrawFromImplicitNearAccountCallback.selector,
+            msg.sender,
+            token,
+            signerBalance
+        );
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
 
-    function withdrawFromImplicitNearAccountCallback(address signer, string calldata token, uint128 amount) external onlyRole(CALLBACK_ROLE) {
+    /**
+      * @dev The callback for withdrawFromImplicitNearAccount method.
+      * @param signer The address of the signer who initiated the withdrawal.
+      * @param token The token account Id that was withdrawn.
+      * @param amount The amount of tokens that were requested to be withdrawn.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Checks if the token withdrawal on the Aurora blockchain was successful.
+      * - Calculates the transferred and refund amounts based on the callback result.
+      * - Emits a 'WithdrawFromImplicitNearAccount' event to signal the completion of the withdrawal.
+    */
+    function withdrawFromImplicitNearAccountCallback(
+        address signer,
+        string calldata token,
+        uint128 amount
+    ) external onlyRole(CALLBACK_ROLE) {
         uint128 transferredAmount = 0;
 
         if (AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful) {
-            transferredAmount = _stringToUint(AuroraSdk.promiseResult(0).output);
+            transferredAmount = UtilsFastBridge.stringToUint(AuroraSdk.promiseResult(0).output);
         }
 
         uint128 refundAmount = amount - transferredAmount;
@@ -443,60 +627,35 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         return result;
     }
 
+    /**
+      * @dev Get the implicit NEAR account ID associated with this contract's address and the Aurora Engine account on NEAR.
+      * @return The implicit NEAR account ID of this Aurora Fast Bridge contract as a concatenated string.
+    */
     function getImplicitNearAccountIdForSelf() public view returns (string memory) {
-        return string.concat(_addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
+        return string.concat(UtilsFastBridge.addressToString(address(this)), ".", auroraEngineAccountIdOnNear);
     }
 
+    /**
+     * @dev Retrieves the Aurora EVM token address associated with a given NEAR token account ID.
+     * @param nearTokenAccountId The NEAR token account ID for which to retrieve the corresponding Aurora EVM token address.
+     * @return The Aurora EVM token address corresponding to the provided NEAR token account ID.
+    */
     function getTokenAuroraAddress(string calldata nearTokenAccountId) external view returns (address) {
         return address(registeredTokens[nearTokenAccountId].auroraTokenAddress);
     }
 
+    /**
+     * @dev Retrieves the token balance of a user for a specific NEAR token account ID.
+     * @param nearTokenAccountId The NEAR token account ID for which to retrieve the user's balance.
+     * @param userAddress The address of the user for whom to retrieve the balance.
+     * @return The token balance of the specified user for the given NEAR token account ID.
+    */
     function getUserBalance(string calldata nearTokenAccountId, address userAddress) external view returns (uint128) {
         return balance[nearTokenAccountId][userAddress];
     }
 
     function isStorageRegistered(string calldata nearTokenAccountId) public view returns (bool) {
         return registeredTokens[nearTokenAccountId].isStorageRegistered;
-    }
-
-    function _addressToString(address auroraAddress) private pure returns (string memory) {
-        return Utils.bytesToHex(abi.encodePacked(auroraAddress));
-    }
-
-    function _stringToUint(bytes memory b) private pure returns (uint128) {
-        uint128 result = 0;
-
-        for (uint128 i = 0; i < b.length; i++) {
-            uint128 v = uint128(uint8(b[i]));
-
-            if (v >= ASCII_0 && v <= ASCII_9) {
-                result = result * 10 + (v - ASCII_0);
-            }
-        }
-
-        return result;
-    }
-
-    /// Creates a base promise. This is not immediately scheduled for execution
-    /// until transact is called. It can be combined with other promises using
-    /// `then` combinator.
-    ///
-    /// Input is not checekd during promise creation. If it is invalid, the
-    /// transaction will be scheduled either way, but it will fail during execution.
-    function _callWithoutTransferWNear(
-        NEAR storage _near,
-        string memory targetAccountId,
-        string memory method,
-        bytes memory args,
-        uint128 nearBalance,
-        uint64 nearGas
-    ) private view returns (PromiseCreateArgs memory) {
-        require(_near.initialized, "Near isn't initialized");
-        return PromiseCreateArgs(targetAccountId, method, args, nearBalance, nearGas);
-    }
-
-    function _isStrEqual(string memory str1, string memory str2) private pure returns (bool) {
-        return keccak256(abi.encodePacked(str1)) == keccak256(abi.encodePacked(str2));
     }
 
     /// Pauses all the operations in Fast Bridge. It affects only user-accessible operations.
