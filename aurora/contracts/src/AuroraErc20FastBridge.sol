@@ -237,9 +237,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * - Calls the NEAR blockchain to perform a storage deposit for the specified NEAR token account.
     */
     function storageDeposit(string calldata nearTokenAccountId, uint128 storageDepositAmount) external {
-        require(registeredTokens[nearTokenAccountId].isStorageRegistered == false, "The token's storage is already registered");
-        IEvmErc20 token = registeredTokens[nearTokenAccountId].auroraTokenAddress;
-        require(address(token) != address(0), "The token is not registered");
+        TokenInfo storage tokenInfo = registeredTokens[nearTokenAccountId];
+        require(tokenInfo.isStorageRegistered == false, "The token's storage is already registered");
+        require(address(tokenInfo.auroraTokenAddress) != address(0), "The token is not registered");
 
         bytes memory args = bytes(
             string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')
