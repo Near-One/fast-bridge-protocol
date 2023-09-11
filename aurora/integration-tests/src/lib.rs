@@ -153,19 +153,12 @@ mod tests {
             &self,
             amount: u128,
             fee_amount: u128,
-            valid_till: Option<u64>,
+            valid_till: u64,
             user_address: &Address,
             user_account: &Account,
             check_output: bool,
             gas: Option<u64>,
         ) {
-            let valid_till = valid_till.unwrap_or(
-                (std::time::SystemTime::now()
-                    .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_nanos()
-                    + Duration::from_secs(TRANSFER_EXPIRATION_PERIOD_SEC).as_nanos()) as u64,
-            );
             let transfer_msg = fast_bridge_common::TransferMessage {
                 valid_till,
                 transfer: fast_bridge_common::TransferDataEthereum {
@@ -474,7 +467,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
@@ -605,7 +598,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
@@ -616,7 +609,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &second_user_address,
                 &second_user_account,
                 true,
@@ -841,7 +834,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 false,
@@ -883,7 +876,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 false,
@@ -958,7 +951,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
@@ -969,7 +962,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &second_user_address,
                 &second_user_account,
                 true,
@@ -1115,7 +1108,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &second_user_address,
                 &second_user_account,
                 false,
@@ -1131,7 +1124,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
@@ -1151,7 +1144,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &second_user_address,
                 &second_user_account,
                 true,
@@ -1176,7 +1169,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &second_user_address,
                 &second_user_account,
                 false,
@@ -1192,7 +1185,7 @@ mod tests {
             .init_token_transfer(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
-                None,
+                get_default_valid_till(),
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
@@ -1421,5 +1414,13 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(balance.as_u64(), TRANSFER_TOKENS_AMOUNT);
+    }
+
+    fn get_default_valid_till() -> u64 {
+        (std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            + Duration::from_secs(TRANSFER_EXPIRATION_PERIOD_SEC).as_nanos()) as u64
     }
 }
