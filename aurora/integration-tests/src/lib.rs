@@ -36,6 +36,8 @@ mod tests {
 
     const TRANSFER_TOKENS_AMOUNT: u64 = 100;
 
+    const MAX_GAS: u64 = 300_000_000_000_000;
+
     struct TestsInfrastructure {
         worker: Worker<Sandbox>,
         engine: AuroraEngine,
@@ -157,7 +159,7 @@ mod tests {
             user_address: &Address,
             user_account: &Account,
             check_output: bool,
-            gas: Option<u64>,
+            gas: u64,
         ) {
             let transfer_msg = fast_bridge_common::TransferMessage {
                 valid_till,
@@ -196,7 +198,7 @@ mod tests {
                     &[ethabi::Token::String(self.mock_token.id().to_string())],
                 );
 
-            self.call_aurora_contract(contract_args, user_account, check_output, None)
+            self.call_aurora_contract(contract_args, user_account, check_output, MAX_GAS)
                 .await;
         }
 
@@ -241,7 +243,7 @@ mod tests {
                     ],
                 );
 
-            self.call_aurora_contract(contract_args, user_account, true, None)
+            self.call_aurora_contract(contract_args, user_account, true, MAX_GAS)
                 .await;
         }
 
@@ -256,7 +258,7 @@ mod tests {
                     ],
                 );
 
-            self.call_aurora_contract(contract_args, user_account, true, None)
+            self.call_aurora_contract(contract_args, user_account, true, MAX_GAS)
                 .await;
         }
 
@@ -265,7 +267,7 @@ mod tests {
             contract_args: Vec<u8>,
             user_account: &Account,
             check_output: bool,
-            gas: Option<u64>,
+            gas: u64,
         ) {
             let res = call_aurora_contract(
                 self.aurora_fast_bridge_contract.address,
@@ -303,7 +305,7 @@ mod tests {
                 &self.user_account,
                 self.engine.inner.id(),
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
 
@@ -329,7 +331,7 @@ mod tests {
                 &self.user_account,
                 self.engine.inner.id(),
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
 
@@ -353,7 +355,7 @@ mod tests {
                 &self.user_account,
                 self.engine.inner.id(),
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
 
@@ -378,7 +380,7 @@ mod tests {
                 &self.user_account,
                 self.engine.inner.id(),
                 true,
-                None,
+                MAX_GAS,
             )
                 .await;
 
@@ -403,7 +405,7 @@ mod tests {
                 &self.user_account,
                 self.engine.inner.id(),
                 true,
-                None,
+                MAX_GAS,
             ).await.unwrap();
         }
 
@@ -421,7 +423,7 @@ mod tests {
                 &self.user_account,
                 self.engine.inner.id(),
                 true,
-                None,
+                MAX_GAS,
             ).await.unwrap();
         }
     }
@@ -449,8 +451,8 @@ mod tests {
             infra.aurora_mock_token.address.raw().0
         );
 
-        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
-        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), TOKEN_STORAGE_DEPOSIT).await;
+        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), TOKEN_STORAGE_DEPOSIT).await;
         engine_mint_tokens(
             infra.user_aurora_address,
             &infra.aurora_mock_token,
@@ -471,7 +473,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
         assert_eq!(
@@ -555,8 +557,8 @@ mod tests {
         infra.approve_spend_wnear(&infra.user_account).await;
         infra.register_token(&infra.user_account, true).await.unwrap();
 
-        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
-        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), TOKEN_STORAGE_DEPOSIT).await;
+        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), TOKEN_STORAGE_DEPOSIT).await;
 
         engine_mint_tokens(
             infra.user_aurora_address,
@@ -602,7 +604,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
         infra
@@ -613,7 +615,7 @@ mod tests {
                 &second_user_address,
                 &second_user_account,
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
         assert_eq!(
@@ -814,7 +816,7 @@ mod tests {
             .await;
         infra.approve_spend_wnear(&infra.user_account).await;
         infra.register_token(&infra.user_account, true).await.unwrap();
-        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), TOKEN_STORAGE_DEPOSIT).await;
         engine_mint_tokens(
             infra.user_aurora_address,
             &infra.aurora_mock_token,
@@ -838,7 +840,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 false,
-                None,
+                MAX_GAS,
             )
             .await;
         assert_eq!(
@@ -880,7 +882,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 false,
-                Some(200_000_000_000_000),
+                200_000_000_000_000,
             )
             .await;
 
@@ -923,8 +925,8 @@ mod tests {
         infra.approve_spend_wnear(&infra.user_account).await;
         infra.register_token(&infra.user_account, true).await.unwrap();
 
-        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
-        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), TOKEN_STORAGE_DEPOSIT).await;
+        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), TOKEN_STORAGE_DEPOSIT).await;
 
         engine_mint_tokens(
             infra.user_aurora_address,
@@ -955,7 +957,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
         infra
@@ -966,7 +968,7 @@ mod tests {
                 &second_user_address,
                 &second_user_account,
                 true,
-                None,
+                MAX_GAS,
             )
             .await;
 
@@ -1087,8 +1089,8 @@ mod tests {
 
         mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
         infra.mint_wnear(infra.aurora_fast_bridge_contract.address, WNEAR_FOR_TOKENS_TRANSFERS).await;
-        storage_deposit(&infra.mock_token, infra.engine.inner.id(), None).await;
-        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), None).await;
+        storage_deposit(&infra.mock_token, infra.engine.inner.id(), TOKEN_STORAGE_DEPOSIT).await;
+        storage_deposit(&infra.mock_token, infra.near_fast_bridge.id(), TOKEN_STORAGE_DEPOSIT).await;
 
         infra.mint_wnear(infra.user_aurora_address, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT).await;
         infra.mint_wnear(second_user_address, TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT).await;
@@ -1112,7 +1114,7 @@ mod tests {
                 &second_user_address,
                 &second_user_account,
                 false,
-                None,
+                MAX_GAS,
             ).await;
         assert_eq!(
             infra.get_mock_token_balance_on_aurora_for(second_user_address)
@@ -1128,7 +1130,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
-                None,
+                MAX_GAS,
             ).await;
         assert_eq!(
             infra.get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
@@ -1148,7 +1150,7 @@ mod tests {
                 &second_user_address,
                 &second_user_account,
                 true,
-                None,
+                MAX_GAS,
             ).await;
         assert_eq!(
             infra.get_mock_token_balance_on_aurora_for(second_user_address)
@@ -1173,7 +1175,7 @@ mod tests {
                 &second_user_address,
                 &second_user_account,
                 false,
-                None,
+                MAX_GAS,
             ).await;
         assert_eq!(
             infra.get_mock_token_balance_on_aurora_for(second_user_address)
@@ -1189,7 +1191,7 @@ mod tests {
                 &infra.user_aurora_address,
                 &infra.user_account,
                 true,
-                None,
+                MAX_GAS,
             ).await;
         assert_eq!(
             infra.get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
@@ -1198,12 +1200,12 @@ mod tests {
         );
     }
 
-    async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: Option<u128>) {
+    async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: u128) {
         let outcome = token_contract
             .call("storage_deposit")
             .args_json(serde_json::json!({ "account_id": account_id }))
             .max_gas()
-            .deposit(deposit.unwrap_or(TOKEN_STORAGE_DEPOSIT))
+            .deposit(deposit)
             .transact()
             .await
             .unwrap();
@@ -1237,7 +1239,7 @@ mod tests {
             user_account,
             engine.inner.id(),
             check_result,
-            None,
+            MAX_GAS,
         )
         .await
     }
@@ -1328,7 +1330,7 @@ mod tests {
             &user_account,
             engine.inner.id(),
             true,
-            None,
+            MAX_GAS,
         )
         .await
         .unwrap();
@@ -1356,7 +1358,7 @@ mod tests {
         user_account: &Account,
         engine_account: &AccountId,
         check_output: bool,
-        gas: Option<u64>,
+        gas: u64,
     ) -> ExecutionFinalResult {
         let call_args = CallArgs::V1(FunctionCallArgsV1 {
             contract: contract_address,
@@ -1366,7 +1368,7 @@ mod tests {
         let outcome = user_account
             .call(engine_account, "call")
             .args_borsh(call_args)
-            .gas(gas.unwrap_or(300_000_000_000_000))
+            .gas(gas)
             .transact()
             .await
             .unwrap();
