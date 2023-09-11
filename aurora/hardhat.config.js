@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@openzeppelin/hardhat-upgrades");
+
 // Replace this private key with your Ropsten account private key
 // To export your private key from Metamask, open Metamask and
 // go to Account Details > Export Private Key
@@ -67,14 +68,15 @@ task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
-    .addParam('initTokenTransferArg', 'argument for token transfer initialization')
+    .addParam('nearTokenAccountId', "Token account id on Near")
     .addParam('auroraTokenAddress', "Token address on Aurora")
+    .addParam('ethTokenAddress', "Token address on Eth")
     .setAction(async taskArgs => {
         const { initTokenTransfer } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.initTokenTransferArg, taskArgs.auroraTokenAddress);
+        await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.auroraTokenAddress, taskArgs.ethTokenAddress);
     });
 
 task('unlock', 'Unlock tokens on Near')
@@ -83,12 +85,14 @@ task('unlock', 'Unlock tokens on Near')
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nonce', 'Nonce of the Fast Bridge transfer')
+    .addParam('ethTokenAddress', "Token address on Eth")
+    .addParam('validTillBlockHeight', "Valid till block height")
     .setAction(async taskArgs => {
         const { unlock } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce);
+        await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce, taskArgs.ethTokenAddress, taskArgs.validTillBlockHeight);
     });
 
 task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
@@ -118,6 +122,48 @@ task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
         await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+    });
+
+task('get_implicit_near_account_id', 'Get near account id for aurora fast bridge contract')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .setAction(async taskArgs => {
+        const { get_implicit_near_account_id } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await get_implicit_near_account_id(signer, config, taskArgs.fastBridgeAddress);
+    });
+    
+task('get_token_aurora_address', 'Get aurora token address from aurora fast bridge')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAccountId', "Token account id on Near")
+    .setAction(async taskArgs => {
+        const { get_token_aurora_address } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+    });
+    
+    
+task('get_balance', 'Get user balance in aurora fast bridge contract')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAccountId', "Token account id on Near")
+    .setAction(async taskArgs => {
+        const { get_balance } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await get_balance(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
 
 task('set_whitelist_mode_for_users', 'Set whitelist mode for users')

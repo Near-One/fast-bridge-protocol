@@ -1,16 +1,17 @@
-AURORA_FAST_BRIDGE_ADDRESS=0xE74FC2656FE07FF4915966BAE0808eBCb665415f
+AURORA_FAST_BRIDGE_ADDRESS=0xe2855231Da8b6bBbba656563f5bF93841c947E65
 
 # To generate hex borsh representation of init_token_transfer_arg you can use the script from: `../near/utils`
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
 # where <JSON_MESSAGE> is a init_token_transfer_arg in json format. More details in README.md in `../near/utils`
 # You will need the output in line which started with `Encoded message(hex):`
-INIT_TOKEN_TRANSFER_ARG="0xd534a83ba8814a173f000000303738363563366538376239663730323535333737653032346163653636333063316561613337662e666163746f72792e676f65726c692e746573746e657407865c6e87b9f70255377e024ace6630c1eaa37fa08601000000000000000000000000003f000000303738363563366538376239663730323535333737653032346163653636333063316561613337662e666163746f72792e676f65726c692e746573746e6574a08601000000000000000000000000001c6a38ac14e5fdd4f378192fad90db7025f1db6700011c6a38ac14e5fdd4f378192fad90db7025f1db67"
-NONCE=1
+NONCE=47
+VALID_TILL_BLOCK_HIEGHT=9587534
 
 NETWORK=testnet_aurora
 NEAR_TOKEN_ACCOUNT_ID="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
+ETH_TOKEN_ADDRESS="0x07865c6E87B9F70255377e024ace6630C1Eaa37F"
 AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
-TRANSFER_TOKEN_AMOUNT=200000
+TRANSFER_TOKEN_AMOUNT=200
 CONFIG_NAME="aurora-testnet"
 
 deploy:
@@ -22,14 +23,11 @@ upgrade:
 register_token:
 	yarn hardhat register_token --network $(NETWORK)  --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
 
-storage_deposit:
-	yarn hardhat storage_deposit --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
-
 init_token_transfer:
-	yarn hardhat init_token_transfer --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --init-token-transfer-arg $(INIT_TOKEN_TRANSFER_ARG) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+	yarn hardhat init_token_transfer --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS) --eth-token-address $(ETH_TOKEN_ADDRESS)
 
 unlock:
-	yarn hardhat unlock --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE)
+	yarn hardhat unlock --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE) --eth-token-address $(ETH_TOKEN_ADDRESS) --valid-till-block-height $(VALID_TILL_BLOCK_HIEGHT)
 
 fast_bridge_withdraw_on_near:
 	yarn hardhat fast_bridge_withdraw_on_near --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --token-amount $(TRANSFER_TOKEN_AMOUNT)
@@ -37,8 +35,17 @@ fast_bridge_withdraw_on_near:
 withdraw_from_implicit_near_account:
 	yarn hardhat withdraw_from_implicit_near_account --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
 
+get_implicit_near_account_id:
+	yarn hardhat get_implicit_near_account_id --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS)
+	
+get_token_aurora_address:
+	yarn hardhat get_token_aurora_address --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
+
+get_balance: 
+	yarn hardhat get_balance --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
+
 set_whitelist_mode_for_users:
-	yarn hardhat set_whitelist_mode_for_users --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --user-address $(USER_ADDRESS)
+	yarn hardhat set_whitelist_mode_for_users --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
 
 disable_whitelist_mode:
 	yarn hardhat set_whitelist_mode --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --enabled false
