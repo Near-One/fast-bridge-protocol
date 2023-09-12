@@ -48,19 +48,32 @@ task("upgrade", "Upgrade aurora fast bridge proxy contract")
         });
     });
 
-task('register_token', 'Registers a binding of "nearTokenAccountId:auroraTokenAddress" in "AuroraFastBridge" contract, and puts a storage deposit in "nearTokenAccountId" for the "AuroraFastBridge" implicit NEAR Account ID.')
+task('register_token', 'Registers a binding of "nearTokenAccountId:auroraTokenAddress" in "AuroraFastBridge" contract.')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
-    .addParam('auroraTokenAddress', "Token address on Aurora")
     .setAction(async taskArgs => {
         const { registerToken } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await registerToken(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.auroraTokenAddress);
+        await registerToken(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+    });
+
+task('storage_deposit', 'Puts a storage deposit in "nearTokenAccountId" for the "AuroraFastBridge" implicit NEAR Account ID.')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAccountId', "Token account id on Near")
+    .setAction(async taskArgs => {
+        const { storageDeposit } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await storageDeposit(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
 
 task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
@@ -105,8 +118,8 @@ task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
     .setAction(async taskArgs => {
         const { fast_bridge_withdraw_on_near } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
-        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
         await fast_bridge_withdraw_on_near(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.tokenAmount);
     });
 

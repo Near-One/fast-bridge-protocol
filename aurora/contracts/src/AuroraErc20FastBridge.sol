@@ -13,6 +13,11 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./IEvmErc20.sol";
 import "./UtilsFastBridge.sol";
 
+struct TokenInfo {
+    IEvmErc20 auroraTokenAddress;
+    bool isStorageRegistered;
+}
+
 contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using AuroraSdk for NEAR;
     using AuroraSdk for PromiseCreateArgs;
@@ -45,7 +50,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     //By the token account id on near returns correspondent ERC20 Aurora token.
     //token_near_account_id => aurora_erc20_token
-    mapping(string => IEvmErc20) registeredTokens;
+    mapping(string => TokenInfo) registeredTokens;
 
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_near_account_id][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
@@ -73,6 +78,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address recipient,
         bool isSuccessful
     );
+    event TokenStorageDeposit(string tokenNearAccountId, address tokenAuroraAddress, string registeredAccountId);
 
     struct TransferMessage {
         uint64 validTill;
@@ -172,21 +178,72 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     /**
-      * @dev Registers a binding of "nearTokenAccountId:auroraTokenAddress" in "AuroraFastBridge" contract,
-      * and puts a storage deposit in "nearTokenAccountId" for the "AuroraFastBridge" implicit NEAR Account ID.
-      * @param auroraTokenAddress The address of the Aurora token to be registered.
+      * @dev Registers a binding of "nearTokenAccountId:auroraTokenAddress" in "AuroraFastBridge" contract.
       * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
       * Requirements:
       * - Caller must have the 'DEFAULT_ADMIN_ROLE' role to execute this function.
       * Effects:
-      * - Calls the NEAR blockchain to perform a storage deposit for the specified NEAR token account.
+      * - Call the get_erc20_from_nep141 function for extract the Aurora token address
+    */
+    function registerToken(string calldata nearTokenAccountId) external {
+        require(
+            address(registeredTokens[nearTokenAccountId].auroraTokenAddress) == address(0),
+            "The token is already registered"
+        );
+
+        PromiseCreateArgs memory callGetErc20FromNep141 = near.call(
+            auroraEngineAccountIdOnNear,
+            "get_erc20_from_nep141",
+            UtilsFastBridge.borshEncode(bytes(nearTokenAccountId)),
+            NO_DEPOSIT,
+            BASE_NEAR_GAS
+        );
+
+        PromiseCreateArgs memory callback = near.auroraCall(
+            address(this),
+            abi.encodeWithSelector(this.getErc20FromNep141Callback.selector, nearTokenAccountId),
+            NO_DEPOSIT,
+            BASE_NEAR_GAS
+        );
+
+        callGetErc20FromNep141.then(callback).transact();
+    }
+
+    /**
+      * @dev The callback for a `registerToken` method.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
       * - Registers the Aurora token with the NEAR token account.
       * - Emits a 'TokenRegistered' event to signal the successful registration.
     */
-    function registerToken(
-        address auroraTokenAddress,
-        string calldata nearTokenAccountId
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function getErc20FromNep141Callback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `get_erc20_from_nep141()` XCC call failed"
+        );
+
+        address auroraTokenAddress = address(uint160(bytes20(AuroraSdk.promiseResult(0).output)));
+
+        registeredTokens[nearTokenAccountId].auroraTokenAddress = IEvmErc20(auroraTokenAddress);
+        emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
+    }
+
+    /**
+      * @dev Puts a storage deposit in "nearTokenAccountId" for the "AuroraFastBridge" implicit NEAR Account ID.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * @param storageDepositAmount The amount of wNear for storage deposit
+      * Requirements:
+      * - Caller must have the 'DEFAULT_ADMIN_ROLE' role to execute this function.
+      * Effects:
+      * - Calls the NEAR blockchain to perform a storage deposit for the specified NEAR token account.
+    */
+    function storageDeposit(string calldata nearTokenAccountId, uint128 storageDepositAmount) external {
+        TokenInfo memory tokenInfo = registeredTokens[nearTokenAccountId];
+        require(tokenInfo.isStorageRegistered == false, "The token's storage is already registered");
+        require(address(tokenInfo.auroraTokenAddress) != address(0), "The token is not registered");
+
         bytes memory args = bytes(
             string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')
         );
@@ -195,13 +252,40 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             nearTokenAccountId,
             "storage_deposit",
             args,
-            NEAR_STORAGE_DEPOSIT,
+            storageDepositAmount,
             BASE_NEAR_GAS
         );
-        callStorageDeposit.transact();
 
-        registeredTokens[nearTokenAccountId] = IEvmErc20(auroraTokenAddress);
-        emit TokenRegistered(auroraTokenAddress, nearTokenAccountId);
+        PromiseCreateArgs memory callback = near.auroraCall(
+            address(this),
+            abi.encodeWithSelector(this.storageDepositCallback.selector, nearTokenAccountId),
+            NO_DEPOSIT,
+            BASE_NEAR_GAS
+        );
+
+        callStorageDeposit.then(callback).transact();
+    }
+
+    /**
+      * @dev The callback for a `storageDeposit` method.
+      * @param nearTokenAccountId The NEAR token account ID associated with the Aurora token.
+      * Requirements:
+      * - Caller must have the 'CALLBACK_ROLE' to execute this function.
+      * Effects:
+      * - Save the `isStorageRegistered` flag for token.
+      * - Emits a 'TokenStorageDeposit' event to signal the successful storageDeposit.
+    */
+    function storageDepositCallback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
+        require(
+            AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
+            "ERROR: The `storage_deposit()` XCC call failed"
+        );
+
+        registeredTokens[nearTokenAccountId].isStorageRegistered = true;
+
+        emit TokenStorageDeposit(nearTokenAccountId,
+            address(registeredTokens[nearTokenAccountId].auroraTokenAddress),
+            getImplicitNearAccountIdForSelf());
     }
 
     /**
@@ -232,7 +316,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             "The transfer and fee tokens should be the same"
         );
 
-        IEvmErc20 token = registeredTokens[transferMessage.transferTokenAccountIdOnNear];
+        TokenInfo memory tokenInfo = registeredTokens[transferMessage.transferTokenAccountIdOnNear];
+        IEvmErc20 token = tokenInfo.auroraTokenAddress;
+        require(tokenInfo.isStorageRegistered == true, "The token storage is not registered");
+
         require(address(token) != address(0), "The token is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
@@ -366,6 +453,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         balance[transferMessage.transferTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
             .transferTokenAmount;
+
         balance[transferMessage.feeTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
             .feeTokenAmount;
 
@@ -394,6 +482,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         bytes memory args = bytes(
             string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
         );
+
         PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             fastBridgeAccountIdOnNear,
@@ -402,6 +491,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
+
         bytes memory callbackArg = abi.encodeWithSelector(
             this.fastBridgeWithdrawOnNearCallback.selector,
             tokenId,
@@ -471,6 +561,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
+
         bytes memory callbackArg = abi.encodeWithSelector(
             this.withdrawFromImplicitNearAccountCallback.selector,
             msg.sender,
@@ -553,7 +644,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
      * @return The Aurora EVM token address corresponding to the provided NEAR token account ID.
     */
     function getTokenAuroraAddress(string calldata nearTokenAccountId) external view returns (address) {
-        return address(registeredTokens[nearTokenAccountId]);
+        return address(registeredTokens[nearTokenAccountId].auroraTokenAddress);
     }
 
     /**
@@ -564,6 +655,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     */
     function getUserBalance(string calldata nearTokenAccountId, address userAddress) external view returns (uint128) {
         return balance[nearTokenAccountId][userAddress];
+    }
+
+    function isStorageRegistered(string calldata nearTokenAccountId) public view returns (bool) {
+        return registeredTokens[nearTokenAccountId].isStorageRegistered;
     }
 
     /// Pauses all the operations in Fast Bridge. It affects only user-accessible operations.

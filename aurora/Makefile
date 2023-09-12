@@ -4,6 +4,7 @@ AURORA_FAST_BRIDGE_ADDRESS=0xe2855231Da8b6bBbba656563f5bF93841c947E65
 # Go to the `../near/utils/` folder and run `cargo run -- encode-transfer-msg -m <JSON_MESSAGE>`
 # where <JSON_MESSAGE> is a init_token_transfer_arg in json format. More details in README.md in `../near/utils`
 # You will need the output in line which started with `Encoded message(hex):`
+
 NONCE=47
 VALID_TILL_BLOCK_HIEGHT=9587534
 
@@ -21,7 +22,10 @@ upgrade:
 	yarn hardhat upgrade --aurora-fast-bridge-config-name $(CONFIG_NAME) --proxy $(AURORA_FAST_BRIDGE_ADDRESS) --network $(NETWORK)
 
 register_token:
-	yarn hardhat register_token --network $(NETWORK)  --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS)
+	yarn hardhat register_token --network $(NETWORK)  --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
+	
+storage_deposit:
+	yarn hardhat storage_deposit --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
 
 init_token_transfer:
 	yarn hardhat init_token_transfer --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS) --eth-token-address $(ETH_TOKEN_ADDRESS)

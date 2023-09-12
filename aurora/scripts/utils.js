@@ -1,16 +1,26 @@
 require('dotenv').config();
 const hre = require("hardhat");
+
 const {encodeInitMsgToBorsh} = require("../test/EncodeInitMsgToBorsh");
 
-async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId, auroraTokenAddress) {
+async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
     const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
-    await wnear.approve(fastBridgeAddress, "2012500000000000000000000"); //storage deposit for creating implicit account + token storage deposit
+    await wnear.approve(fastBridgeAddress, "2000000000000000000000000"); //storage deposit for creating implicit account
 
-    await fastBridge.registerToken(auroraTokenAddress, nearTokenAccountId);
+    await fastBridge.registerToken(nearTokenAccountId);
 
     console.log("Aurora Fast Bridge Account Id on Near: ", await fastBridge.getImplicitNearAccountIdForSelf());
+}
+
+async function storageDeposit(signer, config, fastBridgeAddress, nearTokenAccountId) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
+
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
+    await wnear.approve(fastBridgeAddress, "12500000000000000000000"); //token storage deposit
+
+    await fastBridge.storageDeposit(nearTokenAccountId, "12500000000000000000000");
 }
 
 async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAccountId, auroraTokenAddress, ethTokenAddress) {
@@ -123,6 +133,7 @@ exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
 exports.setWhitelistMode = setWhitelistMode;
 exports.initTokenTransfer = initTokenTransfer;
 exports.registerToken = registerToken;
+exports.storageDeposit = storageDeposit;
 exports.unlock = unlock;
 exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
