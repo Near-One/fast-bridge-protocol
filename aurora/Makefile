@@ -60,6 +60,9 @@ enable_whitelist_mode:
 is_user_whitelisted:
 	yarn hardhat is_user_whitelisted --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address  $(AURORA_FAST_BRIDGE_ADDRESS) --network $(NETWORK)
 
+is_storage_registered:
+	yarn hardhat is_storage_registered --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
+
 fmt:
 	yarn prettier contracts/src/AuroraErc20FastBridge.sol --write --plugin=prettier-plugin-solidity
 

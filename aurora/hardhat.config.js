@@ -223,6 +223,20 @@ task("is_user_whitelisted", "Check is user whitelisted")
         await isUserWhitelisted(signer, config, taskArgs.fastBridgeAddress);
     });
 
+task('is_storage_registered', 'Check is storage registered for token')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAccountId', "Token account id on Near")
+    .setAction(async taskArgs => {
+        const { is_storage_registered } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await is_storage_registered(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+    });
+
 module.exports = {
     solidity: {
         version: "0.8.17",

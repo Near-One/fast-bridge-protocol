@@ -94,6 +94,11 @@ async function get_balance(signer, config, fastBridgeAddress, nearTokenAccountId
     console.log("Token balance: ", await fastBridge.getUserBalance(nearTokenAccountId, signer.address));
 }
 
+async function is_storage_registered(signer, config, fastBridgeAddress, nearTokenAccountId) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
+    console.log("Is storage registered: ", await fastBridge.isStorageRegistered(nearTokenAccountId));
+}
+
 async function set_whitelist_mode_for_users(signer, config, fastBridgeAddress, userAddress) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
@@ -157,3 +162,4 @@ exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
 exports.get_balance = get_balance;
 exports.isUserWhitelisted = isUserWhitelisted;
+exports.is_storage_registered = is_storage_registered;
