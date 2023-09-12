@@ -110,6 +110,24 @@ async function setWhitelistMode(signer, config, fastBridgeAddress) {
   let tx = await fastBridge.setWhitelistMode(false);
   let receipt = await tx.wait();
   console.log("Transaction hash: ", receipt.hash);
+}async function isUserWhitelisted(signer, config, fastBridgeAddress) {
+    console.log("Sending transaction with the account:", signer.address);
+
+    const FastBridge = await hre.ethers.getContractFactory("AuroraErc20FastBridge", {
+        libraries: {
+            "AuroraSdk": config.auroraSdkAddress,
+            "Utils": config.auroraUtilsAddress
+        },
+    });
+
+    return FastBridge
+        .attach(fastBridgeAddress)
+        .connect(signer);
+}
+
+async function isUserWhitelisted(signer, config, fastBridgeAddress) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
+    console.log("Is user whitelisted: ", await fastBridge.isUserWhitelisted(signer.address));
 }
 
 async function getFastBridgeContract(signer, config, fastBridgeAddress) {
@@ -138,3 +156,4 @@ exports.unlock = unlock;
 exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
 exports.get_balance = get_balance;
+exports.isUserWhitelisted = isUserWhitelisted;

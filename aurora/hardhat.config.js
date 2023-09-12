@@ -210,6 +210,19 @@ task("set_whitelist_mode", "Set whitelist mode")
         await setWhitelistMode(signer, config, taskArgs.fastBridgeAddress);
     });
 
+task("is_user_whitelisted", "Check is user whitelisted")
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam("fastBridgeAddress", "Aurora Fast Bridge address")
+    .setAction(async (taskArgs) => {
+        const { isUserWhitelisted } = require("./scripts/utils");
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await isUserWhitelisted(signer, config, taskArgs.fastBridgeAddress);
+    });
+
 module.exports = {
     solidity: {
         version: "0.8.17",
