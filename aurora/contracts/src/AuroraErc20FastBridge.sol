@@ -527,7 +527,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     /**
       * @dev Initiates the withdrawal of tokens from the implicit NEAR account of this fast bridge contract to the signer on the Aurora blockchain.
       * @param token The token NEAR account id to be withdrawn.
-      * @param account The recipient account address.
+      * @param account The account address to withdraw.
       * Requirements:
       * - The contract must not be paused to execute this function.
       * - The contract must have a sufficient wNEAR balance for processing.
@@ -576,7 +576,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     /**
       * @dev The callback for withdrawFromImplicitNearAccount method.
-      * @param account The address of the recipient.
+      * @param account The account address to withdraw.
       * @param token The token account Id that was withdrawn.
       * @param amount The amount of tokens that were requested to be withdrawn.
       * Requirements:

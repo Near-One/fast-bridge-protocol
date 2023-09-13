@@ -129,12 +129,13 @@ task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
+    .addParam('accountAddress', "The account address to withdraw")
     .setAction(async taskArgs => {
         const { withdraw_from_implicit_near_account } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+        await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.accountAddress);
     });
 
 task('get_implicit_near_account_id', 'Get near account id for aurora fast bridge contract')
@@ -149,7 +150,7 @@ task('get_implicit_near_account_id', 'Get near account id for aurora fast bridge
 
         await get_implicit_near_account_id(signer, config, taskArgs.fastBridgeAddress);
     });
-    
+
 task('get_token_aurora_address', 'Get aurora token address from aurora fast bridge')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
@@ -163,8 +164,7 @@ task('get_token_aurora_address', 'Get aurora token address from aurora fast brid
 
         await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
-    
-    
+
 task('get_balance', 'Get user balance in aurora fast bridge contract')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
