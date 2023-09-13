@@ -57,8 +57,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     mapping(string => mapping(address => uint128)) balance;
 
     event Unlock(
-        uint128 nonce,
-        address sender,
+        uint128 indexed nonce,
+        address indexed sender,
         string transferToken,
         uint128 transferAmount,
         string feeToken,
@@ -67,10 +67,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     event SetWhitelistModeForUsers(address[] users, bool[] states);
     event SetWhitelistMode(bool);
     event TokenRegistered(address tokenAuroraAddress, string tokenNearAccountId);
-    event WithdrawFromImplicitNearAccount(address recipient, string token, uint128 amount);
+    event WithdrawFromImplicitNearAccount(address indexed recipient, string token, uint128 amount);
     event FastBridgeWithdrawOnNear(string token, uint128 amount);
     event InitTokenTransfer(
-        address sender,
+        address indexed sender,
         string initTransferArg,
         string token,
         uint128 transferAmount,
