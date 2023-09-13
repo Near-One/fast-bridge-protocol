@@ -208,12 +208,12 @@ mod tests {
                 .await;
         }
 
-        pub async fn withdraw_from_implicit_near_account(&self, user_account: &Account, check_output: bool) {
+        pub async fn withdraw_from_implicit_near_account(&self, user_account: &Account, user_address: &Address, check_output: bool) {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
                     "withdrawFromImplicitNearAccount",
-                    &[ethabi::Token::String(self.mock_token.id().to_string())],
+                    &[ethabi::Token::String(self.mock_token.id().to_string()), ethabi::Token::Address(user_address.raw())],
                 );
 
             self.call_aurora_contract(contract_args, user_account, check_output, MAX_GAS)
@@ -508,7 +508,7 @@ mod tests {
         let balance1 = infra.get_mock_token_balance_on_aurora_for(infra.user_aurora_address).await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
 
-        infra.withdraw_from_implicit_near_account(&infra.user_account, true).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, true).await;
         let balance2 = infra.get_mock_token_balance_on_aurora_for(infra.user_aurora_address).await;
         assert_eq!(balance2, balance1);
 
@@ -541,7 +541,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw_from_implicit_near_account(&infra.user_account, true).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, true).await;
 
         let balance3 = infra.get_mock_token_balance_on_aurora_for(infra.user_aurora_address).await;
         assert_eq!(balance3, balance0);
@@ -757,8 +757,8 @@ mod tests {
             0
         );
 
-        infra.withdraw_from_implicit_near_account(&infra.user_account, true).await;
-        infra.withdraw_from_implicit_near_account(&infra.user_account, true).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, true).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, true).await;
 
         assert_eq!(
             infra
@@ -791,7 +791,7 @@ mod tests {
         );
 
         infra
-            .withdraw_from_implicit_near_account(&second_user_account, true)
+            .withdraw_from_implicit_near_account(&second_user_account, &second_user_address, true)
             .await;
         assert_eq!(
             infra
@@ -883,7 +883,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw_from_implicit_near_account(&infra.user_account, true).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, true).await;
         assert_eq!(
             infra
                 .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
@@ -1011,7 +1011,7 @@ mod tests {
             TRANSFER_TOKENS_AMOUNT
         );
 
-        infra.withdraw_from_implicit_near_account(&infra.user_account, false).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, false).await;
         assert_eq!(
             infra
                 .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
@@ -1029,9 +1029,9 @@ mod tests {
 
         infra.fast_bridge_withdraw_on_near(&infra.user_account).await;
         infra
-            .withdraw_from_implicit_near_account(&second_user_account, false)
+            .withdraw_from_implicit_near_account(&second_user_account, &second_user_address, false)
             .await;
-        infra.withdraw_from_implicit_near_account(&infra.user_account, false).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, false).await;
 
         assert_eq!(
             infra
@@ -1064,7 +1064,7 @@ mod tests {
         );
 
         infra.fast_bridge_withdraw_on_near(&infra.user_account).await;
-        infra.withdraw_from_implicit_near_account(&infra.user_account, false).await;
+        infra.withdraw_from_implicit_near_account(&infra.user_account, &infra.user_aurora_address, false).await;
 
         assert_eq!(
             infra
