@@ -127,6 +127,26 @@ async function getFastBridgeContract(signer, config, fastBridgeAddress) {
         .connect(signer);
 }
 
+async function deploySDK({ signer }) {
+    let utilsLib = await ethers.deployContract("Utils", { signer });
+    await utilsLib.waitForDeployment();
+    console.log("Utils lib deployed to: ", await utilsLib.getAddress());
+  
+    let codecLib = await ethers.deployContract("Codec", { signer });
+    await codecLib.waitForDeployment();
+    console.log("Codec lib deployed to: ", await codecLib.getAddress());
+  
+    const sdkLib = await ethers.deployContract("AuroraSdk", {
+      signer,
+      libraries: {
+        Utils: await utilsLib.getAddress(),
+        Codec: await codecLib.getAddress(),
+      },
+    });
+    await sdkLib.waitForDeployment();
+    console.log("SDK lib deployed to: ", await sdkLib.getAddress());
+  }
+
 exports.get_token_aurora_address = get_token_aurora_address;
 exports.get_implicit_near_account_id = get_implicit_near_account_id;
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
@@ -138,3 +158,4 @@ exports.unlock = unlock;
 exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
 exports.get_balance = get_balance;
+exports.deploySDK = deploySDK;

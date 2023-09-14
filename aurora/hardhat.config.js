@@ -214,6 +214,17 @@ task("set_whitelist_mode", "Set whitelist mode")
         await setWhitelistMode(signer, config, taskArgs.fastBridgeAddress);
     });
 
+
+task("deploy-sdk", "Deploy aurora sdk").setAction(async (_, hre) => {
+    const { deploySDK } = require("./scripts/utils");
+    const [signer] = await hre.ethers.getSigners();
+    
+    await hre.run("compile");
+    await deploySDK({
+        signer,
+    });
+});
+
 module.exports = {
     solidity: {
         version: "0.8.17",
@@ -225,6 +236,12 @@ module.exports = {
         }
     },
     networks: {
+        mainnet_aurora: {
+            url: 'https://mainnet.aurora.dev',
+            accounts: [`0x${AURORA_PRIVATE_KEY}`],
+            chainId: 1313161554,
+            timeout: 100_000_000_000
+        },
         testnet_aurora: {
             url: 'https://testnet.aurora.dev',
             accounts: [`0x${AURORA_PRIVATE_KEY}`],
