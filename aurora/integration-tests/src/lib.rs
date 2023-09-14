@@ -1464,6 +1464,145 @@ mod tests {
         );
     }
 
+
+    #[tokio::test]
+    async fn withdraw_by_other_user() {
+        let infra = TestsInfrastructure::init(false).await;
+
+        mint_tokens_near(&infra.mock_token, TOKEN_SUPPLY, infra.engine.inner.id()).await;
+
+        infra
+            .mint_wnear(
+                infra.user_aurora_address,
+                TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT,
+            )
+            .await;
+        infra
+            .mint_wnear(
+                infra.aurora_fast_bridge_contract.address,
+                WNEAR_FOR_TOKENS_TRANSFERS,
+            )
+            .await;
+        infra.approve_spend_wnear(&infra.user_account).await;
+
+        infra
+            .register_token(&infra.user_account, true)
+            .await
+            .unwrap();
+        infra
+            .aurora_storage_deposit(&infra.user_account, true)
+            .await;
+        assert_eq!(
+            infra.get_token_aurora_address().await.unwrap(),
+            infra.aurora_mock_token.address.raw().0
+        );
+
+        storage_deposit(
+            &infra.mock_token,
+            infra.engine.inner.id(),
+            TOKEN_STORAGE_DEPOSIT,
+        )
+            .await;
+        storage_deposit(
+            &infra.mock_token,
+            infra.near_fast_bridge.id(),
+            TOKEN_STORAGE_DEPOSIT,
+        )
+            .await;
+
+        engine_mint_tokens(
+            infra.user_aurora_address,
+            &infra.aurora_mock_token,
+            TRANSFER_TOKENS_AMOUNT,
+            &infra.engine,
+        )
+            .await;
+
+        infra.approve_spend_mock_tokens(&infra.user_account).await;
+
+        let balance0 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                get_default_valid_till(),
+                &infra.user_aurora_address,
+                &infra.user_account,
+                true,
+                MAX_GAS,
+            )
+            .await;
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            0
+        );
+
+        let balance1 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+        assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
+
+        infra.increment_current_eth_block().await;
+        sleep(Duration::from_secs(15));
+
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            0
+        );
+
+        let second_user_account = infra.worker.dev_create_account().await.unwrap();
+
+        infra.unlock(&second_user_account, 1).await;
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            TRANSFER_TOKENS_AMOUNT
+        );
+
+        infra
+            .fast_bridge_withdraw_on_near(&second_user_account)
+            .await;
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            TRANSFER_TOKENS_AMOUNT
+        );
+
+        infra
+            .withdraw_from_implicit_near_account(
+                &second_user_account,
+                &infra.user_aurora_address,
+                true,
+            )
+            .await;
+
+        let balance3 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+        assert_eq!(balance3, balance0);
+
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            0
+        );
+    }
+
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: u128) {
         let outcome = token_contract
             .call("storage_deposit")
