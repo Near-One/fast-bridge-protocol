@@ -539,7 +539,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     function withdrawFromImplicitNearAccount(string calldata token, address recipient) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         uint128 recipientBalance = balance[token][recipient];
-        require(recipientBalance > 0, "The signer token balance = 0");
+        require(recipientBalance > 0, "The recipient token balance = 0");
 
         bytes memory args = bytes(
             string.concat(
