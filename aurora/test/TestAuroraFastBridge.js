@@ -190,7 +190,7 @@ async function deployAuroraFastBridgeAndInitTransfer(config) {
     const balanceAfterInitTransfer = await usdc.balanceOf(deployerWallet.address);
     expect(balanceBefore - balanceAfterInitTransfer).to.equals(200);
 
-    await proxy.withdrawFromImplicitNearAccount(NEAR_TOKEN_ACCOUNT_ID, options);
+    await proxy.withdrawFromImplicitNearAccount(NEAR_TOKEN_ACCOUNT_ID, deployerWallet.address, options);
     await sleep(20000);
     const balanceAfterWithdraw = await usdc.balanceOf(deployerWallet.address);
     expect(balanceAfterInitTransfer).to.equals(balanceAfterWithdraw);
@@ -230,7 +230,7 @@ async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight,
     await sleep(15000);
 
     console.log("Withdraw from implicit Near account");
-    await fastbridge.withdrawFromImplicitNearAccount(NEAR_TOKEN_ACCOUNT_ID, options);
+    await fastbridge.withdrawFromImplicitNearAccount(NEAR_TOKEN_ACCOUNT_ID, deployerWallet.address, options);
     await sleep(150000);
     const usdc = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", AURORA_TOKEN_ADDRESS);
     const balanceAfterUnlock = await usdc.balanceOf(deployerWallet.address);

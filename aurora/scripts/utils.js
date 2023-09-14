@@ -69,13 +69,13 @@ async function fast_bridge_withdraw_on_near(signer, config, fastBridgeAddress, n
     let receipt = await tx.wait();
 }
 
-async function withdraw_from_implicit_near_account(signer, config, fastBridgeAddress, nearTokenAccountId) {
+async function withdraw_from_implicit_near_account(signer, config, fastBridgeAddress, nearTokenAccountId, recipientAddress) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
     const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
     await wnear.transfer(fastBridgeAddress, 1);
 
-    let tx = await fastBridge.withdrawFromImplicitNearAccount(nearTokenAccountId);
+    let tx = await fastBridge.withdrawFromImplicitNearAccount(nearTokenAccountId, recipientAddress);
     let receipt = await tx.wait();
 }
 

@@ -57,8 +57,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     mapping(string => mapping(address => uint128)) balance;
 
     event Unlock(
-        uint128 nonce,
-        address sender,
+        uint128 indexed nonce,
+        address indexed sender,
         string transferToken,
         uint128 transferAmount,
         string feeToken,
@@ -67,10 +67,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     event SetWhitelistModeForUsers(address[] users, bool[] states);
     event SetWhitelistMode(bool);
     event TokenRegistered(address tokenAuroraAddress, string tokenNearAccountId);
-    event WithdrawFromImplicitNearAccount(address recipient, string token, uint128 amount);
+    event WithdrawFromImplicitNearAccount(address indexed recipient, string token, uint128 amount);
     event FastBridgeWithdrawOnNear(string token, uint128 amount);
     event InitTokenTransfer(
-        address sender,
+        address indexed sender,
         string initTransferArg,
         string token,
         uint128 transferAmount,
@@ -527,31 +527,32 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     /**
       * @dev Initiates the withdrawal of tokens from the implicit NEAR account of this fast bridge contract to the signer on the Aurora blockchain.
       * @param token The token NEAR account id to be withdrawn.
+      * @param recipient The address of the recipient. His tokens will be transferred from fast-bridge contract to him.
       * Requirements:
       * - The contract must not be paused to execute this function.
       * - The contract must have a sufficient wNEAR balance for processing.
-      * - The caller must have a positive token balance for the specified token.
+      * - The recipient must have a positive token balance for the specified token.
       * Effects:
       * - Initiates the withdrawal process by making a call to the NEAR blockchain.
       * - Deducts the withdrawn amount from the caller's token balance.
     */
-    function withdrawFromImplicitNearAccount(string calldata token) external whenNotPaused {
+    function withdrawFromImplicitNearAccount(string calldata token, address recipient) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
-        uint128 signerBalance = balance[token][msg.sender];
-        require(signerBalance > 0, "The signer token balance = 0");
+        uint128 recipientBalance = balance[token][recipient];
+        require(recipientBalance > 0, "The recipient token balance = 0");
 
         bytes memory args = bytes(
             string.concat(
                 '{"receiver_id": "',
                 auroraEngineAccountIdOnNear,
                 '", "amount": "',
-                Strings.toString(signerBalance),
+                Strings.toString(recipientBalance),
                 '", "msg": "',
-                UtilsFastBridge.addressToString(msg.sender),
+                UtilsFastBridge.addressToString(recipient),
                 '"}'
             )
         );
-        balance[token][msg.sender] -= signerBalance;
+        balance[token][recipient] -= recipientBalance;
 
         PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
@@ -564,9 +565,9 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         bytes memory callbackArg = abi.encodeWithSelector(
             this.withdrawFromImplicitNearAccountCallback.selector,
-            msg.sender,
+            recipient,
             token,
-            signerBalance
+            recipientBalance
         );
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
@@ -575,7 +576,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     /**
       * @dev The callback for withdrawFromImplicitNearAccount method.
-      * @param signer The address of the signer who initiated the withdrawal.
+      * @param recipient The address of the recipient. His tokens will be transferred from fast-bridge contract to him.
       * @param token The token account Id that was withdrawn.
       * @param amount The amount of tokens that were requested to be withdrawn.
       * Requirements:
@@ -586,7 +587,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * - Emits a 'WithdrawFromImplicitNearAccount' event to signal the completion of the withdrawal.
     */
     function withdrawFromImplicitNearAccountCallback(
-        address signer,
+        address recipient,
         string calldata token,
         uint128 amount
     ) external onlyRole(CALLBACK_ROLE) {
@@ -599,11 +600,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 refundAmount = amount - transferredAmount;
 
         if (refundAmount > 0) {
-            balance[token][signer] += refundAmount;
+            balance[token][recipient] += refundAmount;
         }
 
         if (transferredAmount > 0) {
-            emit WithdrawFromImplicitNearAccount(signer, token, transferredAmount);
+            emit WithdrawFromImplicitNearAccount(recipient, token, transferredAmount);
         }
     }
 
