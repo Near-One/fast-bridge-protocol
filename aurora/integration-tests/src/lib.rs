@@ -545,7 +545,7 @@ mod tests {
         }
 
         pub async fn mint_aurora_ether(&self) {
-            self.engine.mint_account(self.user_aurora_address, 0, Wei::new_u64(100)).await.unwrap();
+            self.engine.mint_account(self.user_aurora_address, 0, Wei::new_u64(1000)).await.unwrap();
         }
 
         pub async fn get_user_ether_balance(&self) -> u64 {
@@ -1744,11 +1744,9 @@ mod tests {
         )
             .await;
 
-        //infra.mint_ether().await;
-
         infra.mint_aurora_ether().await;
-        println!("{:?}", infra.get_user_ether_balance().await);
-        println!("{:?}", infra.engine.inner.call("ft_total_supply").max_gas().transact().await);
+        assert_eq!(infra.get_user_ether_balance().await, 1000);
+        assert_eq!(infra.engine.inner.call("ft_total_supply").max_gas().transact().await.unwrap().json().unwrap(), 1000);
 
         /*
                 engine_mint_tokens(
