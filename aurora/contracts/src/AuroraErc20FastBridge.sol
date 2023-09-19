@@ -186,6 +186,11 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * - Call the get_erc20_from_nep141 function for extract the Aurora token address
     */
     function registerToken(string calldata nearTokenAccountId) external {
+        if (UtilsFastBridge.isStrEqual(nearTokenAccountId, auroraEngineAccountIdOnNear)) {
+            emit TokenRegistered(address(0), nearTokenAccountId);
+            return;
+        }
+
         require(
             address(registeredTokens[nearTokenAccountId].auroraTokenAddress) == address(0),
             "The token is already registered"
@@ -242,7 +247,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     function storageDeposit(string calldata nearTokenAccountId, uint128 storageDepositAmount) external {
         TokenInfo memory tokenInfo = registeredTokens[nearTokenAccountId];
         require(tokenInfo.isStorageRegistered == false, "The token's storage is already registered");
-        require(address(tokenInfo.auroraTokenAddress) != address(0), "The token is not registered");
+        require((address(tokenInfo.auroraTokenAddress) != address(0)) ||
+                UtilsFastBridge.isStrEqual(nearTokenAccountId, auroraEngineAccountIdOnNear), "The token is not registered");
 
         bytes memory args = bytes(
             string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')

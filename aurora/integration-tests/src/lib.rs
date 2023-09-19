@@ -21,12 +21,18 @@ mod tests {
             Worker,
         },
     };
+    use near_sdk::borsh::BorshSerialize;
     use fast_bridge_common::{self, EthAddress};
     use fastbridge::UnlockProof;
-    use near_sdk::borsh::BorshSerialize;
+    use aurora_engine_types::parameters::connector::Proof;
+    use aurora_engine_types::parameters::connector::LogEntry;
+    use aurora_engine_v3::deposit_event::DepositedEvent;
     use std::path::Path;
     use std::thread::sleep;
     use std::time::Duration;
+    use aurora_engine_types::H160;
+    use aurora_sdk_integration_tests::ethabi::Log;
+    use hex::FromHex;
 
     const TOKEN_STORAGE_DEPOSIT: u128 = near_sdk::ONE_NEAR / 80;
     const NEAR_DEPOSIT: u128 = 2 * near_sdk::ONE_NEAR;
@@ -132,6 +138,29 @@ mod tests {
             .unwrap();
         }
 
+        pub async fn aurora_storage_deposit_ether(&self, user_account: &Account, check_result: bool) {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "storageDeposit",
+                    &[
+                        ethabi::Token::String(self.engine.inner.id().to_string()),
+                        ethabi::Token::Uint(TOKEN_STORAGE_DEPOSIT.into()),
+                    ],
+                );
+
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                user_account,
+                self.engine.inner.id(),
+                check_result,
+                MAX_GAS,
+            )
+                .await
+                .unwrap();
+        }
+
         pub async fn approve_spend_wnear(&self, user_account: &Account) {
             approve_spend_tokens(
                 &self.wnear.aurora_token,
@@ -155,6 +184,27 @@ mod tests {
                 check_result,
             )
             .await
+        }
+
+        pub async fn register_eth_token(
+            &self,
+            user_account: &Account,
+            check_result: bool,
+        ) -> ExecutionFinalResult {
+            let contract_args = self.aurora_fast_bridge_contract.create_call_method_bytes_with_args(
+                "registerToken",
+                &[ethabi::Token::String(self.engine.inner.id().to_string())],
+            );
+
+            call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                user_account,
+                self.engine.inner.id(),
+                check_result,
+                MAX_GAS,
+            )
+                .await
         }
 
         pub async fn approve_spend_mock_tokens(&self, user_account: &Account) {
@@ -409,6 +459,32 @@ mod tests {
             return None;
         }
 
+        pub async fn is_storage_registered(&self, token_account_id: String) -> Option<bool> {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "isStorageRegistered",
+                    &[ethabi::Token::String(token_account_id)],
+                );
+            let outcome = call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                MAX_GAS,
+            )
+                .await;
+
+            let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
+
+            if let TransactionStatus::Succeed(res) = result.status {
+                return Some(res[res.len() - 1] != 0);
+            }
+
+            return None;
+        }
+
         pub async fn set_whitelist_mode(&self, is_enabled: bool) {
             let contract_args = self
                 .aurora_fast_bridge_contract
@@ -456,6 +532,24 @@ mod tests {
             )
             .await
             .unwrap();
+        }
+
+        pub async fn mint_ether(&self) {
+            const PROOF_DATA_ETH: &str = r#"{"log_index":0,"log_entry_data":[249,1,27,148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 248,66,160,209,66,67,156,39,142,37,218,217,165,7,102,241,83,208,227,210,215,191,43,209,111,194,120,28,75,212,148,178,177,90,157,160,0,0,0,0,0,0,0,0,0,0,0,0,121,24,63,219,216,14,45,138,234,26,202,162,246,123,251,138,54,212,10,141,184,192,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,96,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,39,216,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,59,101,116,104,95,99,111,110,110,101,99,116,111,114,46,114,111,111,116,58,56,57,49,66,50,55,52,57,50,51,56,66,50,55,102,70,53,56,101,57,53,49,48,56,56,101,53,53,98,48,52,100,101,55,49,68,99,51,55,52,0,0,0,0,0],"receipt_index":0,"receipt_data":[249,2,40,1,130,121,129,185,1,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,249,1,30,249,1,27,148,9,109,233,194,184,165,184,194,44,238,50,137,177,1,246,150,13,104,229,30,248,66,160,209,66,67,156,39,142,37,218,217,165,7,102,241,83,208,227,210,215,191,43,209,111,194,120,28,75,212,148,178,177,90,157,160,0,0,0,0,0,0,0,0,0,0,0,0,121,24,63,219,216,14,45,138,234,26,202,162,246,123,251,138,54,212,10,141,184,192,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,96,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,39,216,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,59,101,116,104,95,99,111,110,110,101,99,116,111,114,46,114,111,111,116,58,56,57,49,66,50,55,52,57,50,51,56,66,50,55,102,70,53,56,101,57,53,49,48,56,56,101,53,53,98,48,52,100,101,55,49,68,99,51,55,52,0,0,0,0,0],"header_data":[249,2,23,160,227,118,223,171,207,47,75,187,79,185,74,198,88,140,54,97,161,196,35,70,121,178,154,141,172,91,193,252,86,64,228,227,160,29,204,77,232,222,199,93,122,171,133,181,103,182,204,212,26,211,18,69,27,148,138,116,19,240,161,66,253,64,212,147,71,148,109,150,79,199,61,172,73,162,195,49,105,169,235,252,47,207,92,249,136,136,160,232,74,213,122,210,55,65,43,78,225,85,247,174,212,229,211,176,186,250,113,21,129,16,181,52,172,217,167,148,242,153,45,160,15,198,229,127,6,235,198,161,226,121,173,106,62,0,90,25,158,11,242,44,178,3,137,22,245,126,227,91,74,156,24,115,160,65,253,74,43,97,155,196,93,59,43,202,12,155,49,115,95,124,247,230,15,1,171,150,10,56,115,247,86,81,8,39,11,185,1,0,128,32,9,2,0,0,0,0,0,0,32,16,128,32,0,0,128,2,0,0,64,51,0,0,0,129,0,32,66,32,0,14,0,144,0,0,0,2,13,34,0,128,64,200,128,4,32,16,0,64,0,0,34,0,32,0,40,0,8,0,0,32,176,0,196,1,0,0,10,1,16,8,16,0,0,72,48,0,0,36,0,17,4,128,10,68,0,16,0,1,32,0,128,0,32,0,12,64,162,8,98,2,0,32,0,0,16,136,1,16,40,0,0,0,0,4,0,0,44,32,0,0,192,49,0,8,12,64,96,129,0,2,0,0,128,0,12,64,10,8,1,132,0,32,0,1,4,33,0,4,128,140,128,0,2,66,0,0,192,0,2,16,2,0,0,0,32,16,0,0,64,0,242,4,0,0,0,0,0,0,4,128,0,32,0,14,194,0,16,10,64,32,0,0,0,2,16,96,16,129,0,16,32,32,128,128,32,0,2,68,0,32,1,8,64,16,32,2,5,2,68,0,32,0,2,16,1,0,0,16,2,0,0,16,2,0,0,0,128,0,16,0,36,128,32,0,4,64,16,0,40,16,0,17,0,16,132,25,207,98,158,131,157,85,88,131,122,17,225,131,121,11,191,132,96,174,60,127,153,216,131,1,10,1,132,103,101,116,104,134,103,111,49,46,49,54,135,119,105,110,100,111,119,115,160,33,15,129,167,71,37,0,207,110,217,101,107,71,110,48,237,4,83,174,75,131,188,213,179,154,115,243,94,107,52,238,144,136,84,114,37,115,236,166,252,105],"proof":[[248,177,160,211,36,253,39,157,18,180,1,3,139,140,168,65,238,106,111,239,53,121,48,235,96,8,115,106,93,174,165,66,207,49,216,160,172,74,129,163,113,84,7,35,23,12,83,10,253,21,57,198,143,128,73,112,84,222,23,146,164,219,89,23,138,197,111,237,160,52,220,245,245,91,231,95,169,113,225,49,168,40,77,59,232,33,210,4,93,203,94,247,212,15,42,146,32,70,206,193,54,160,6,140,29,61,156,224,194,173,129,74,84,92,11,129,184,212,37,31,23,140,226,87,230,72,30,52,97,66,185,236,139,228,128,128,128,128,160,190,114,105,101,139,216,178,42,238,75,109,119,227,138,206,144,183,82,34,173,26,173,188,231,152,171,56,163,2,179,13,190,128,128,128,128,128,128,128,128],[249,2,47,48,185,2,43,249,2,40,1,130,121,129,185,1,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,249,1,30,249,1,27,148,9,109,233,194,184,165,184,194,44,238,50,137,177,1,246,150,13,104,229,30,248,66,160,209,66,67,156,39,142,37,218,217,165,7,102,241,83,208,227,210,215,191,43,209,111,194,120,28,75,212,148,178,177,90,157,160,0,0,0,0,0,0,0,0,0,0,0,0,121,24,63,219,216,14,45,138,234,26,202,162,246,123,251,138,54,212,10,141,184,192,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,96,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,39,216,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,59,101,116,104,95,99,111,110,110,101,99,116,111,114,46,114,111,111,116,58,56,57,49,66,50,55,52,57,50,51,56,66,50,55,102,70,53,56,101,57,53,49,48,56,56,101,53,53,98,48,52,100,101,55,49,68,99,51,55,52,0,0,0,0,0]]}"#;
+            let proof: Proof = serde_json::from_str(PROOF_DATA_ETH).unwrap();
+
+            let event = DepositedEvent::from_log_entry_data(&proof.log_entry_data).unwrap();
+            println!("\n==== DEPOSITED EVENT ====\n{:?}\n=====", event);
+
+            println!("{:?}", self.engine.inner.call("deposit").args_borsh(proof).max_gas().transact().await.unwrap());
+        }
+
+        pub async fn mint_aurora_ether(&self) {
+            self.engine.mint_account(self.user_aurora_address, 0, Wei::new_u64(100)).await.unwrap();
+        }
+
+        pub async fn get_user_ether_balance(&self) -> u64 {
+            return self.engine.get_balance(self.user_aurora_address).await.unwrap().raw().as_u64();
         }
     }
 
@@ -1464,7 +1558,6 @@ mod tests {
         );
     }
 
-
     #[tokio::test]
     async fn withdraw_by_other_user() {
         let infra = TestsInfrastructure::init(false).await;
@@ -1489,9 +1582,11 @@ mod tests {
             .register_token(&infra.user_account, true)
             .await
             .unwrap();
+
         infra
             .aurora_storage_deposit(&infra.user_account, true)
             .await;
+
         assert_eq!(
             infra.get_token_aurora_address().await.unwrap(),
             infra.aurora_mock_token.address.raw().0
@@ -1601,6 +1696,163 @@ mod tests {
                 .unwrap(),
             0
         );
+    }
+
+    #[tokio::test]
+    async fn test_transfer_ether() {
+        let infra = TestsInfrastructure::init(false).await;
+
+        infra
+            .mint_wnear(
+                infra.user_aurora_address,
+                TOKEN_STORAGE_DEPOSIT + NEAR_DEPOSIT,
+            )
+            .await;
+
+        infra
+            .mint_wnear(
+                infra.aurora_fast_bridge_contract.address,
+                WNEAR_FOR_TOKENS_TRANSFERS,
+            )
+            .await;
+        infra.approve_spend_wnear(&infra.user_account).await;
+
+        infra
+            .register_eth_token(&infra.user_account, true)
+            .await
+            .unwrap();
+
+        infra
+            .aurora_storage_deposit_ether(&infra.user_account, true)
+            .await;
+
+        assert_eq!(
+            infra.is_storage_registered(infra.engine.inner.id().to_string()).await.unwrap(),
+            true
+        );
+
+        storage_deposit(
+            &infra.engine.inner,
+            infra.engine.inner.id(),
+            TOKEN_STORAGE_DEPOSIT,
+        )
+            .await;
+        storage_deposit(
+            &infra.engine.inner,
+            infra.near_fast_bridge.id(),
+            TOKEN_STORAGE_DEPOSIT,
+        )
+            .await;
+
+        //infra.mint_ether().await;
+
+        infra.mint_aurora_ether().await;
+        println!("{:?}", infra.get_user_ether_balance().await);
+        println!("{:?}", infra.engine.inner.call("ft_total_supply").max_gas().transact().await);
+
+        /*
+                engine_mint_tokens(
+                    infra.user_aurora_address,
+                    &infra.aurora_mock_token,
+                    TRANSFER_TOKENS_AMOUNT,
+                    &infra.engine,
+                )
+                    .await; */
+
+        /*
+        infra.approve_spend_mock_tokens(&infra.user_account).await;
+
+        let balance0 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+
+        infra
+            .init_token_transfer(
+                TRANSFER_TOKENS_AMOUNT as u128,
+                0,
+                get_default_valid_till(),
+                &infra.user_aurora_address,
+                &infra.user_account,
+                true,
+                MAX_GAS,
+            )
+            .await;
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            0
+        );
+
+        let balance1 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+        assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
+
+        infra
+            .withdraw_from_implicit_near_account(
+                &infra.user_account,
+                &infra.user_aurora_address,
+                true,
+            )
+            .await;
+        let balance2 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+        assert_eq!(balance2, balance1);
+
+        infra.increment_current_eth_block().await;
+        sleep(Duration::from_secs(15));
+
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            0
+        );
+
+        infra.unlock(&infra.user_account, 1).await;
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            TRANSFER_TOKENS_AMOUNT
+        );
+
+        infra
+            .fast_bridge_withdraw_on_near(&infra.user_account)
+            .await;
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            TRANSFER_TOKENS_AMOUNT
+        );
+
+        infra
+            .withdraw_from_implicit_near_account(
+                &infra.user_account,
+                &infra.user_aurora_address,
+                true,
+            )
+            .await;
+
+        let balance3 = infra
+            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
+            .await;
+        assert_eq!(balance3, balance0);
+
+        assert_eq!(
+            infra
+                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .await
+                .unwrap(),
+            0
+        );*/
     }
 
     async fn storage_deposit(token_contract: &Contract, account_id: &str, deposit: u128) {
