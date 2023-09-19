@@ -254,6 +254,43 @@ mod tests {
                 .await;
         }
 
+        pub async fn init_token_transfer_eth(
+            &self,
+            amount: u128,
+            fee_amount: u128,
+            valid_till: u64,
+            user_address: &Address,
+            user_account: &Account,
+            check_output: bool,
+            gas: u64,
+        ) {
+            let transfer_msg = fast_bridge_common::TransferMessage {
+                valid_till,
+                transfer: fast_bridge_common::TransferDataEthereum {
+                    token_near: self.engine.inner.id().parse().unwrap(),
+                    token_eth: EthAddress(Address::zero().raw().0),
+                    amount: near_sdk::json_types::U128::from(amount),
+                },
+                fee: fast_bridge_common::TransferDataNear {
+                    token: self.engine.inner.id().parse().unwrap(),
+                    amount: near_sdk::json_types::U128::from(fee_amount),
+                },
+                recipient: EthAddress(user_address.raw().0),
+                valid_till_block_height: None,
+                aurora_sender: Some(EthAddress(user_address.raw().0)),
+            };
+
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "initTokenTransfer",
+                    &[ethabi::Token::Bytes(transfer_msg.try_to_vec().unwrap())],
+                );
+
+            self.call_aurora_contract(contract_args, user_account, check_output, gas)
+                .await;
+        }
+
         pub async fn withdraw_from_implicit_near_account(
             &self,
             user_account: &Account,
@@ -372,6 +409,39 @@ mod tests {
                 MAX_GAS,
             )
             .await;
+
+            let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
+            if let TransactionStatus::Succeed(res) = result.status {
+                let mut buf = [0u8; 8];
+                buf.copy_from_slice(&res.as_slice()[res.len() - 8..res.len()]);
+                return Some(u64::from_be_bytes(buf));
+            }
+
+            return None;
+        }
+
+        pub async fn user_balance_in_fast_bridge_on_aurora_ether(
+            &self,
+            user_address: &Address,
+        ) -> Option<u64> {
+            let contract_args = self
+                .aurora_fast_bridge_contract
+                .create_call_method_bytes_with_args(
+                    "getUserBalance",
+                    &[
+                        ethabi::Token::String(self.engine.inner.id().to_string()),
+                        ethabi::Token::Address(user_address.raw()),
+                    ],
+                );
+            let outcome = call_aurora_contract(
+                self.aurora_fast_bridge_contract.address,
+                contract_args,
+                &self.user_account,
+                self.engine.inner.id(),
+                true,
+                MAX_GAS,
+            )
+                .await;
 
             let result = outcome.unwrap().borsh::<SubmitResult>().unwrap();
             if let TransactionStatus::Succeed(res) = result.status {
@@ -545,7 +615,7 @@ mod tests {
         }
 
         pub async fn mint_aurora_ether(&self) {
-            self.engine.mint_account(self.user_aurora_address, 0, Wei::new_u64(1000)).await.unwrap();
+            self.engine.mint_account(self.user_aurora_address, 0, Wei::new_u64(TRANSFER_TOKENS_AMOUNT)).await.unwrap();
         }
 
         pub async fn get_user_ether_balance(&self) -> u64 {
@@ -1745,27 +1815,12 @@ mod tests {
             .await;
 
         infra.mint_aurora_ether().await;
-        assert_eq!(infra.get_user_ether_balance().await, 1000);
-        assert_eq!(infra.engine.inner.call("ft_total_supply").max_gas().transact().await.unwrap().json().unwrap(), 1000);
 
-        /*
-                engine_mint_tokens(
-                    infra.user_aurora_address,
-                    &infra.aurora_mock_token,
-                    TRANSFER_TOKENS_AMOUNT,
-                    &infra.engine,
-                )
-                    .await; */
-
-        /*
-        infra.approve_spend_mock_tokens(&infra.user_account).await;
-
-        let balance0 = infra
-            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
-            .await;
+        let balance0 = infra.get_user_ether_balance().await;
+        assert_eq!(balance0, TRANSFER_TOKENS_AMOUNT);
 
         infra
-            .init_token_transfer(
+            .init_token_transfer_eth(
                 TRANSFER_TOKENS_AMOUNT as u128,
                 0,
                 get_default_valid_till(),
@@ -1775,19 +1830,18 @@ mod tests {
                 MAX_GAS,
             )
             .await;
+
         assert_eq!(
             infra
-                .user_balance_in_fast_bridge_on_aurora(&infra.user_aurora_address)
+                .user_balance_in_fast_bridge_on_aurora_ether(&infra.user_aurora_address)
                 .await
                 .unwrap(),
             0
         );
 
-        let balance1 = infra
-            .get_mock_token_balance_on_aurora_for(infra.user_aurora_address)
-            .await;
+        let balance1 = infra.get_user_ether_balance().await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
-
+/*
         infra
             .withdraw_from_implicit_near_account(
                 &infra.user_account,
