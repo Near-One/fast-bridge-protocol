@@ -31,7 +31,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
     uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
-    uint64 constant INIT_TRANSFER_NEAR_GAS = 100_000_000_000_000;
+    uint64 constant INIT_TRANSFER_NEAR_GAS = 150_000_000_000_000;
     uint64 constant INIT_TRANSFER_CALLBACK_NEAR_GAS = 20_000_000_000_000;
     uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
@@ -308,7 +308,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * Effects:
       * - Initiates a token transfer from the sender on Aurora to the Ethereum.
     */
-    function initTokenTransfer(bytes calldata initTransferArgs) external whenNotPaused {
+    function initTokenTransfer(bytes calldata initTransferArgs) payable external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         require(isUserWhitelisted(address(msg.sender)), "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
@@ -326,17 +326,36 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         IEvmErc20 token = tokenInfo.auroraTokenAddress;
         require(tokenInfo.isStorageRegistered == true, "The token storage is not registered");
 
-        require(address(token) != address(0), "The token is not registered");
+        require(address(token) != address(0) ||
+                UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, auroraEngineAccountIdOnNear),
+                "The token is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
-        token.transferFrom(msg.sender, address(this), totalTokenAmount);
+        if (address(token) != address(0)) {
+            require(msg.value == 0, "Incorrect amount of Ether attached");
 
-        // WARNING: The `withdrawToNear` method works asynchronously.
-        // As a result, there is no guarantee that this method will be completed before `initTransfer()`.
-        // In case of such an error, the user will be able to call the `withdraw()` method and get his tokens back.
-        // We expect such an error not to happen as long as transactions are executed in one shard.
-        token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
+            token.transferFrom(msg.sender, address(this), totalTokenAmount);
+
+            // WARNING: The `withdrawToNear` method works asynchronously.
+            // As a result, there is no guarantee that this method will be completed before `initTransfer()`.
+            // In case of such an error, the user will be able to call the `withdraw()` method and get his tokens back.
+            // We expect such an error not to happen as long as transactions are executed in one shard.
+            token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
+        } else {
+            require(msg.value == totalTokenAmount, "Incorrect amount of Ether attached");
+
+            bytes memory recipient = bytes(getImplicitNearAccountIdForSelf());
+
+            // https://github.com/aurora-is-near/aurora-engine/blob/develop/etc/eth-contracts/contracts/test/TesterV2.sol
+            bytes memory input = abi.encodePacked("\x00", recipient);
+            uint input_size = 1 + recipient.length;
+            uint256 amount = msg.value;
+
+            assembly {
+                let res := call(gas(), 0xe9217bc70b7ed1f598ddd3199e80b093fa71124f, amount, add(input, 32), input_size, 0, 32)
+            }
+        }
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
         bytes memory args = bytes(

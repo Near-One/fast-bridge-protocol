@@ -4,6 +4,7 @@ pub mod test_deploy {
         aurora_engine_types::types::Address, tokio, utils::process, workspaces,
     };
     use std::path::Path;
+    use aurora_sdk_integration_tests::aurora_engine::AuroraEngine;
 
     pub const TOKEN_SUPPLY: u64 = 1_000_000_000;
 
@@ -78,6 +79,7 @@ pub mod test_deploy {
 
     pub async fn deploy_near_fast_bridge(
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
+        engine: &AuroraEngine,
         mock_token_account_id: &str,
         mock_eth_client_account_id: &str,
         mock_eth_prover_account_id: &str,
@@ -124,6 +126,19 @@ pub mod test_deploy {
             .call("set_token_whitelist_mode")
             .args_json(serde_json::json!({
                 "token": mock_token_account_id,
+                "mode": "CheckToken"
+            }))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+
+        fast_bridge
+            .call("set_token_whitelist_mode")
+            .args_json(serde_json::json!({
+                "token": engine.inner.id().to_string(),
                 "mode": "CheckToken"
             }))
             .max_gas()
