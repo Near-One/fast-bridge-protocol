@@ -226,7 +226,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     function getErc20FromNep141Callback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `get_erc20_from_nep141()` XCC call failed"
+            "ERROR: The XCC call failed"
         );
 
         address auroraTokenAddress = address(uint160(bytes20(AuroraSdk.promiseResult(0).output)));
@@ -284,7 +284,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     function storageDepositCallback(string calldata nearTokenAccountId) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `storage_deposit()` XCC call failed"
+            "ERROR: The XCC call failed"
         );
 
         registeredTokens[nearTokenAccountId].isStorageRegistered = true;
@@ -358,23 +358,22 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         }
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
-        bytes memory args = bytes(
-            string.concat(
-                '{"receiver_id": "',
-                fastBridgeAccountIdOnNear,
-                '", "amount": "',
-                Strings.toString(totalTokenAmount),
-                '", "msg": "',
-                initArgsBase64,
-                '"}'
-            )
-        );
 
         PromiseCreateArgs memory callFtTransfer = UtilsFastBridge.callWithoutTransferWNear(
             near,
             transferMessage.transferTokenAccountIdOnNear,
             "ft_transfer_call",
-            args,
+            bytes(
+                string.concat(
+                    '{"receiver_id": "',
+                    fastBridgeAccountIdOnNear,
+                    '", "amount": "',
+                    Strings.toString(totalTokenAmount),
+                    '", "msg": "',
+                    initArgsBase64,
+                    '"}'
+                )
+            ),
             ONE_YOCTO,
             INIT_TRANSFER_NEAR_GAS
         );
@@ -445,12 +444,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * - Initiates the unlocking process by making a call to the Fast Bridge contract on Near blockchain.
     */
     function unlock(uint128 nonce, string calldata proof) external whenNotPaused {
-        bytes memory args = bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}'));
-
         PromiseCreateArgs memory callUnlock = near.call(
             fastBridgeAccountIdOnNear,
             "unlock",
-            args,
+            bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}')),
             NO_DEPOSIT,
             UNLOCK_NEAR_GAS
         );
@@ -504,15 +501,12 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     */
     function fastBridgeWithdrawOnNear(string calldata tokenId, uint128 amount) external whenNotPaused {
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
-        bytes memory args = bytes(
-            string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')
-        );
 
         PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             fastBridgeAccountIdOnNear,
             "withdraw",
-            args,
+            bytes(string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')),
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
@@ -543,7 +537,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     ) external onlyRole(CALLBACK_ROLE) {
         require(
             AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful,
-            "ERROR: The `Withdraw` XCC is fail"
+            "ERROR: The XCC is fail"
         );
 
         emit FastBridgeWithdrawOnNear(tokenId, amount);
@@ -566,35 +560,44 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         uint128 recipientBalance = balance[token][recipient];
         require(recipientBalance > 0, "The recipient token balance = 0");
 
-        bytes memory args = bytes(
-            string.concat(
-                '{"receiver_id": "',
-                auroraEngineAccountIdOnNear,
-                '", "amount": "',
-                Strings.toString(recipientBalance),
-                '", "msg": "',
-                UtilsFastBridge.addressToString(recipient),
-                '"}'
-            )
-        );
         balance[token][recipient] -= recipientBalance;
+
+        string memory msgStr = UtilsFastBridge.addressToString(recipient);
+        if (UtilsFastBridge.isStrEqual(token, auroraEngineAccountIdOnNear)) {
+            string memory sixtyFourZeros;
+            for (uint8 i = 0; i < 64; i++) {
+                sixtyFourZeros = string(abi.encodePacked(sixtyFourZeros, "0"));
+            }
+
+            msgStr = string.concat("fake.near:", sixtyFourZeros, msgStr);
+        }
 
         PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
             near,
             token,
             "ft_transfer_call",
-            args,
+                bytes(
+                    string.concat(
+                        '{"receiver_id": "',
+                        auroraEngineAccountIdOnNear,
+                        '", "amount": "',
+                        Strings.toString(recipientBalance),
+                        '", "msg": "',
+                        msgStr,
+                        '"}'
+                    )
+                ),
             ONE_YOCTO,
             WITHDRAW_NEAR_GAS
         );
 
-        bytes memory callbackArg = abi.encodeWithSelector(
-            this.withdrawFromImplicitNearAccountCallback.selector,
-            recipient,
-            token,
-            recipientBalance
-        );
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
+        PromiseCreateArgs memory callback = near.auroraCall(address(this),
+            abi.encodeWithSelector(
+                this.withdrawFromImplicitNearAccountCallback.selector,
+                recipient,
+                token,
+                recipientBalance),
+            NO_DEPOSIT, BASE_NEAR_GAS);
 
         callWithdraw.then(callback).transact();
     }
