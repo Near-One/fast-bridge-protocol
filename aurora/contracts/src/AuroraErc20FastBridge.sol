@@ -31,7 +31,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     uint64 constant BASE_NEAR_GAS = 10_000_000_000_000;
     uint64 constant WITHDRAW_NEAR_GAS = 50_000_000_000_000;
-    uint64 constant INIT_TRANSFER_NEAR_GAS = 150_000_000_000_000;
+    uint64 constant INIT_TRANSFER_NEAR_GAS = 110_000_000_000_000;
     uint64 constant INIT_TRANSFER_CALLBACK_NEAR_GAS = 20_000_000_000_000;
     uint64 constant UNLOCK_NEAR_GAS = 150_000_000_000_000;
 
