@@ -1,10 +1,10 @@
 #[cfg(test)]
 pub mod test_deploy {
+    use aurora_sdk_integration_tests::aurora_engine::AuroraEngine;
     use aurora_sdk_integration_tests::{
         aurora_engine_types::types::Address, tokio, utils::process, workspaces,
     };
     use std::path::Path;
-    use aurora_sdk_integration_tests::aurora_engine::AuroraEngine;
 
     pub const TOKEN_SUPPLY: u64 = 1_000_000_000;
 
