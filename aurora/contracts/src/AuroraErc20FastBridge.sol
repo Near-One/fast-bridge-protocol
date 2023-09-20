@@ -347,7 +347,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
             bytes memory recipient = bytes(getImplicitNearAccountIdForSelf());
 
-            // https://github.com/aurora-is-near/aurora-engine/blob/develop/etc/eth-contracts/contracts/test/TesterV2.sol
             bytes memory input = abi.encodePacked("\x00", recipient);
             uint input_size = 1 + recipient.length;
             uint256 amount = msg.value;
