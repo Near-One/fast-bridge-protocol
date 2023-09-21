@@ -189,7 +189,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * - Call the get_erc20_from_nep141 function for extract the Aurora token address
     */
     function registerToken(string calldata nearTokenAccountId) external {
-        if (UtilsFastBridge.isStrEqual(nearTokenAccountId, nativeAuroraTokenAccountIdOnNear)) {
+        if (_isNativeToken(nearTokenAccountId)) {
             emit TokenRegistered(address(0), nearTokenAccountId);
             return;
         }
@@ -251,7 +251,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         TokenInfo memory tokenInfo = registeredTokens[nearTokenAccountId];
         require(tokenInfo.isStorageRegistered == false, "The token's storage is already registered");
         require((address(tokenInfo.auroraTokenAddress) != address(0)) ||
-                UtilsFastBridge.isStrEqual(nearTokenAccountId, nativeAuroraTokenAccountIdOnNear), "The token is not registered");
+                 _isNativeToken(nearTokenAccountId), "The token is not registered");
 
         bytes memory args = bytes(
             string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')
@@ -329,10 +329,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         IEvmErc20 token = tokenInfo.auroraTokenAddress;
         require(tokenInfo.isStorageRegistered == true, "The token storage is not registered");
 
-        require(address(token) != address(0) ||
-                UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, nativeAuroraTokenAccountIdOnNear),
-                "The token is not registered");
-
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         if (address(token) != address(0)) {
@@ -346,6 +342,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             // We expect such an error not to happen as long as transactions are executed in one shard.
             token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
         } else {
+            require(_isNativeToken(transferMessage.transferTokenAccountIdOnNear), "The token is not registered");
             require(msg.value == totalTokenAmount, "Incorrect attached value");
 
             bytes memory recipient = bytes(getImplicitNearAccountIdForSelf());
@@ -565,7 +562,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         balance[token][recipient] -= recipientBalance;
 
         string memory msgStr = UtilsFastBridge.addressToString(recipient);
-        if (UtilsFastBridge.isStrEqual(token, nativeAuroraTokenAccountIdOnNear)) {
+        if (_isNativeToken(token)) {
             string memory sixtyFourZeros;
             for (uint8 i = 0; i < 64; i++) {
                 sixtyFourZeros = string(abi.encodePacked(sixtyFourZeros, "0"));
@@ -659,6 +656,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             result.auroraSender = address(borsh.decodeBytes20());
         }
         return result;
+    }
+
+    function _isNativeToken(string memory tokenAccountId) private view returns (bool) {
+        return UtilsFastBridge.isStrEqual(tokenAccountId, nativeAuroraTokenAccountIdOnNear);
     }
 
     /**
