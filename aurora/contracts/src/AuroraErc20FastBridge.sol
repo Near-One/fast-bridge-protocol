@@ -249,7 +249,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     */
     function storageDeposit(string calldata nearTokenAccountId, uint128 storageDepositAmount) external {
         TokenInfo memory tokenInfo = registeredTokens[nearTokenAccountId];
-        require(tokenInfo.isStorageRegistered == false, "The token's storage is already registered");
+        require(tokenInfo.isStorageRegistered == false, "The storage is already registered");
         require((address(tokenInfo.auroraTokenAddress) != address(0)) ||
                  _isNativeToken(nearTokenAccountId), "The token is not registered");
 
@@ -315,10 +315,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
         require(isUserWhitelisted(address(msg.sender)), "Sender not whitelisted!");
         TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(initTransferArgs);
-        require(
-            transferMessage.auroraSender == msg.sender,
-            "Aurora sender address in the transfer message doesn't match the signer"
-        );
+        require(transferMessage.auroraSender == msg.sender, "Aurora sender address != signer");
 
         require(
             UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, transferMessage.feeTokenAccountIdOnNear),
