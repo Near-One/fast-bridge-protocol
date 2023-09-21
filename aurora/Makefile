@@ -63,3 +63,6 @@ fmt:
 
 test:
 	yarn hardhat test --network testnet_aurora
+
+verify:
+	yarn hardhat verify --network $(NETWORK) $(AURORA_FAST_BRIDGE_ADDRESS)

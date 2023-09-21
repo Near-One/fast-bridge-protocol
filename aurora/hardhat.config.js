@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@openzeppelin/hardhat-upgrades");
+require("@nomicfoundation/hardhat-verify");
 
 // Replace this private key with your Ropsten account private key
 // To export your private key from Metamask, open Metamask and
@@ -8,6 +9,7 @@ require("@openzeppelin/hardhat-upgrades");
 require('dotenv').config();
 
 const AURORA_PRIVATE_KEY = process.env.AURORA_PRIVATE_KEY;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 
 task("deploy", "Deploy aurora fast bridge proxy contract")
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
@@ -232,6 +234,12 @@ module.exports = {
             optimizer: {
                 enabled: true,
                 runs: 200
+            },
+            metadata: {
+                // do not include the metadata hash, since this is machine dependent
+                // and we want all generated code to be deterministic
+                // https://docs.soliditylang.org/en/v0.8.17/metadata.html
+                bytecodeHash: "none"
             }
         }
     },
@@ -240,7 +248,7 @@ module.exports = {
             url: 'https://mainnet.aurora.dev',
             accounts: [`0x${AURORA_PRIVATE_KEY}`],
             chainId: 1313161554,
-            timeout: 100_000_000_000
+            timeout: 100_000_000_000,
         },
         testnet_aurora: {
             url: 'https://testnet.aurora.dev',
@@ -256,6 +264,30 @@ module.exports = {
             url: 'https://rpc.testnet.aurora.dev:8545',
             accounts: [`0x${AURORA_PRIVATE_KEY}`]
         }
+    },
+    etherscan: {
+        apiKey: {
+          mainnet_aurora: `${ETHERSCAN_API_KEY}`,
+          testnet_aurora: `${ETHERSCAN_API_KEY}`
+        },
+        customChains: [
+          {
+            network: "mainnet_aurora",
+            chainId: 1313161554,
+            urls: {
+              apiURL: "https://explorer.mainnet.aurora.dev/api",
+              browserURL: "https://explorer.mainnet.aurora.dev"
+            }
+          },
+          {
+            network: "testnet_aurora",
+            chainId: 1313161555,
+            urls: {
+              apiURL: "https://explorer.testnet.aurora.dev/api",
+              browserURL: "https://explorer.testnet.aurora.dev"
+            }
+          }
+        ]
     },
     mocha: {
         timeout: 1000000000000
