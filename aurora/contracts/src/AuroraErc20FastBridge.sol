@@ -43,6 +43,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     NEAR public near;
     string public fastBridgeAccountIdOnNear;
     string public auroraEngineAccountIdOnNear;
+    string public nativeAuroraTokenAccountIdOnNear;
     bool public isWhitelistModeEnabled;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
@@ -106,6 +107,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address wnearAddress,
         string calldata fastBridgeAccountId,
         string calldata auroraEngineAccountId,
+        string calldata nativeAuroraTokenAccountId,
         bool _isWhitelistModeEnabled
     ) external initializer {
         __Pausable_init();
@@ -114,6 +116,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         near = AuroraSdk.initNear(IERC20_NEAR(wnearAddress));
         fastBridgeAccountIdOnNear = fastBridgeAccountId;
         auroraEngineAccountIdOnNear = auroraEngineAccountId;
+        nativeAuroraTokenAccountIdOnNear = nativeAuroraTokenAccountId;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -186,7 +189,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
       * - Call the get_erc20_from_nep141 function for extract the Aurora token address
     */
     function registerToken(string calldata nearTokenAccountId) external {
-        if (UtilsFastBridge.isStrEqual(nearTokenAccountId, auroraEngineAccountIdOnNear)) {
+        if (UtilsFastBridge.isStrEqual(nearTokenAccountId, nativeAuroraTokenAccountIdOnNear)) {
             emit TokenRegistered(address(0), nearTokenAccountId);
             return;
         }
@@ -248,7 +251,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         TokenInfo memory tokenInfo = registeredTokens[nearTokenAccountId];
         require(tokenInfo.isStorageRegistered == false, "The token's storage is already registered");
         require((address(tokenInfo.auroraTokenAddress) != address(0)) ||
-                UtilsFastBridge.isStrEqual(nearTokenAccountId, auroraEngineAccountIdOnNear), "The token is not registered");
+                UtilsFastBridge.isStrEqual(nearTokenAccountId, nativeAuroraTokenAccountIdOnNear), "The token is not registered");
 
         bytes memory args = bytes(
             string.concat('{"account_id": "', getImplicitNearAccountIdForSelf(), '", "registration_only": true }')
@@ -327,13 +330,13 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         require(tokenInfo.isStorageRegistered == true, "The token storage is not registered");
 
         require(address(token) != address(0) ||
-                UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, auroraEngineAccountIdOnNear),
+                UtilsFastBridge.isStrEqual(transferMessage.transferTokenAccountIdOnNear, nativeAuroraTokenAccountIdOnNear),
                 "The token is not registered");
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
         if (address(token) != address(0)) {
-            require(msg.value == 0, "Incorrect amount of Ether attached");
+            require(msg.value == 0, "Incorrect attached value");
 
             token.transferFrom(msg.sender, address(this), totalTokenAmount);
 
@@ -343,7 +346,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             // We expect such an error not to happen as long as transactions are executed in one shard.
             token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
         } else {
-            require(msg.value == totalTokenAmount, "Incorrect amount of Ether attached");
+            require(msg.value == totalTokenAmount, "Incorrect attached value");
 
             bytes memory recipient = bytes(getImplicitNearAccountIdForSelf());
 
@@ -562,7 +565,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         balance[token][recipient] -= recipientBalance;
 
         string memory msgStr = UtilsFastBridge.addressToString(recipient);
-        if (UtilsFastBridge.isStrEqual(token, auroraEngineAccountIdOnNear)) {
+        if (UtilsFastBridge.isStrEqual(token, nativeAuroraTokenAccountIdOnNear)) {
             string memory sixtyFourZeros;
             for (uint8 i = 0; i < 64; i++) {
                 sixtyFourZeros = string(abi.encodePacked(sixtyFourZeros, "0"));

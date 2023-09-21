@@ -715,6 +715,7 @@ pub mod aurora_fast_bridge_wrapper {
                 ethabi::Token::Address(wnear_address.raw()),
                 ethabi::Token::String(near_fast_bridge.id().to_string()),
                 ethabi::Token::String(engine.inner.id().to_string()),
+                ethabi::Token::String(engine.inner.id().to_string()),
                 ethabi::Token::Bool(whitelist_mode),
             ],
         );

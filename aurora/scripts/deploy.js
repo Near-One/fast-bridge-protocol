@@ -29,7 +29,7 @@ async function deploy({
     })).connect(signer);
 
     let proxy = await hre.upgrades.deployProxy(AuroraErc20FastBridge,
-        [wNearAddress, nearFastBridgeAccountId, auroraEngineAccountId, false],
+        [wNearAddress, nearFastBridgeAccountId, auroraEngineAccountId, auroraEngineAccountId, false],
         {
         initializer: "initialize",
         unsafeAllowLinkedLibraries: true,
