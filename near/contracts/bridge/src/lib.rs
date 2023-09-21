@@ -687,7 +687,9 @@ impl FastBridge {
     ///
     /// The balance of the specified token for the specified account.
     pub fn get_user_balance(&self, account_id: &AccountId, token_id: &AccountId) -> U128 {
-        let Some(token_balance) = self.token_balances.get(token_id) else { return U128(0) };
+        let Some(token_balance) = self.token_balances.get(token_id) else {
+            return U128(0);
+        };
         token_balance.get(account_id).unwrap_or(0).into()
     }
 
