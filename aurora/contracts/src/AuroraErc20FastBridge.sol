@@ -331,18 +331,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         uint256 totalTokenAmount = uint256(transferMessage.transferTokenAmount + transferMessage.feeTokenAmount);
 
-        if (address(token) != address(0)) {
-            require(msg.value == 0, "Incorrect attached value");
-
-            token.transferFrom(msg.sender, address(this), totalTokenAmount);
-
-            // WARNING: The `withdrawToNear` method works asynchronously.
-            // As a result, there is no guarantee that this method will be completed before `initTransfer()`.
-            // In case of such an error, the user will be able to call the `withdraw()` method and get his tokens back.
-            // We expect such an error not to happen as long as transactions are executed in one shard.
-            token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
-        } else {
-            require(_isNativeToken(transferMessage.transferTokenAccountIdOnNear), "The token is not registered");
+        if (_isNativeToken(transferMessage.transferTokenAccountIdOnNear)) {
             require(msg.value == totalTokenAmount, "Incorrect attached value");
 
             bytes memory recipient = bytes(getImplicitNearAccountIdForSelf());
@@ -354,6 +343,12 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
             assembly {
                 let res := call(gas(), 0xe9217bc70b7ed1f598ddd3199e80b093fa71124f, amount, add(input, 32), input_size, 0, 32)
             }
+        } else {
+            require(address(token) != address(0), "The token is not registered");
+            require(msg.value == 0, "Incorrect attached value");
+
+            token.transferFrom(msg.sender, address(this), totalTokenAmount);
+            token.withdrawToNear(bytes(getImplicitNearAccountIdForSelf()), totalTokenAmount);
         }
 
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
