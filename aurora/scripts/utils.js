@@ -147,6 +147,20 @@ async function deploySDK({ signer }) {
     console.log("SDK lib deployed to: ", await sdkLib.getAddress());
   }
 
+
+async function setNativeTokenAccountId(signer, config, fastBridgeAddress) {
+  const fastBridge = await getFastBridgeContract(
+    signer,
+    config,
+    fastBridgeAddress,
+  );
+  let tx = await fastBridge.setNativeTokenAccountId(
+    config.nativeTokenAccountId,
+  );
+  let receipt = await tx.wait();
+  console.log("Transaction hash: ", receipt.hash);
+}
+
 exports.get_token_aurora_address = get_token_aurora_address;
 exports.get_implicit_near_account_id = get_implicit_near_account_id;
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
@@ -159,3 +173,4 @@ exports.fast_bridge_withdraw_on_near = fast_bridge_withdraw_on_near;
 exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_account;
 exports.get_balance = get_balance;
 exports.deploySDK = deploySDK;
+exports.setNativeTokenAccountId = setNativeTokenAccountId;

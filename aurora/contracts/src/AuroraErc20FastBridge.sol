@@ -55,7 +55,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_near_account_id][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
     mapping(string => mapping(address => uint128)) balance;
-    string public nativeAuroraTokenAccountIdOnNear;
+    string public nativeTokenAccountIdOnNear;
     
     event Unlock(
         uint128 indexed nonce,
@@ -107,7 +107,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         address wnearAddress,
         string calldata fastBridgeAccountId,
         string calldata auroraEngineAccountId,
-        string calldata nativeAuroraTokenAccountId,
+        string calldata nativeTokenAccountId,
         bool _isWhitelistModeEnabled
     ) external initializer {
         __Pausable_init();
@@ -116,7 +116,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         near = AuroraSdk.initNear(IERC20_NEAR(wnearAddress));
         fastBridgeAccountIdOnNear = fastBridgeAccountId;
         auroraEngineAccountIdOnNear = auroraEngineAccountId;
-        nativeAuroraTokenAccountIdOnNear = nativeAuroraTokenAccountId;
+        nativeTokenAccountIdOnNear = nativeTokenAccountId;
 
         _grantRole(CALLBACK_ROLE, AuroraSdk.nearRepresentitiveImplicitAddress(address(this)));
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -126,6 +126,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         whitelistedUsers[msg.sender] = true;
         isWhitelistModeEnabled = _isWhitelistModeEnabled;
+    }
+
+    function setNativeTokenAccountId(string calldata nativeTokenAccountId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        nativeTokenAccountIdOnNear = nativeTokenAccountId;
     }
 
     /**
@@ -646,7 +650,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     function _isNativeToken(string memory tokenAccountId) private view returns (bool) {
-        return UtilsFastBridge.isStrEqual(tokenAccountId, nativeAuroraTokenAccountIdOnNear);
+        return UtilsFastBridge.isStrEqual(tokenAccountId, nativeTokenAccountIdOnNear);
     }
 
     /**

@@ -23,6 +23,7 @@ task("deploy", "Deploy aurora fast bridge proxy contract")
             signer,
             nearFastBridgeAccountId: config.nearFastBridgeAccountId,
             auroraEngineAccountId: config.auroraEngineAccountId,
+            nativeTokenAccountId: config.nativeTokenAccountId,
             wNearAddress: config.wNearAddress,
             auroraSdkAddress: config.auroraSdkAddress,
             auroraUtilsAddress: config.auroraUtilsAddress
@@ -55,7 +56,7 @@ task('register_token', 'Registers a binding of "nearTokenAccountId:auroraTokenAd
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
-        const { registerToken } = require('./scripts/utils');
+        const { registerToken, setNativeTokenAccountId } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
@@ -224,6 +225,23 @@ task("deploy-sdk", "Deploy aurora sdk").setAction(async (_, hre) => {
         signer,
     });
 });
+
+task("set-native-token-account-id", "Set the native token account id")
+  .addParam(
+    "auroraFastBridgeConfigName",
+    "File name without extension for the config " +
+      "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+      "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.",
+  )
+  .addParam("fastBridgeAddress", "Aurora Fast Bridge address")
+  .setAction(async (taskArgs) => {
+    const { setNativeTokenAccountId } = require("./scripts/utils");
+    const [signer] = await hre.ethers.getSigners();
+    const config = require(
+      `./configs/${taskArgs.auroraFastBridgeConfigName}.json`,
+    );
+    await setNativeTokenAccountId(signer, config, taskArgs.fastBridgeAddress);
+  });
 
 module.exports = {
     solidity: {
