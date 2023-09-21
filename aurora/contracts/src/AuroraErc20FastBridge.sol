@@ -43,7 +43,6 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     NEAR public near;
     string public fastBridgeAccountIdOnNear;
     string public auroraEngineAccountIdOnNear;
-    string public nativeAuroraTokenAccountIdOnNear;
     bool public isWhitelistModeEnabled;
 
     //The Whitelisted Aurora users which allowed use fast bridge.
@@ -56,7 +55,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     //By the token account id on near and user address on aurora return the user balance of this token in this contract
     //[token_near_account_id][user_address_on_aurora] => user_token_balance_in_aurora_fast_bridge
     mapping(string => mapping(address => uint128)) balance;
-
+    string public nativeAuroraTokenAccountIdOnNear;
+    
     event Unlock(
         uint128 indexed nonce,
         address indexed sender,
