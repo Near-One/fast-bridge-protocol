@@ -558,12 +558,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         string memory msgStr = UtilsFastBridge.addressToString(recipient);
         if (_isNativeToken(token)) {
-            string memory sixtyFourZeros;
-            for (uint8 i = 0; i < 64; i++) {
-                sixtyFourZeros = string(abi.encodePacked(sixtyFourZeros, "0"));
-            }
-
-            msgStr = string.concat("fake.near:", sixtyFourZeros, msgStr);
+            msgStr = string.concat("fake.near:0000000000000000000000000000000000000000000000000000000000000000", msgStr);
         }
 
         PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
