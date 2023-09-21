@@ -334,16 +334,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
         if (_isNativeToken(transferMessage.transferTokenAccountIdOnNear)) {
             require(msg.value == totalTokenAmount, "Incorrect attached value");
-
-            bytes memory recipient = bytes(getImplicitNearAccountIdForSelf());
-
-            bytes memory input = abi.encodePacked("\x00", recipient);
-            uint input_size = 1 + recipient.length;
-            uint256 amount = msg.value;
-
-            assembly {
-                let res := call(gas(), 0xe9217bc70b7ed1f598ddd3199e80b093fa71124f, amount, add(input, 32), input_size, 0, 32)
-            }
+            _withdrawNativeTokenToNear(bytes(getImplicitNearAccountIdForSelf()), msg.value);
         } else {
             require(address(token) != address(0), "The token is not registered");
             require(msg.value == 0, "Incorrect attached value");
@@ -651,6 +642,22 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
 
     function _isNativeToken(string memory tokenAccountId) private view returns (bool) {
         return UtilsFastBridge.isStrEqual(tokenAccountId, nativeTokenAccountIdOnNear);
+    }
+
+    function _withdrawNativeTokenToNear(bytes memory recipient, uint256 amount) private {
+        bytes memory input = abi.encodePacked("\x00", recipient);
+        uint input_size = 1 + recipient.length;
+        assembly {
+            let res := call(
+                gas(),
+                0xe9217bc70b7ed1f598ddd3199e80b093fa71124f,
+                amount,
+                add(input, 32),
+                input_size,
+                0,
+                32
+            )
+        }
     }
 
     /**
