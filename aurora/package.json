@@ -1,6 +1,10 @@
 {
   "name": "hardhat-project",
   "license": "MIT",
+  "scripts": {
+    "dev:prettier": "yarn prettier --check \"contracts/**/*.sol\" --plugin=prettier-plugin-solidity",
+    "dev:prettier-fix": "yarn prettier --write \"contracts/**/*.sol\" --plugin=prettier-plugin-solidity"
+  },
   "dependencies": {
     "@auroraisnear/aurora-sdk": "^0.0.1",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.1",
