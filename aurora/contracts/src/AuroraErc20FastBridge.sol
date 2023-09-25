@@ -72,6 +72,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     event FastBridgeWithdrawOnNear(string token, uint128 amount);
     event InitTokenTransfer(
         address indexed sender,
+        address indexed tokenAddress,
         string initTransferArg,
         string token,
         uint128 transferAmount,
@@ -367,7 +368,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         bytes memory callbackArg = abi.encodeWithSelector(
             this.initTokenTransferCallback.selector,
             msg.sender,
-            initTransferArgs
+            initTransferArgs,
+            token
         );
         PromiseCreateArgs memory callback = near.auroraCall(
             address(this),
@@ -391,7 +393,8 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
      */
     function initTokenTransferCallback(
         address signer,
-        bytes calldata initTransferArgs
+        bytes calldata initTransferArgs,
+        address tokenAddress
     ) external onlyRole(CALLBACK_ROLE) {
         uint128 transferredAmount = 0;
 
@@ -411,6 +414,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
         string memory initArgsBase64 = Base64.encode(initTransferArgs);
         emit InitTokenTransfer(
             signer,
+            tokenAddress,
             initArgsBase64,
             transferMessage.transferTokenAccountIdOnNear,
             transferMessage.transferTokenAmount,
