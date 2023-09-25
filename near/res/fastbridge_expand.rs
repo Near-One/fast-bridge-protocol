@@ -17732,7 +17732,7 @@ impl FastBridge {
         token_id: &AccountId,
     ) -> U128 {
         let Some(token_balance) = self.token_balances.get(token_id) else {
-            return U128(0)
+            return U128(0);
         };
         token_balance.get(account_id).unwrap_or(0).into()
     }

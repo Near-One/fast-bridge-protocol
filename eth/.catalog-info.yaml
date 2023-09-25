@@ -20,3 +20,4 @@ spec:
   system: spectre-bridge
   deployedAt:
     - contract:ethereum/mainnet/0xC5E985976d9b521904AD96306356ECA0fE4F3a1f
+    - contract:ethereum/goerli/0x00763f30eEB0eEF506907e18f2a6ceC2DAb30Df8

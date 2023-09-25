@@ -22,3 +22,4 @@ spec:
   system: spectre-bridge
   deployedAt:
     - contract:near/mainnet/fast.bridge.near
+    - contract:near/testnet/fastbridge.testnet

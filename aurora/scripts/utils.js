@@ -69,13 +69,13 @@ async function fast_bridge_withdraw_on_near(signer, config, fastBridgeAddress, n
     let receipt = await tx.wait();
 }
 
-async function withdraw_from_implicit_near_account(signer, config, fastBridgeAddress, nearTokenAccountId) {
+async function withdraw_from_implicit_near_account(signer, config, fastBridgeAddress, nearTokenAccountId, recipientAddress) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
 
     const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
     await wnear.transfer(fastBridgeAddress, 1);
 
-    let tx = await fastBridge.withdrawFromImplicitNearAccount(nearTokenAccountId);
+    let tx = await fastBridge.withdrawFromImplicitNearAccount(nearTokenAccountId, recipientAddress);
     let receipt = await tx.wait();
 }
 
@@ -150,6 +150,40 @@ async function getFastBridgeContract(signer, config, fastBridgeAddress) {
         .connect(signer);
 }
 
+async function deploySDK({ signer }) {
+    let utilsLib = await ethers.deployContract("Utils", { signer });
+    await utilsLib.waitForDeployment();
+    console.log("Utils lib deployed to: ", await utilsLib.getAddress());
+  
+    let codecLib = await ethers.deployContract("Codec", { signer });
+    await codecLib.waitForDeployment();
+    console.log("Codec lib deployed to: ", await codecLib.getAddress());
+  
+    const sdkLib = await ethers.deployContract("AuroraSdk", {
+      signer,
+      libraries: {
+        Utils: await utilsLib.getAddress(),
+        Codec: await codecLib.getAddress(),
+      },
+    });
+    await sdkLib.waitForDeployment();
+    console.log("SDK lib deployed to: ", await sdkLib.getAddress());
+  }
+
+
+async function setNativeTokenAccountId(signer, config, fastBridgeAddress) {
+  const fastBridge = await getFastBridgeContract(
+    signer,
+    config,
+    fastBridgeAddress,
+  );
+  let tx = await fastBridge.setNativeTokenAccountId(
+    config.nativeTokenAccountId,
+  );
+  let receipt = await tx.wait();
+  console.log("Transaction hash: ", receipt.hash);
+}
+
 exports.get_token_aurora_address = get_token_aurora_address;
 exports.get_implicit_near_account_id = get_implicit_near_account_id;
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
@@ -163,3 +197,5 @@ exports.withdraw_from_implicit_near_account = withdraw_from_implicit_near_accoun
 exports.get_balance = get_balance;
 exports.isUserWhitelisted = isUserWhitelisted;
 exports.is_storage_registered = is_storage_registered;
+exports.deploySDK = deploySDK;
+exports.setNativeTokenAccountId = setNativeTokenAccountId;

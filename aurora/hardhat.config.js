@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@openzeppelin/hardhat-upgrades");
+require("@nomicfoundation/hardhat-verify");
 
 // Replace this private key with your Ropsten account private key
 // To export your private key from Metamask, open Metamask and
@@ -8,6 +9,7 @@ require("@openzeppelin/hardhat-upgrades");
 require('dotenv').config();
 
 const AURORA_PRIVATE_KEY = process.env.AURORA_PRIVATE_KEY;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 
 task("deploy", "Deploy aurora fast bridge proxy contract")
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
@@ -23,6 +25,7 @@ task("deploy", "Deploy aurora fast bridge proxy contract")
             signer,
             nearFastBridgeAccountId: config.nearFastBridgeAccountId,
             auroraEngineAccountId: config.auroraEngineAccountId,
+            nativeTokenAccountId: config.nativeTokenAccountId,
             wNearAddress: config.wNearAddress,
             auroraSdkAddress: config.auroraSdkAddress,
             auroraUtilsAddress: config.auroraUtilsAddress
@@ -55,7 +58,7 @@ task('register_token', 'Registers a binding of "nearTokenAccountId:auroraTokenAd
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
-        const { registerToken } = require('./scripts/utils');
+        const { registerToken, setNativeTokenAccountId } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
@@ -129,12 +132,17 @@ task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
+    .addParam('recipientAddress', "The recipient address to withdraw")
     .setAction(async taskArgs => {
         const { withdraw_from_implicit_near_account } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
+        if (recipientAddress != "") {
+            await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.recipientAddress);
+        } else {
+            await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, signer.address);
+        }
     });
 
 task('get_implicit_near_account_id', 'Get near account id for aurora fast bridge contract')
@@ -149,7 +157,7 @@ task('get_implicit_near_account_id', 'Get near account id for aurora fast bridge
 
         await get_implicit_near_account_id(signer, config, taskArgs.fastBridgeAddress);
     });
-    
+
 task('get_token_aurora_address', 'Get aurora token address from aurora fast bridge')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
@@ -163,8 +171,7 @@ task('get_token_aurora_address', 'Get aurora token address from aurora fast brid
 
         await get_token_aurora_address(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
-    
-    
+
 task('get_balance', 'Get user balance in aurora fast bridge contract')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
@@ -237,6 +244,33 @@ task('is_storage_registered', 'Check is storage registered for token')
         await is_storage_registered(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId);
     });
 
+task("deploy-sdk", "Deploy aurora sdk").setAction(async (_, hre) => {
+    const { deploySDK } = require("./scripts/utils");
+    const [signer] = await hre.ethers.getSigners();
+    
+    await hre.run("compile");
+    await deploySDK({
+        signer,
+    });
+});
+
+task("set-native-token-account-id", "Set the native token account id")
+  .addParam(
+    "auroraFastBridgeConfigName",
+    "File name without extension for the config " +
+      "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+      "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.",
+  )
+  .addParam("fastBridgeAddress", "Aurora Fast Bridge address")
+  .setAction(async (taskArgs) => {
+    const { setNativeTokenAccountId } = require("./scripts/utils");
+    const [signer] = await hre.ethers.getSigners();
+    const config = require(
+      `./configs/${taskArgs.auroraFastBridgeConfigName}.json`,
+    );
+    await setNativeTokenAccountId(signer, config, taskArgs.fastBridgeAddress);
+  });
+
 module.exports = {
     solidity: {
         version: "0.8.17",
@@ -244,10 +278,22 @@ module.exports = {
             optimizer: {
                 enabled: true,
                 runs: 200
+            },
+            metadata: {
+                // do not include the metadata hash, since this is machine dependent
+                // and we want all generated code to be deterministic
+                // https://docs.soliditylang.org/en/v0.8.17/metadata.html
+                bytecodeHash: "none"
             }
         }
     },
     networks: {
+        mainnet_aurora: {
+            url: 'https://mainnet.aurora.dev',
+            accounts: [`0x${AURORA_PRIVATE_KEY}`],
+            chainId: 1313161554,
+            timeout: 100_000_000_000,
+        },
         testnet_aurora: {
             url: 'https://testnet.aurora.dev',
             accounts: [`0x${AURORA_PRIVATE_KEY}`],
@@ -262,6 +308,30 @@ module.exports = {
             url: 'https://rpc.testnet.aurora.dev:8545',
             accounts: [`0x${AURORA_PRIVATE_KEY}`]
         }
+    },
+    etherscan: {
+        apiKey: {
+          mainnet_aurora: `${ETHERSCAN_API_KEY}`,
+          testnet_aurora: `${ETHERSCAN_API_KEY}`
+        },
+        customChains: [
+          {
+            network: "mainnet_aurora",
+            chainId: 1313161554,
+            urls: {
+              apiURL: "https://explorer.mainnet.aurora.dev/api",
+              browserURL: "https://explorer.mainnet.aurora.dev"
+            }
+          },
+          {
+            network: "testnet_aurora",
+            chainId: 1313161555,
+            urls: {
+              apiURL: "https://explorer.testnet.aurora.dev/api",
+              browserURL: "https://explorer.testnet.aurora.dev"
+            }
+          }
+        ]
     },
     mocha: {
         timeout: 1000000000000
