@@ -5,16 +5,16 @@ AURORA_FAST_BRIDGE_ADDRESS=0xba120F3757a2C75eA4AcC3fC3c9819AC378A10E0
 # where <JSON_MESSAGE> is a init_token_transfer_arg in json format. More details in README.md in `../near/utils`
 # You will need the output in line which started with `Encoded message(hex):`
 
-NONCE=47
-VALID_TILL_BLOCK_HIEGHT=9587534
+NONCE=89
+VALID_TILL_BLOCK_HIEGHT=9758533
 
 NETWORK=testnet_aurora
-NEAR_TOKEN_ACCOUNT_ID="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
-ETH_TOKEN_ADDRESS="0x07865c6E87B9F70255377e024ace6630C1Eaa37F"
-AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
-TRANSFER_TOKEN_AMOUNT=200
+NEAR_TOKEN_ACCOUNT_ID="aurora"#"07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
+ETH_TOKEN_ADDRESS="0x0000000000000000000000000000000000000000"#"0x07865c6E87B9F70255377e024ace6630C1Eaa37F"
+AURORA_TOKEN_ADDRESS="0x0000000000000000000000000000000000000000"#0x901fb725c106E182614105335ad0E230c91B67C8
+TRANSFER_TOKEN_AMOUNT=2000000000000000#200
 CONFIG_NAME="aurora-testnet"
-WITHDRAW_ADDRESS=
+WITHDRAW_ADDRESS=""
 
 deploy:
 	yarn hardhat deploy --aurora-fast-bridge-config-name $(CONFIG_NAME) --network $(NETWORK)
@@ -63,6 +63,9 @@ is_user_whitelisted:
 
 is_storage_registered:
 	yarn hardhat is_storage_registered --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID)
+
+initTokenTransferEth:
+	yarn hardhat initTokenTransferEth --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --eth-token-address $(ETH_TOKEN_ADDRESS)
 
 fmt:
 	yarn prettier contracts/src/AuroraErc20FastBridge.sol --write --plugin=prettier-plugin-solidity

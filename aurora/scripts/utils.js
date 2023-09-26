@@ -42,6 +42,22 @@ async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAcc
     await tx.wait();
 }
 
+async function initTokenTransferEth(signer, config, fastBridgeAddress, nearTokenAccountId, ethTokenAddress) {
+    const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
+
+    let lockPeriod = 10800000000000;
+    const validTill = Date.now() * 1000000 + lockPeriod;
+
+    const initTokenTransferArg = encodeInitMsgToBorsh(validTill, nearTokenAccountId, ethTokenAddress.substring(2), 1000000000000000, 1000000000000000, signer.address, signer.address);
+
+    const wnear = await hre.ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", config.wNearAddress);
+    await wnear.transfer(fastBridgeAddress, 1);
+
+    const options = { gasLimit: 5000000, value: hre.ethers.parseEther("0.002000000000000000")};
+    let tx = await fastBridge.initTokenTransfer(initTokenTransferArg, options);
+    await tx.wait();
+}
+
 async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress, validTillBlockHeight) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
     
@@ -50,7 +66,7 @@ async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress,
         { token: ethTokenAddress,
           recipient: signer.address,
           nonce,
-          amount: 100}, validTillBlockHeight);
+          amount: "1000000000000000"/*100*/}, validTillBlockHeight);
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);
@@ -199,3 +215,4 @@ exports.isUserWhitelisted = isUserWhitelisted;
 exports.is_storage_registered = is_storage_registered;
 exports.deploySDK = deploySDK;
 exports.setNativeTokenAccountId = setNativeTokenAccountId;
+exports.initTokenTransferEth = initTokenTransferEth;

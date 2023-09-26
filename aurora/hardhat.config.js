@@ -95,6 +95,21 @@ task('init_token_transfer', 'Initialize Token Transfer from Aurora to Ethereum')
         await initTokenTransfer(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.auroraTokenAddress, taskArgs.ethTokenAddress);
     });
 
+task('initTokenTransferEth', 'Initialize Eth Transfer from Aurora to Ethereum')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('nearTokenAccountId', "Token account id on Near")
+    .addParam('ethTokenAddress', "Token address on Eth")
+    .setAction(async taskArgs => {
+        const { initTokenTransferEth } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await initTokenTransferEth(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.ethTokenAddress);
+    });
+
 task('unlock', 'Unlock tokens on Near')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
@@ -138,7 +153,7 @@ task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        if (recipientAddress != "") {
+        if (taskArgs.recipientAddress != "") {
             await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.recipientAddress);
         } else {
             await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, signer.address);
