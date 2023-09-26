@@ -72,7 +72,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     event FastBridgeWithdrawOnNear(string token, uint128 amount);
     event InitTokenTransfer(
         address indexed sender,
-        address indexed tokenAddress,
+        address indexed tokenAddressOnAurora,
         string initTransferArg,
         string token,
         uint128 transferAmount,
