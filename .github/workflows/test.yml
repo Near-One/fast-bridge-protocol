@@ -67,11 +67,17 @@ jobs:
           fi
 
   test-aurora-fast-bridge:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     name: Test aurora fast-bridge
     steps:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true   
       - name: Clone the repository
         uses: actions/checkout@v3
         with: 
