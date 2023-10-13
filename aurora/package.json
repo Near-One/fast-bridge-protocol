@@ -9,7 +9,7 @@
     "@auroraisnear/aurora-sdk": "^0.0.1",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.1",
     "@nomicfoundation/hardhat-ethers": "^3.0.4",
-    "@openzeppelin/contracts": "^4.9.2",
+    "@openzeppelin/contracts": "^4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.9.2",
     "@openzeppelin/hardhat-upgrades": "^2.2.1",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
