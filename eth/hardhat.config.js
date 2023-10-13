@@ -6,7 +6,6 @@ require("@nomicfoundation/hardhat-network-helpers");
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
-const { ethers } = require("ethers");
 const { task } = require("hardhat/config");
 const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
 const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
@@ -28,23 +27,23 @@ task("method", "Execute Fastbridge methods")
     .setAction(async (taskArgs) => {
         const network = (await ethers.getDefaultProvider().getNetwork()).name;
         const bridgeAddress = deploymentAddress[network].new.bridge;
-        const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_TASK);
+        const provider = new ethers.providers.JsonRpcProvider(process.env.TASK_RPC_URL);
         const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
         const jsonString = taskArgs.jsonstring;
         const json = JSON.parse(jsonString);
         const arg = json.arguments;
-        const functionSignature = json.signature;
-        console.log(arg);
-        const functionArguments = Object.values(arg);
-        console.log(functionSignature, functionArguments);
-        const iface = new ethers.utils.Interface(bridgeArtifacts.abi);
+        const methodName = json.methodName;
+        const gasLimit = json.gasLimit;
+        const methodArguments = Object.values(arg);
+        console.log(`calling method ${methodName} with arguments ${methodArguments}`);
+        const contractInterface = new ethers.utils.Interface(bridgeArtifacts.abi);
         // Send the transaction
-        const txdata = iface.encodeFunctionData(functionSignature, functionArguments);
+        const txdata = contractInterface.encodeFunctionData(methodName, methodArguments);
         const tx = await signer.sendTransaction({
             to: bridgeAddress,
             data: txdata,
-            gasLimit: 999999
+            gasLimit: gasLimit
         });
         console.log(tx);
         await tx.wait();
