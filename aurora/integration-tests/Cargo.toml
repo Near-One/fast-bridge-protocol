@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aurora-sdk-integration-tests = { git = "https://github.com/aurora-is-near/aurora-contracts-sdk.git", rev = "8f13bb44059c0be284446861222d4e6787c3bb05" }
+aurora-sdk-integration-tests = { git = "https://github.com/aurora-is-near/aurora-contracts-sdk.git" }
 fast-bridge-common = { git = "https://github.com/aurora-is-near/fast-bridge-common.git", tag = "0.2.1" }
 fastbridge = { path = "../../near/contracts/bridge" }
 serde = {version = "1", features = ["derive"] }
