@@ -374,8 +374,8 @@ dependencies = [
 
 [[package]]
 name = "aurora-sdk-integration-tests"
-version = "0.1.0"
-source = "git+https://github.com/aurora-is-near/aurora-contracts-sdk.git#176caccd008066b7a7754d3abf09d75aaaedaa02"
+version = "0.1.1"
+source = "git+https://github.com/aurora-is-near/aurora-contracts-sdk.git?rev=8f13bb44059c0be284446861222d4e6787c3bb05#8f13bb44059c0be284446861222d4e6787c3bb05"
 dependencies = [
  "anyhow",
  "aurora-engine 2.9.0",
