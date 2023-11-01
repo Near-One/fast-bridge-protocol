@@ -138,7 +138,7 @@ task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        if (recipientAddress != "") {
+        if (taskArgs.recipientAddress != "") {
             await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.recipientAddress);
         } else {
             await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, signer.address);
