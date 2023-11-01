@@ -138,7 +138,7 @@ task('withdraw_from_implicit_near_account', 'Withdraw tokens to user from Aurora
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        if (recipientAddress != "") {
+        if (taskArgs.recipientAddress != "") {
             await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, taskArgs.recipientAddress);
         } else {
             await withdraw_from_implicit_near_account(signer, config, taskArgs.fastBridgeAddress, taskArgs.nearTokenAccountId, signer.address);
@@ -245,13 +245,30 @@ task("set-native-token-account-id", "Set the native token account id")
     await setNativeTokenAccountId(signer, config, taskArgs.fastBridgeAddress);
   });
 
+
+task('force_increase_balance', 'Force increase users balance')
+.addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+    "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+    "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+.addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+.addParam('token', "Token account id on Near")
+.addParam('recipient', "Recipient address on Aurora")
+.addParam('amount', "Withdraw tokens amount")
+.setAction(async taskArgs => {
+    const { forceIncreaseBalance } = require('./scripts/utils');
+    const [signer] = await hre.ethers.getSigners();
+
+    const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+    await forceIncreaseBalance(signer, config, taskArgs.fastBridgeAddress, taskArgs.token, taskArgs.recipient, taskArgs.amount);
+});
+
 module.exports = {
     solidity: {
         version: "0.8.17",
         settings: {
             optimizer: {
                 enabled: true,
-                runs: 200
+                runs: 75
             },
             metadata: {
                 // do not include the metadata hash, since this is machine dependent

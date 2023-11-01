@@ -679,7 +679,7 @@ pub mod aurora_fast_bridge_wrapper {
                 .await
                 .unwrap();
 
-        let constructor = forge::forge_build(
+        let constructor = forge::forge_build_with_args(
             contract_path,
             &[
                 format!(
@@ -696,6 +696,7 @@ pub mod aurora_fast_bridge_wrapper {
                 "AuroraErc20FastBridge.sol",
                 "AuroraErc20FastBridge.json",
             ],
+            &["--optimize", "--optimizer-runs", "75"],
         )
         .await
         .unwrap();

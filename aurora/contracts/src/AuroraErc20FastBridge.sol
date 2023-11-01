@@ -532,6 +532,22 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     /**
+     * @dev Increases the user's balance by the admin to be able to withdraw stuck tokens if the XCC fails at some point.
+     * @param token The token NEAR account id.
+     * @param recipient The address of the recipient.
+     * @param amount The amount of tokens to increase the balance.
+     * Requirements:
+     * - The caller must have the `DEFAULT_ADMIN_ROLE`.
+     */
+    function forceIncreaseBalance(
+        string calldata token,
+        address recipient,
+        uint128 amount
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        balance[token][recipient] += amount;
+    }
+
+    /**
      * @dev Initiates the withdrawal of tokens from the implicit NEAR account of this fast bridge contract to the signer on the Aurora blockchain.
      * @param token The token NEAR account id to be withdrawn.
      * @param recipient The address of the recipient. His tokens will be transferred from fast-bridge contract to him.
