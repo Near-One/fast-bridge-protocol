@@ -6,5 +6,6 @@ metadata:
   description: Spectre Bridge Protocol repository
 spec:
   targets:
+    - ./aurora/.catalog-info.yaml
     - ./eth/.catalog-info.yaml
     - ./near/contracts/.catalog-info.yaml
