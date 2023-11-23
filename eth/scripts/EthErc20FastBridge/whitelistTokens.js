@@ -1,11 +1,11 @@
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const deploymentAddress = require("../deployment/deploymentAddresses.json");
 
 async function getBridgeContract() {
     console.log("Connecting with bridge...");
-    const network = (await ethers.getDefaultProvider().getNetwork()).name;
-    const bridgeAddress = deploymentAddress[network].new.bridge_proxy;
-    const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeAddress);
+    const network_name = network.name;
+    const bridgeProxyAddress = deploymentAddress[network_name].new.bridge_proxy;
+    const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeProxyAddress);
     console.log("Connected !");
     return bridge;
 }
@@ -43,10 +43,10 @@ async function removeTokenFromWhitelist(token, signer) {
     }
 }
 
-async function isTokenInWhitelist(token) {
-    let bridge;
+async function isTokenInWhitelist(token, bridgeProxyAddress) {
     try {
-        bridge = await getBridgeContract();
+        const bridge = ethers.getContractAt("/contracts/EthErc20FastBridge.sol:EthErc20FastBridge", bridgeProxyAddress);
+
         (await bridge.isTokenInWhitelist(token))
             ? console.log(token, "is whitelisted")
             : console.log(token, "is not whitelisted");

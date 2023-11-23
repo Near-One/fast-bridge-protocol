@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const fs = require("fs");
 const { ethers } = hre;
+const deploymentAddress = require("../deploymentAddresses.json");
 
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
