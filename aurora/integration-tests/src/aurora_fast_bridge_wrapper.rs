@@ -328,7 +328,7 @@ pub mod aurora_fast_bridge_wrapper {
                 .unwrap();
         }
 
-        pub async fn unlock(&self, nonce: u64) {
+        pub async fn unlock_and_withdraw(&self, nonce: u64) {
             let unlock_proof: UnlockProof = Default::default();
 
             let unlock_proof_str = near_sdk::base64::encode(unlock_proof.try_to_vec().unwrap());
@@ -336,25 +336,10 @@ pub mod aurora_fast_bridge_wrapper {
             let contract_args = self
                 .aurora_fast_bridge_contract
                 .create_call_method_bytes_with_args(
-                    "unlock",
+                    "unlockAndWithdraw",
                     &[
                         ethabi::Token::Uint(U256::from(nonce)),
                         ethabi::Token::String(unlock_proof_str),
-                    ],
-                );
-
-            self.call_aurora_contract(contract_args, true, MAX_GAS, 0)
-                .await;
-        }
-
-        pub async fn fast_bridge_withdraw_on_near(&self) {
-            let contract_args = self
-                .aurora_fast_bridge_contract
-                .create_call_method_bytes_with_args(
-                    "fastBridgeWithdrawOnNear",
-                    &[
-                        ethabi::Token::String(self.mock_token.id().to_string()),
-                        ethabi::Token::Uint(U256::from(TRANSFER_TOKENS_AMOUNT)),
                     ],
                 );
 

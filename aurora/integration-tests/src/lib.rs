@@ -4,7 +4,7 @@ pub mod test_deploy;
 #[cfg(test)]
 mod tests {
     use crate::test_deploy::test_deploy::TOKEN_SUPPLY;
-    use aurora_sdk_integration_tests::{ethabi, tokio};
+    use aurora_sdk_integration_tests::tokio;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -118,27 +118,7 @@ mod tests {
             0
         );
 
-        aurora_fast_bridge.unlock(1).await;
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        aurora_fast_bridge.fast_bridge_withdraw_on_near().await;
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        aurora_fast_bridge
-            .withdraw_from_implicit_near_account(true)
-            .await;
+        aurora_fast_bridge.unlock_and_withdraw(1).await;
 
         let balance3 = aurora_fast_bridge.get_token_balance_on_aurora().await;
         assert_eq!(balance3, balance0);
@@ -298,114 +278,9 @@ mod tests {
             0
         );
 
-        aurora_fast_bridge.unlock(1).await;
-        second_aurora_fast_bridge.unlock(2).await;
+        aurora_fast_bridge.unlock_and_withdraw(1).await;
+        second_aurora_fast_bridge.unlock_and_withdraw(2).await;
 
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        assert_eq!(
-            aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            0
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            0
-        );
-
-        aurora_fast_bridge.fast_bridge_withdraw_on_near().await;
-        second_aurora_fast_bridge
-            .fast_bridge_withdraw_on_near()
-            .await;
-
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        assert_eq!(
-            aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            0
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            0
-        );
-
-        aurora_fast_bridge
-            .withdraw_from_implicit_near_account(true)
-            .await;
-        aurora_fast_bridge
-            .withdraw_from_implicit_near_account(true)
-            .await;
-
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            0
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        assert_eq!(
-            aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            0
-        );
-
-        second_aurora_fast_bridge
-            .withdraw_from_implicit_near_account(true)
-            .await;
         assert_eq!(
             aurora_fast_bridge
                 .user_balance_in_fast_bridge_on_aurora()
@@ -642,58 +517,8 @@ mod tests {
         fast_bridge.increment_current_eth_block().await;
         sleep(Duration::from_secs(15));
 
-        fast_bridge.unlock(1).await;
-        second_aurora_fast_bridge.unlock(2).await;
-        assert_eq!(
-            fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        fast_bridge.withdraw_from_implicit_near_account(false).await;
-        assert_eq!(
-            fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-        assert_eq!(fast_bridge.get_token_balance_on_aurora().await.as_u64(), 0);
-
-        fast_bridge.fast_bridge_withdraw_on_near().await;
-        second_aurora_fast_bridge
-            .withdraw_from_implicit_near_account(false)
-            .await;
-        fast_bridge.withdraw_from_implicit_near_account(false).await;
-
-        assert_eq!(
-            fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-        assert_eq!(fast_bridge.get_token_balance_on_aurora().await.as_u64(), 0);
-
-        assert_eq!(
-            second_aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            0
-        );
-        assert_eq!(
-            second_aurora_fast_bridge
-                .get_token_balance_on_aurora()
-                .await
-                .as_u64(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        fast_bridge.fast_bridge_withdraw_on_near().await;
-        fast_bridge.withdraw_from_implicit_near_account(false).await;
+        fast_bridge.unlock_and_withdraw(1).await;
+        second_aurora_fast_bridge.unlock_and_withdraw(2).await;
 
         assert_eq!(
             fast_bridge
@@ -1053,39 +878,7 @@ mod tests {
             0
         );
 
-        second_aurora_fast_bridge.unlock(1).await;
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        second_aurora_fast_bridge
-            .fast_bridge_withdraw_on_near()
-            .await;
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        let contract_args = aurora_fast_bridge
-            .aurora_fast_bridge_contract
-            .create_call_method_bytes_with_args(
-                "withdrawFromImplicitNearAccount",
-                &[
-                    ethabi::Token::String(aurora_fast_bridge.mock_token.id().to_string()),
-                    ethabi::Token::Address(aurora_fast_bridge.user_aurora_address.raw()),
-                ],
-            );
-
-        second_aurora_fast_bridge
-            .call_aurora_contract(contract_args, true, MAX_GAS, 0)
-            .await;
+        second_aurora_fast_bridge.unlock_and_withdraw(1).await;
 
         let balance3 = aurora_fast_bridge.get_token_balance_on_aurora().await;
         assert_eq!(balance3, balance0);
@@ -1173,12 +966,6 @@ mod tests {
         let balance1 = aurora_fast_bridge.get_user_ether_balance().await;
         assert_eq!(balance1 + TRANSFER_TOKENS_AMOUNT, balance0);
 
-        aurora_fast_bridge
-            .withdraw_from_implicit_near_account(true)
-            .await;
-        let balance2 = aurora_fast_bridge.get_user_ether_balance().await;
-        assert_eq!(balance2, balance1);
-
         aurora_fast_bridge.increment_current_eth_block().await;
         sleep(Duration::from_secs(15));
 
@@ -1190,27 +977,7 @@ mod tests {
             0
         );
 
-        aurora_fast_bridge.unlock(1).await;
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        aurora_fast_bridge.fast_bridge_withdraw_on_near().await;
-        assert_eq!(
-            aurora_fast_bridge
-                .user_balance_in_fast_bridge_on_aurora()
-                .await
-                .unwrap(),
-            TRANSFER_TOKENS_AMOUNT
-        );
-
-        aurora_fast_bridge
-            .withdraw_from_implicit_near_account(true)
-            .await;
+        aurora_fast_bridge.unlock_and_withdraw(1).await;
 
         let balance3 = aurora_fast_bridge.get_user_ether_balance().await;
         assert_eq!(balance3, balance0);
