@@ -17,7 +17,7 @@ use near_sdk::serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use near_sdk::Promise;
 use near_sdk::{
-    env, ext_contract, is_promise_success, near_bindgen, require, AccountId,
+    env, ext_contract, near_bindgen, promise_result_as_success, require, AccountId,
     BorshStorageKey, Duration, PanicOnDefault, PromiseOrValue,
 };
 use parse_duration::parse;
@@ -3317,6 +3317,7 @@ trait NEP141Token {
         amount: U128,
         memo: Option<String>,
     );
+    fn ft_transfer_call(&mut self, receiver_id: AccountId, amount: U128, msg: String);
 }
 pub mod ext_token {
     use super::*;
@@ -3442,6 +3443,97 @@ pub mod ext_token {
                     self.gas_weight,
                 )
         }
+        pub fn ft_transfer_call(
+            self,
+            receiver_id: AccountId,
+            amount: U128,
+            msg: String,
+        ) -> near_sdk::Promise {
+            let __args = {
+                #[serde(crate = "near_sdk::serde")]
+                struct Input<'nearinput> {
+                    receiver_id: &'nearinput AccountId,
+                    amount: &'nearinput U128,
+                    msg: &'nearinput String,
+                }
+                #[doc(hidden)]
+                #[allow(
+                    non_upper_case_globals,
+                    unused_attributes,
+                    unused_qualifications
+                )]
+                const _: () = {
+                    use near_sdk::serde as _serde;
+                    #[automatically_derived]
+                    impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                        fn serialize<__S>(
+                            &self,
+                            __serializer: __S,
+                        ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                        where
+                            __S: near_sdk::serde::Serializer,
+                        {
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
+                                __serializer,
+                                "Input",
+                                false as usize + 1 + 1 + 1,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
+                                &mut __serde_state,
+                                "receiver_id",
+                                &self.receiver_id,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
+                                &mut __serde_state,
+                                "amount",
+                                &self.amount,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
+                                &mut __serde_state,
+                                "msg",
+                                &self.msg,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::ser::SerializeStruct::end(__serde_state)
+                        }
+                    }
+                };
+                let __args = Input {
+                    receiver_id: &receiver_id,
+                    amount: &amount,
+                    msg: &msg,
+                };
+                near_sdk::serde_json::to_vec(&__args)
+                    .expect("Failed to serialize the cross contract args using JSON.")
+            };
+            near_sdk::Promise::new(self.account_id)
+                .function_call_weight(
+                    "ft_transfer_call".to_string(),
+                    __args,
+                    self.deposit,
+                    self.static_gas,
+                    self.gas_weight,
+                )
+        }
     }
 }
 trait FastBridgeInterface {
@@ -3468,6 +3560,18 @@ trait FastBridgeInterface {
         sender_id: AccountId,
         update_balance: Option<UpdateBalance>,
     ) -> PromiseOrValue<U128>;
+    fn unlock_and_withdraw_callback(
+        &mut self,
+        transfer_data: TransferMessage,
+        sender_id: AccountId,
+        recipient_id: Option<AccountId>,
+        aurora_native_token_account_id: Option<AccountId>,
+    ) -> Promise;
+    fn unlock_and_withdraw_return_transfer_msg(
+        &self,
+        withdraw_amount: U128,
+        transfer_data: TransferMessage,
+    ) -> TransferMessage;
 }
 pub mod ext_self {
     use super::*;
@@ -3708,6 +3812,119 @@ pub mod ext_self {
             near_sdk::Promise::new(self.account_id)
                 .function_call_weight(
                     "init_transfer_callback".to_string(),
+                    __args,
+                    self.deposit,
+                    self.static_gas,
+                    self.gas_weight,
+                )
+        }
+        pub fn unlock_and_withdraw_callback(
+            self,
+            sender_id: AccountId,
+            recipient_id: Option<AccountId>,
+            aurora_native_token_account_id: Option<AccountId>,
+        ) -> near_sdk::Promise {
+            let __args = {
+                struct Input<'nearinput> {
+                    sender_id: &'nearinput AccountId,
+                    recipient_id: &'nearinput Option<AccountId>,
+                    aurora_native_token_account_id: &'nearinput Option<AccountId>,
+                }
+                impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
+                where
+                    &'nearinput AccountId: borsh::ser::BorshSerialize,
+                    &'nearinput Option<AccountId>: borsh::ser::BorshSerialize,
+                    &'nearinput Option<AccountId>: borsh::ser::BorshSerialize,
+                {
+                    fn serialize<W: borsh::maybestd::io::Write>(
+                        &self,
+                        writer: &mut W,
+                    ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+                        borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                        borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
+                        borsh::BorshSerialize::serialize(
+                            &self.aurora_native_token_account_id,
+                            writer,
+                        )?;
+                        Ok(())
+                    }
+                }
+                let __args = Input {
+                    sender_id: &sender_id,
+                    recipient_id: &recipient_id,
+                    aurora_native_token_account_id: &aurora_native_token_account_id,
+                };
+                near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
+                    .expect("Failed to serialize the cross contract args using Borsh.")
+            };
+            near_sdk::Promise::new(self.account_id)
+                .function_call_weight(
+                    "unlock_and_withdraw_callback".to_string(),
+                    __args,
+                    self.deposit,
+                    self.static_gas,
+                    self.gas_weight,
+                )
+        }
+        pub fn unlock_and_withdraw_return_transfer_msg(
+            self,
+            transfer_data: TransferMessage,
+        ) -> near_sdk::Promise {
+            let __args = {
+                #[serde(crate = "near_sdk::serde")]
+                struct Input<'nearinput> {
+                    transfer_data: &'nearinput TransferMessage,
+                }
+                #[doc(hidden)]
+                #[allow(
+                    non_upper_case_globals,
+                    unused_attributes,
+                    unused_qualifications
+                )]
+                const _: () = {
+                    use near_sdk::serde as _serde;
+                    #[automatically_derived]
+                    impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                        fn serialize<__S>(
+                            &self,
+                            __serializer: __S,
+                        ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                        where
+                            __S: near_sdk::serde::Serializer,
+                        {
+                            let mut __serde_state = match _serde::Serializer::serialize_struct(
+                                __serializer,
+                                "Input",
+                                false as usize + 1,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
+                                &mut __serde_state,
+                                "transfer_data",
+                                &self.transfer_data,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::ser::SerializeStruct::end(__serde_state)
+                        }
+                    }
+                };
+                let __args = Input {
+                    transfer_data: &transfer_data,
+                };
+                near_sdk::serde_json::to_vec(&__args)
+                    .expect("Failed to serialize the cross contract args using JSON.")
+            };
+            near_sdk::Promise::new(self.account_id)
+                .function_call_weight(
+                    "unlock_and_withdraw_return_transfer_msg".to_string(),
                     __args,
                     self.deposit,
                     self.static_gas,
@@ -16042,6 +16259,241 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
+    pub fn unlock_and_withdraw(
+        self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        recipient_id: Option<AccountId>,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                nonce: &'nearinput U128,
+                proof: &'nearinput near_sdk::json_types::Base64VecU8,
+                recipient_id: &'nearinput Option<AccountId>,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1 + 1 + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "nonce",
+                            &self.nonce,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "proof",
+                            &self.proof,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "recipient_id",
+                            &self.recipient_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input {
+                nonce: &nonce,
+                proof: &proof,
+                recipient_id: &recipient_id,
+            };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "unlock_and_withdraw".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn unlock_and_withdraw_to_aurora_sender(
+        self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        recipient_id: AccountId,
+        aurora_native_token_account_id: AccountId,
+    ) -> near_sdk::Promise {
+        let __args = {
+            #[serde(crate = "near_sdk::serde")]
+            struct Input<'nearinput> {
+                nonce: &'nearinput U128,
+                proof: &'nearinput near_sdk::json_types::Base64VecU8,
+                recipient_id: &'nearinput AccountId,
+                aurora_native_token_account_id: &'nearinput AccountId,
+            }
+            #[doc(hidden)]
+            #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+            const _: () = {
+                use near_sdk::serde as _serde;
+                #[automatically_derived]
+                impl<'nearinput> near_sdk::serde::Serialize for Input<'nearinput> {
+                    fn serialize<__S>(
+                        &self,
+                        __serializer: __S,
+                    ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
+                    where
+                        __S: near_sdk::serde::Serializer,
+                    {
+                        let mut __serde_state = match _serde::Serializer::serialize_struct(
+                            __serializer,
+                            "Input",
+                            false as usize + 1 + 1 + 1 + 1,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "nonce",
+                            &self.nonce,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "proof",
+                            &self.proof,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "recipient_id",
+                            &self.recipient_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "aurora_native_token_account_id",
+                            &self.aurora_native_token_account_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        _serde::ser::SerializeStruct::end(__serde_state)
+                    }
+                }
+            };
+            let __args = Input {
+                nonce: &nonce,
+                proof: &proof,
+                recipient_id: &recipient_id,
+                aurora_native_token_account_id: &aurora_native_token_account_id,
+            };
+            near_sdk::serde_json::to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using JSON.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "unlock_and_withdraw_to_aurora_sender".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
+    pub fn unlock_and_withdraw_callback(
+        self,
+        sender_id: AccountId,
+        recipient_id: Option<AccountId>,
+        aurora_native_token_account_id: Option<AccountId>,
+    ) -> near_sdk::Promise {
+        let __args = {
+            struct Input<'nearinput> {
+                sender_id: &'nearinput AccountId,
+                recipient_id: &'nearinput Option<AccountId>,
+                aurora_native_token_account_id: &'nearinput Option<AccountId>,
+            }
+            impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
+            where
+                &'nearinput AccountId: borsh::ser::BorshSerialize,
+                &'nearinput Option<AccountId>: borsh::ser::BorshSerialize,
+                &'nearinput Option<AccountId>: borsh::ser::BorshSerialize,
+            {
+                fn serialize<W: borsh::maybestd::io::Write>(
+                    &self,
+                    writer: &mut W,
+                ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
+                    borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
+                    borsh::BorshSerialize::serialize(&self.recipient_id, writer)?;
+                    borsh::BorshSerialize::serialize(
+                        &self.aurora_native_token_account_id,
+                        writer,
+                    )?;
+                    Ok(())
+                }
+            }
+            let __args = Input {
+                sender_id: &sender_id,
+                recipient_id: &recipient_id,
+                aurora_native_token_account_id: &aurora_native_token_account_id,
+            };
+            near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
+                .expect("Failed to serialize the cross contract args using Borsh.")
+        };
+        near_sdk::Promise::new(self.account_id)
+            .function_call_weight(
+                "unlock_and_withdraw_callback".to_string(),
+                __args,
+                self.deposit,
+                self.static_gas,
+                self.gas_weight,
+            )
+    }
     pub fn unlock(
         self,
         nonce: U128,
@@ -16397,12 +16849,16 @@ impl FastBridgeExt {
         self,
         token_id: AccountId,
         amount: Option<U128>,
+        recipient_id: Option<AccountId>,
+        msg: Option<String>,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
                 token_id: &'nearinput AccountId,
                 amount: &'nearinput Option<U128>,
+                recipient_id: &'nearinput Option<AccountId>,
+                msg: &'nearinput Option<String>,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -16420,7 +16876,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1 + 1,
+                            false as usize + 1 + 1 + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -16447,6 +16903,26 @@ impl FastBridgeExt {
                                 return _serde::__private::Err(__err);
                             }
                         };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "recipient_id",
+                            &self.recipient_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
+                            "msg",
+                            &self.msg,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
                         _serde::ser::SerializeStruct::end(__serde_state)
                     }
                 }
@@ -16454,6 +16930,8 @@ impl FastBridgeExt {
             let __args = Input {
                 token_id: &token_id,
                 amount: &amount,
+                recipient_id: &recipient_id,
+                msg: &msg,
             };
             near_sdk::serde_json::to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using JSON.")
@@ -17241,6 +17719,136 @@ impl FastBridge {
             .emit();
         U128::from(0)
     }
+    pub fn unlock_and_withdraw(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        recipient_id: Option<AccountId>,
+    ) -> Promise {
+        let mut __check_paused = true;
+        let __except_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::UnrestrictedUnlock.into()]),
+        );
+        let __except_roles: Vec<String> = __except_roles
+            .iter()
+            .map(|&x| x.into())
+            .collect();
+        let may_bypass = self
+            .acl_has_any_role(__except_roles, ::near_sdk::env::predecessor_account_id());
+        if may_bypass {
+            __check_paused = false;
+        }
+        if __check_paused {
+            if true {
+                let msg: &str = &"Pausable: Method is paused";
+                if !!self.pa_is_paused("unlock_and_withdraw".to_string()) {
+                    {
+                        ::core::panicking::panic_display(&msg);
+                    }
+                }
+            } else if !!self.pa_is_paused("unlock_and_withdraw".to_string()) {
+                ::near_sdk::env::panic_str(&"Pausable: Method is paused")
+            }
+        }
+        self.unlock(nonce, proof)
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(75))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_and_withdraw_callback(
+                        env::predecessor_account_id(),
+                        recipient_id,
+                        None,
+                    ),
+            )
+    }
+    pub fn unlock_and_withdraw_to_aurora_sender(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        recipient_id: AccountId,
+        aurora_native_token_account_id: AccountId,
+    ) -> Promise {
+        let mut __check_paused = true;
+        let __except_roles: Vec<&str> = <[_]>::into_vec(
+            #[rustc_box]
+            ::alloc::boxed::Box::new([Role::UnrestrictedUnlock.into()]),
+        );
+        let __except_roles: Vec<String> = __except_roles
+            .iter()
+            .map(|&x| x.into())
+            .collect();
+        let may_bypass = self
+            .acl_has_any_role(__except_roles, ::near_sdk::env::predecessor_account_id());
+        if may_bypass {
+            __check_paused = false;
+        }
+        if __check_paused {
+            if true {
+                let msg: &str = &"Pausable: Method is paused";
+                if !!self
+                    .pa_is_paused("unlock_and_withdraw_to_aurora_sender".to_string())
+                {
+                    {
+                        ::core::panicking::panic_display(&msg);
+                    }
+                }
+            } else if !!self
+                .pa_is_paused("unlock_and_withdraw_to_aurora_sender".to_string())
+            {
+                ::near_sdk::env::panic_str(&"Pausable: Method is paused")
+            }
+        }
+        self.unlock(nonce, proof)
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(75))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_and_withdraw_callback(
+                        env::predecessor_account_id(),
+                        Some(recipient_id),
+                        Some(aurora_native_token_account_id),
+                    ),
+            )
+    }
+    pub fn unlock_and_withdraw_callback(
+        &mut self,
+        transfer_data: TransferMessage,
+        sender_id: AccountId,
+        recipient_id: Option<AccountId>,
+        aurora_native_token_account_id: Option<AccountId>,
+    ) -> Promise {
+        let msg = match aurora_native_token_account_id {
+            Some(native_token) => {
+                let aurora_sender = transfer_data
+                    .aurora_sender
+                    .unwrap_or_else(|| env::panic_str("Aurora sender can't be None"));
+                let aurora_sender_hex = hex::encode(aurora_sender.0);
+                if native_token == transfer_data.transfer.token_near {
+                    Some({
+                        let res = ::alloc::fmt::format(
+                            format_args!(
+                                "fake.near:0000000000000000000000000000000000000000000000000000000000000000{0}",
+                                aurora_sender_hex,
+                            ),
+                        );
+                        res
+                    })
+                } else {
+                    Some(aurora_sender_hex)
+                }
+            }
+            None => None,
+        };
+        self.withdraw_internal(
+            transfer_data.transfer.token_near,
+            None,
+            sender_id,
+            recipient_id,
+            msg,
+        )
+    }
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
@@ -17314,7 +17922,7 @@ impl FastBridge {
             )
             .then(
                 ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(50))
+                    .with_static_gas(utils::tera_gas(5))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_callback(nonce, env::predecessor_account_id()),
             )
@@ -17896,7 +18504,9 @@ impl FastBridge {
         &mut self,
         token_id: AccountId,
         amount: Option<U128>,
-    ) -> PromiseOrValue<U128> {
+        recipient_id: Option<AccountId>,
+        msg: Option<String>,
+    ) -> Promise {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
@@ -17923,8 +18533,18 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        let recipient_id = env::predecessor_account_id();
-        let user_balance = self.get_user_balance(&recipient_id, &token_id);
+        let sender_id = env::predecessor_account_id();
+        self.withdraw_internal(token_id, amount, sender_id, recipient_id, msg)
+    }
+    fn withdraw_internal(
+        &mut self,
+        token_id: AccountId,
+        amount: Option<U128>,
+        sender_id: AccountId,
+        recipient_id: Option<AccountId>,
+        msg: Option<String>,
+    ) -> Promise {
+        let user_balance = self.get_user_balance(&sender_id, &token_id);
         let amount = amount.unwrap_or(user_balance);
         if true {
             let msg: &str = &"The amount should be a positive number";
@@ -17946,7 +18566,38 @@ impl FastBridge {
         } else if !(amount <= user_balance) {
             ::near_sdk::env::panic_str(&"Insufficient user balance")
         }
-        self.decrease_balance(&recipient_id, &token_id, &amount.0);
+        self.decrease_balance(&sender_id, &token_id, &amount.0);
+        let recipient_id = recipient_id.unwrap_or(sender_id);
+        if let Some(msg) = msg {
+            self.call_ft_transfer_call(token_id, amount, recipient_id, msg)
+        } else {
+            self.call_ft_transfer(token_id, amount, recipient_id)
+        }
+    }
+    fn call_ft_transfer_call(
+        &self,
+        token_id: AccountId,
+        amount: U128,
+        recipient_id: AccountId,
+        msg: String,
+    ) -> Promise {
+        ext_token::ext(token_id.clone())
+            .with_static_gas(utils::tera_gas(50))
+            .with_attached_deposit(1)
+            .ft_transfer_call(recipient_id.clone(), amount, msg)
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(5))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .withdraw_callback(token_id, amount, recipient_id),
+            )
+    }
+    fn call_ft_transfer(
+        &self,
+        token_id: AccountId,
+        amount: U128,
+        recipient_id: AccountId,
+    ) -> Promise {
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
@@ -17970,7 +18621,6 @@ impl FastBridge {
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .withdraw_callback(token_id, amount, recipient_id),
             )
-            .into()
     }
     /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
     /// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
@@ -17994,18 +18644,25 @@ impl FastBridge {
         amount: U128,
         recipient_id: AccountId,
     ) -> U128 {
-        if is_promise_success() {
+        let mut transferred_amount = U128(0);
+        if let Some(result) = promise_result_as_success() {
+            transferred_amount = if result.is_empty() {
+                amount
+            } else {
+                near_sdk::serde_json::from_slice::<U128>(&result).unwrap()
+            };
             Event::FastBridgeWithdrawEvent {
-                recipient_id,
-                token: token_id,
-                amount,
+                recipient_id: recipient_id.clone(),
+                token: token_id.clone(),
+                amount: transferred_amount,
             }
                 .emit();
-            amount
-        } else {
-            self.increase_balance(&recipient_id, &token_id, &amount.0);
-            U128(0)
         }
+        let refund_amount = amount.0 - transferred_amount.0;
+        if refund_amount > 0 {
+            self.increase_balance(&recipient_id, &token_id, &refund_amount);
+        }
+        transferred_amount
     }
     /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
     /// The function is allowed to be called only by accounts that have `ConfigManager` or `Role::DAO` roles.
@@ -19190,6 +19847,813 @@ pub extern "C" fn init_transfer_callback() {
             transfer_message,
             sender_id,
             update_balance,
+        );
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+    near_sdk::env::state_write(&contract);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn unlock_and_withdraw() {
+    near_sdk::env::setup_panic_hook();
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        recipient_id: Option<AccountId>,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                #[doc(hidden)]
+                enum __Field {
+                    __field0,
+                    __field1,
+                    __field2,
+                    __ignore,
+                }
+                #[doc(hidden)]
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            1u64 => _serde::__private::Ok(__Field::__field1),
+                            2u64 => _serde::__private::Ok(__Field::__field2),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "nonce" => _serde::__private::Ok(__Field::__field0),
+                            "proof" => _serde::__private::Ok(__Field::__field1),
+                            "recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"nonce" => _serde::__private::Ok(__Field::__field0),
+                            b"proof" => _serde::__private::Ok(__Field::__field1),
+                            b"recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                #[doc(hidden)]
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            U128,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 3 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
+                            near_sdk::json_types::Base64VecU8,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        1usize,
+                                        &"struct Input with 3 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
+                            Option<AccountId>,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        2usize,
+                                        &"struct Input with 3 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                            recipient_id: __field2,
+                        })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<
+                            near_sdk::json_types::Base64VecU8,
+                        > = _serde::__private::None;
+                        let mut __field2: _serde::__private::Option<Option<AccountId>> = _serde::__private::None;
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("nonce"),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field1 => {
+                                    if _serde::__private::Option::is_some(&__field1) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("proof"),
+                                        );
+                                    }
+                                    __field1 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            near_sdk::json_types::Base64VecU8,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field2 => {
+                                    if _serde::__private::Option::is_some(&__field2) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "recipient_id",
+                                            ),
+                                        );
+                                    }
+                                    __field2 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            Option<AccountId>,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field1 = match __field1 {
+                            _serde::__private::Some(__field1) => __field1,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("proof") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field2 = match __field2 {
+                            _serde::__private::Some(__field2) => __field2,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("recipient_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                            recipient_id: __field2,
+                        })
+                    }
+                }
+                #[doc(hidden)]
+                const FIELDS: &'static [&'static str] = &[
+                    "nonce",
+                    "proof",
+                    "recipient_id",
+                ];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { nonce, proof, recipient_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract.unlock_and_withdraw(nonce, proof, recipient_id);
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn unlock_and_withdraw_to_aurora_sender() {
+    near_sdk::env::setup_panic_hook();
+    #[serde(crate = "near_sdk::serde")]
+    struct Input {
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        recipient_id: AccountId,
+        aurora_native_token_account_id: AccountId,
+    }
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
+    const _: () = {
+        use near_sdk::serde as _serde;
+        #[automatically_derived]
+        impl<'de> near_sdk::serde::Deserialize<'de> for Input {
+            fn deserialize<__D>(
+                __deserializer: __D,
+            ) -> near_sdk::serde::__private::Result<Self, __D::Error>
+            where
+                __D: near_sdk::serde::Deserializer<'de>,
+            {
+                #[allow(non_camel_case_types)]
+                #[doc(hidden)]
+                enum __Field {
+                    __field0,
+                    __field1,
+                    __field2,
+                    __field3,
+                    __ignore,
+                }
+                #[doc(hidden)]
+                struct __FieldVisitor;
+                impl<'de> _serde::de::Visitor<'de> for __FieldVisitor {
+                    type Value = __Field;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "field identifier",
+                        )
+                    }
+                    fn visit_u64<__E>(
+                        self,
+                        __value: u64,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            0u64 => _serde::__private::Ok(__Field::__field0),
+                            1u64 => _serde::__private::Ok(__Field::__field1),
+                            2u64 => _serde::__private::Ok(__Field::__field2),
+                            3u64 => _serde::__private::Ok(__Field::__field3),
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_str<__E>(
+                        self,
+                        __value: &str,
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            "nonce" => _serde::__private::Ok(__Field::__field0),
+                            "proof" => _serde::__private::Ok(__Field::__field1),
+                            "recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            "aurora_native_token_account_id" => {
+                                _serde::__private::Ok(__Field::__field3)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                    fn visit_bytes<__E>(
+                        self,
+                        __value: &[u8],
+                    ) -> _serde::__private::Result<Self::Value, __E>
+                    where
+                        __E: _serde::de::Error,
+                    {
+                        match __value {
+                            b"nonce" => _serde::__private::Ok(__Field::__field0),
+                            b"proof" => _serde::__private::Ok(__Field::__field1),
+                            b"recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            b"aurora_native_token_account_id" => {
+                                _serde::__private::Ok(__Field::__field3)
+                            }
+                            _ => _serde::__private::Ok(__Field::__ignore),
+                        }
+                    }
+                }
+                impl<'de> _serde::Deserialize<'de> for __Field {
+                    #[inline]
+                    fn deserialize<__D>(
+                        __deserializer: __D,
+                    ) -> _serde::__private::Result<Self, __D::Error>
+                    where
+                        __D: _serde::Deserializer<'de>,
+                    {
+                        _serde::Deserializer::deserialize_identifier(
+                            __deserializer,
+                            __FieldVisitor,
+                        )
+                    }
+                }
+                #[doc(hidden)]
+                struct __Visitor<'de> {
+                    marker: _serde::__private::PhantomData<Input>,
+                    lifetime: _serde::__private::PhantomData<&'de ()>,
+                }
+                impl<'de> _serde::de::Visitor<'de> for __Visitor<'de> {
+                    type Value = Input;
+                    fn expecting(
+                        &self,
+                        __formatter: &mut _serde::__private::Formatter,
+                    ) -> _serde::__private::fmt::Result {
+                        _serde::__private::Formatter::write_str(
+                            __formatter,
+                            "struct Input",
+                        )
+                    }
+                    #[inline]
+                    fn visit_seq<__A>(
+                        self,
+                        mut __seq: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::SeqAccess<'de>,
+                    {
+                        let __field0 = match match _serde::de::SeqAccess::next_element::<
+                            U128,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        0usize,
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field1 = match match _serde::de::SeqAccess::next_element::<
+                            near_sdk::json_types::Base64VecU8,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        1usize,
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
+                            AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        2usize,
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field3 = match match _serde::de::SeqAccess::next_element::<
+                            AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        3usize,
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                            recipient_id: __field2,
+                            aurora_native_token_account_id: __field3,
+                        })
+                    }
+                    #[inline]
+                    fn visit_map<__A>(
+                        self,
+                        mut __map: __A,
+                    ) -> _serde::__private::Result<Self::Value, __A::Error>
+                    where
+                        __A: _serde::de::MapAccess<'de>,
+                    {
+                        let mut __field0: _serde::__private::Option<U128> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<
+                            near_sdk::json_types::Base64VecU8,
+                        > = _serde::__private::None;
+                        let mut __field2: _serde::__private::Option<AccountId> = _serde::__private::None;
+                        let mut __field3: _serde::__private::Option<AccountId> = _serde::__private::None;
+                        while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
+                            __Field,
+                        >(&mut __map) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            match __key {
+                                __Field::__field0 => {
+                                    if _serde::__private::Option::is_some(&__field0) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("nonce"),
+                                        );
+                                    }
+                                    __field0 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            U128,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field1 => {
+                                    if _serde::__private::Option::is_some(&__field1) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("proof"),
+                                        );
+                                    }
+                                    __field1 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            near_sdk::json_types::Base64VecU8,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field2 => {
+                                    if _serde::__private::Option::is_some(&__field2) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "recipient_id",
+                                            ),
+                                        );
+                                    }
+                                    __field2 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field3 => {
+                                    if _serde::__private::Option::is_some(&__field3) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "aurora_native_token_account_id",
+                                            ),
+                                        );
+                                    }
+                                    __field3 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                _ => {
+                                    let _ = match _serde::de::MapAccess::next_value::<
+                                        _serde::de::IgnoredAny,
+                                    >(&mut __map) {
+                                        _serde::__private::Ok(__val) => __val,
+                                        _serde::__private::Err(__err) => {
+                                            return _serde::__private::Err(__err);
+                                        }
+                                    };
+                                }
+                            }
+                        }
+                        let __field0 = match __field0 {
+                            _serde::__private::Some(__field0) => __field0,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("nonce") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field1 = match __field1 {
+                            _serde::__private::Some(__field1) => __field1,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("proof") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field2 = match __field2 {
+                            _serde::__private::Some(__field2) => __field2,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("recipient_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field3 = match __field3 {
+                            _serde::__private::Some(__field3) => __field3,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field(
+                                    "aurora_native_token_account_id",
+                                ) {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        _serde::__private::Ok(Input {
+                            nonce: __field0,
+                            proof: __field1,
+                            recipient_id: __field2,
+                            aurora_native_token_account_id: __field3,
+                        })
+                    }
+                }
+                #[doc(hidden)]
+                const FIELDS: &'static [&'static str] = &[
+                    "nonce",
+                    "proof",
+                    "recipient_id",
+                    "aurora_native_token_account_id",
+                ];
+                _serde::Deserializer::deserialize_struct(
+                    __deserializer,
+                    "Input",
+                    FIELDS,
+                    __Visitor {
+                        marker: _serde::__private::PhantomData::<Input>,
+                        lifetime: _serde::__private::PhantomData,
+                    },
+                )
+            }
+        }
+    };
+    let Input { nonce, proof, recipient_id, aurora_native_token_account_id }: Input = near_sdk::serde_json::from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from JSON.");
+    let contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract
+        .unlock_and_withdraw_to_aurora_sender(
+            nonce,
+            proof,
+            recipient_id,
+            aurora_native_token_account_id,
+        );
+    let result = near_sdk::serde_json::to_vec(&result)
+        .expect("Failed to serialize the return value using JSON.");
+    near_sdk::env::value_return(&result);
+}
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub extern "C" fn unlock_and_withdraw_callback() {
+    near_sdk::env::setup_panic_hook();
+    if near_sdk::env::current_account_id() != near_sdk::env::predecessor_account_id() {
+        near_sdk::env::panic_str("Method unlock_and_withdraw_callback is private");
+    }
+    if near_sdk::env::attached_deposit() != 0 {
+        near_sdk::env::panic_str(
+            "Method unlock_and_withdraw_callback doesn't accept deposit",
+        );
+    }
+    struct Input {
+        sender_id: AccountId,
+        recipient_id: Option<AccountId>,
+        aurora_native_token_account_id: Option<AccountId>,
+    }
+    impl borsh::de::BorshDeserialize for Input
+    where
+        AccountId: borsh::BorshDeserialize,
+        Option<AccountId>: borsh::BorshDeserialize,
+        Option<AccountId>: borsh::BorshDeserialize,
+    {
+        fn deserialize(
+            buf: &mut &[u8],
+        ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
+            Ok(Self {
+                sender_id: borsh::BorshDeserialize::deserialize(buf)?,
+                recipient_id: borsh::BorshDeserialize::deserialize(buf)?,
+                aurora_native_token_account_id: borsh::BorshDeserialize::deserialize(
+                    buf,
+                )?,
+            })
+        }
+    }
+    let Input { sender_id, recipient_id, aurora_native_token_account_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+            &near_sdk::env::input().expect("Expected input since method has arguments."),
+        )
+        .expect("Failed to deserialize input from Borsh.");
+    let data: Vec<u8> = match near_sdk::env::promise_result(0u64) {
+        near_sdk::PromiseResult::Successful(x) => x,
+        _ => near_sdk::env::panic_str("Callback computation 0 was not successful"),
+    };
+    let transfer_data: TransferMessage = near_sdk::borsh::BorshDeserialize::try_from_slice(
+            &data,
+        )
+        .expect("Failed to deserialize callback using Borsh");
+    let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
+    let result = contract
+        .unlock_and_withdraw_callback(
+            transfer_data,
+            sender_id,
+            recipient_id,
+            aurora_native_token_account_id,
         );
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
@@ -20463,6 +21927,8 @@ pub extern "C" fn withdraw() {
     struct Input {
         token_id: AccountId,
         amount: Option<U128>,
+        recipient_id: Option<AccountId>,
+        msg: Option<String>,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -20481,6 +21947,8 @@ pub extern "C" fn withdraw() {
                 enum __Field {
                     __field0,
                     __field1,
+                    __field2,
+                    __field3,
                     __ignore,
                 }
                 #[doc(hidden)]
@@ -20506,6 +21974,8 @@ pub extern "C" fn withdraw() {
                         match __value {
                             0u64 => _serde::__private::Ok(__Field::__field0),
                             1u64 => _serde::__private::Ok(__Field::__field1),
+                            2u64 => _serde::__private::Ok(__Field::__field2),
+                            3u64 => _serde::__private::Ok(__Field::__field3),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -20519,6 +21989,8 @@ pub extern "C" fn withdraw() {
                         match __value {
                             "token_id" => _serde::__private::Ok(__Field::__field0),
                             "amount" => _serde::__private::Ok(__Field::__field1),
+                            "recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            "msg" => _serde::__private::Ok(__Field::__field3),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -20532,6 +22004,8 @@ pub extern "C" fn withdraw() {
                         match __value {
                             b"token_id" => _serde::__private::Ok(__Field::__field0),
                             b"amount" => _serde::__private::Ok(__Field::__field1),
+                            b"recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            b"msg" => _serde::__private::Ok(__Field::__field3),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -20587,7 +22061,7 @@ pub extern "C" fn withdraw() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 2 elements",
+                                        &"struct Input with 4 elements",
                                     ),
                                 );
                             }
@@ -20605,7 +22079,43 @@ pub extern "C" fn withdraw() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         1usize,
-                                        &"struct Input with 2 elements",
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field2 = match match _serde::de::SeqAccess::next_element::<
+                            Option<AccountId>,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        2usize,
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field3 = match match _serde::de::SeqAccess::next_element::<
+                            Option<String>,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        3usize,
+                                        &"struct Input with 4 elements",
                                     ),
                                 );
                             }
@@ -20613,6 +22123,8 @@ pub extern "C" fn withdraw() {
                         _serde::__private::Ok(Input {
                             token_id: __field0,
                             amount: __field1,
+                            recipient_id: __field2,
+                            msg: __field3,
                         })
                     }
                     #[inline]
@@ -20625,6 +22137,8 @@ pub extern "C" fn withdraw() {
                     {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<Option<U128>> = _serde::__private::None;
+                        let mut __field2: _serde::__private::Option<Option<AccountId>> = _serde::__private::None;
+                        let mut __field3: _serde::__private::Option<Option<String>> = _serde::__private::None;
                         while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
                         >(&mut __map) {
@@ -20670,6 +22184,42 @@ pub extern "C" fn withdraw() {
                                         },
                                     );
                                 }
+                                __Field::__field2 => {
+                                    if _serde::__private::Option::is_some(&__field2) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "recipient_id",
+                                            ),
+                                        );
+                                    }
+                                    __field2 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            Option<AccountId>,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field3 => {
+                                    if _serde::__private::Option::is_some(&__field3) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field("msg"),
+                                        );
+                                    }
+                                    __field3 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            Option<String>,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
                                 _ => {
                                     let _ = match _serde::de::MapAccess::next_value::<
                                         _serde::de::IgnoredAny,
@@ -20704,14 +22254,43 @@ pub extern "C" fn withdraw() {
                                 }
                             }
                         };
+                        let __field2 = match __field2 {
+                            _serde::__private::Some(__field2) => __field2,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("recipient_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field3 = match __field3 {
+                            _serde::__private::Some(__field3) => __field3,
+                            _serde::__private::None => {
+                                match _serde::__private::de::missing_field("msg") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
                         _serde::__private::Ok(Input {
                             token_id: __field0,
                             amount: __field1,
+                            recipient_id: __field2,
+                            msg: __field3,
                         })
                     }
                 }
                 #[doc(hidden)]
-                const FIELDS: &'static [&'static str] = &["token_id", "amount"];
+                const FIELDS: &'static [&'static str] = &[
+                    "token_id",
+                    "amount",
+                    "recipient_id",
+                    "msg",
+                ];
                 _serde::Deserializer::deserialize_struct(
                     __deserializer,
                     "Input",
@@ -20724,12 +22303,12 @@ pub extern "C" fn withdraw() {
             }
         }
     };
-    let Input { token_id, amount }: Input = near_sdk::serde_json::from_slice(
+    let Input { token_id, amount, recipient_id, msg }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.withdraw(token_id, amount);
+    let result = contract.withdraw(token_id, amount, recipient_id, msg);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
