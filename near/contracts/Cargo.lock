@@ -1585,6 +1585,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock_ft_receiver"
+version = "0.0.1"
+dependencies = [
+ "near-contract-standards",
+ "near-sdk",
+]
+
+[[package]]
 name = "mock_token"
 version = "0.0.1"
 dependencies = [
