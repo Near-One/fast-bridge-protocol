@@ -70,12 +70,24 @@ pub trait EthClient {
 #[ext_contract(ext_token)]
 trait NEP141Token {
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
-    fn ft_transfer_call(&mut self, receiver_id: AccountId, amount: U128, msg: String);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    );
 }
 
 #[ext_contract(ext_self)]
 trait FastBridgeInterface {
-    fn withdraw_callback(&mut self, token_id: AccountId, amount: U128, recipient_id: AccountId);
+    fn withdraw_callback(
+        &mut self,
+        token_id: AccountId,
+        amount: U128,
+        sender_id: AccountId,
+        recipient_id: AccountId,
+    );
     fn verify_log_entry_callback(
         &mut self,
         #[callback]
@@ -160,6 +172,8 @@ pub enum Role {
     UnrestrictedLpUnlock,
     /// May call `withdraw` even when it is paused.
     UnrestrictedWithdraw,
+    /// May call `unlock_and_withdraw` even when it is paused.
+    UnrestrictedUnlockAndWithdraw,
     WhitelistManager,
     ConfigManager,
     UnlockManager,
@@ -391,7 +405,7 @@ impl FastBridge {
         U128::from(0)
     }
 
-    #[pause(except(roles(Role::UnrestrictedUnlock)))]
+    #[pause(except(roles(Role::UnrestrictedUnlockAndWithdraw)))]
     pub fn unlock_and_withdraw(
         &self,
         nonce: U128,
@@ -905,12 +919,12 @@ impl FastBridge {
         require!(amount.0 > 0, "The amount should be a positive number");
         require!(amount <= user_balance, "Insufficient user balance");
         self.decrease_balance(&sender_id, &token_id, &amount.0);
-        let recipient_id = recipient_id.unwrap_or(sender_id);
+        let recipient_id = recipient_id.unwrap_or_else(|| sender_id.clone());
 
         if let Some(msg) = msg {
-            self.call_ft_transfer_call(token_id, amount, recipient_id, msg)
+            self.call_ft_transfer_call(token_id, amount, sender_id, recipient_id, msg)
         } else {
-            self.call_ft_transfer(token_id, amount, recipient_id)
+            self.call_ft_transfer(token_id, amount, sender_id, recipient_id)
         }
     }
 
@@ -918,18 +932,20 @@ impl FastBridge {
         &self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
         msg: String,
     ) -> Promise {
+        let memo = None;
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(1)
-            .ft_transfer_call(recipient_id.clone(), amount, msg)
+            .ft_transfer_call(recipient_id.clone(), amount, memo, msg)
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(5))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, recipient_id),
+                    .withdraw_callback(token_id, amount, sender_id, recipient_id),
             )
     }
 
@@ -937,25 +953,19 @@ impl FastBridge {
         &self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     ) -> Promise {
+        let memo = None;
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
-            .ft_transfer(
-                recipient_id.clone(),
-                amount,
-                Some(format!(
-                    "Withdraw from: {} amount: {}",
-                    current_account_id(),
-                    u128::try_from(amount).unwrap()
-                )),
-            )
+            .ft_transfer(recipient_id.clone(), amount, memo)
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, recipient_id),
+                    .withdraw_callback(token_id, amount, sender_id, recipient_id),
             )
     }
 
@@ -980,6 +990,7 @@ impl FastBridge {
         &mut self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     ) -> U128 {
         let mut transferred_amount = U128(0);
@@ -992,7 +1003,7 @@ impl FastBridge {
             };
 
             Event::FastBridgeWithdrawEvent {
-                recipient_id: recipient_id.clone(),
+                recipient_id,
                 token: token_id.clone(),
                 amount: transferred_amount,
             }
@@ -1001,7 +1012,7 @@ impl FastBridge {
 
         let refund_amount = amount.0 - transferred_amount.0;
         if refund_amount > 0 {
-            self.increase_balance(&recipient_id, &token_id, &refund_amount);
+            self.increase_balance(&sender_id, &token_id, &refund_amount);
         }
 
         transferred_amount
