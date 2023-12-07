@@ -47,7 +47,7 @@ async function unlock(signer, config, nonce) {
 
     const transfer_message = await get_pending_transfer(config, nonce);
 
-    const { getUnlockProof } = require('../test/UnlockProof');
+    const { getUnlockProof } = require('./UnlockProof');
     const proof = await getUnlockProof(config.ethFastBridgeAddress,
         { token: transfer_message[1]["transfer"]["token_eth"],
             recipient: transfer_message[1]["recipient"],
@@ -171,25 +171,7 @@ async function get_pending_transfer(config, nonce) {
 
     const { connect } = nearAPI;
 
-    let connectionConfig = {
-        networkId: "testnet",
-        nodeUrl: "https://rpc.testnet.near.org",
-        walletUrl: "https://testnet.mynearwallet.com/",
-        helperUrl: "https://helper.testnet.near.org",
-        explorerUrl: "https://explorer.testnet.near.org",
-    };
-
-    if (config.nearNetwork === "mainnet") {
-        connectionConfig = {
-            networkId: "mainnet",
-            nodeUrl: "https://rpc.mainnet.near.org",
-            walletUrl: "https://wallet.mainnet.near.org",
-            helperUrl: "https://helper.mainnet.near.org",
-            explorerUrl: "https://explorer.mainnet.near.org",
-        };
-    }
-
-    const nearConnection = await connect(connectionConfig);
+    const nearConnection = await connect(config.nearConnectionConfig);
     const account = await nearConnection.account("example-account.testnet");
 
     const { Contract } = nearAPI;
