@@ -42,15 +42,15 @@ async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAcc
     await tx.wait();
 }
 
-async function unlock(signer, config, fastBridgeAddress, nonce, ethTokenAddress, validTillBlockHeight) {
+async function unlock(signer, config, fastBridgeAddress, ethFastBridgeAddress, nonce, ethTokenAddress, validTillBlockHeight, amount, recipient) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
     
     const { getUnlockProof } = require('../test/UnlockProof');
-    const proof = await getUnlockProof("0x00763f30eEB0eEF506907e18f2a6ceC2DAb30Df8",
+    const proof = await getUnlockProof(ethFastBridgeAddress,
         { token: ethTokenAddress,
-          recipient: signer.address,
+          recipient,
           nonce,
-          amount: 100}, validTillBlockHeight);
+          amount}, validTillBlockHeight);
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);

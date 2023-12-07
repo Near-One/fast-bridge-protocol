@@ -100,15 +100,22 @@ task('unlock', 'Unlock tokens on Near')
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
     .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
+    .addParam('ethFastBridgeAddress', 'ETH Fast Bridge address')
     .addParam('nonce', 'Nonce of the Fast Bridge transfer')
     .addParam('ethTokenAddress', "Token address on Eth")
     .addParam('validTillBlockHeight', "Valid till block height")
+    .addParam('amount', "Unlock tokens amount")
+    .addParam('recipient', "Unlock tokens recipient")
     .setAction(async taskArgs => {
         const { unlock } = require('./scripts/utils');
         const [signer] = await hre.ethers.getSigners();
         const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
 
-        await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.nonce, taskArgs.ethTokenAddress, taskArgs.validTillBlockHeight);
+        let recipient = taskArgs.recipient;
+        if (recipient === "") {
+            recipient = signer.address;
+        }
+        await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.ethFastBridgeAddress, taskArgs.nonce, taskArgs.ethTokenAddress, taskArgs.validTillBlockHeight, taskArgs.amount, recipient);
     });
 
 task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
