@@ -43,15 +43,18 @@ async function initTokenTransfer(signer, config, fastBridgeAddress, nearTokenAcc
     await tx.wait();
 }
 
-async function unlock(signer, config, fastBridgeAddress, ethFastBridgeAddress, nonce, ethTokenAddress, validTillBlockHeight, amount, recipient) {
+async function unlock(signer, config, fastBridgeAddress, nonce) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
-    
+
+    const transfer_message = await get_pending_transfers(config, nonce);
+
     const { getUnlockProof } = require('../test/UnlockProof');
-    const proof = await getUnlockProof(ethFastBridgeAddress,
-        { token: ethTokenAddress,
-          recipient,
-          nonce,
-          amount}, validTillBlockHeight);
+    const proof = await getUnlockProof(config.ethFastBridgeAddress,
+        { token: transfer_message[1]["transfer"]["token_eth"],
+            recipient: transfer_message[1]["recipient"],
+            nonce,
+            amount: transfer_message[1]["transfer"]["amount"]}, transfer_message[1]["valid_till_block_height"]
+    );
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);
@@ -203,6 +206,8 @@ async function get_pending_transfers(config, nonce) {
     const response = await contract.get_pending_transfer({id: nonce});
 
     console.log(response);
+
+    return response;
 }
 
 

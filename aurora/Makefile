@@ -5,8 +5,7 @@ AURORA_FAST_BRIDGE_ADDRESS=0xfD86b13F4B6f273D45831992c078608E454Eb804
 # where <JSON_MESSAGE> is a init_token_transfer_arg in json format. More details in README.md in `../near/utils`
 # You will need the output in line which started with `Encoded message(hex):`
 
-NONCE=100
-VALID_TILL_BLOCK_HIEGHT=10173103
+NONCE=102
 
 NETWORK=testnet_aurora
 NEAR_TOKEN_ACCOUNT_ID="07865c6e87b9f70255377e024ace6630c1eaa37f.factory.goerli.testnet"
@@ -15,9 +14,6 @@ AURORA_TOKEN_ADDRESS=0x901fb725c106E182614105335ad0E230c91B67C8
 TRANSFER_TOKEN_AMOUNT=200
 CONFIG_NAME="aurora-testnet"
 WITHDRAW_ADDRESS=
-ETH_FAST_BRIDGE_ADDRESS="0x00763f30eEB0eEF506907e18f2a6ceC2DAb30Df8"
-UNLOCK_TOKEN_AMOUNT=100
-RECIPIENT=""
 
 deploy:
 	yarn hardhat deploy --aurora-fast-bridge-config-name $(CONFIG_NAME) --network $(NETWORK)
@@ -35,7 +31,7 @@ init_token_transfer:
 	yarn hardhat init_token_transfer --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --aurora-token-address $(AURORA_TOKEN_ADDRESS) --eth-token-address $(ETH_TOKEN_ADDRESS)
 
 unlock:
-	yarn hardhat unlock --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --eth-fast-bridge-address $(ETH_FAST_BRIDGE_ADDRESS) --nonce $(NONCE) --eth-token-address $(ETH_TOKEN_ADDRESS) --valid-till-block-height $(VALID_TILL_BLOCK_HIEGHT) --amount $(UNLOCK_TOKEN_AMOUNT) --recipient $(RECIPIENT)
+	yarn hardhat unlock --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --nonce $(NONCE)
 
 fast_bridge_withdraw_on_near:
 	yarn hardhat fast_bridge_withdraw_on_near --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --fast-bridge-address $(AURORA_FAST_BRIDGE_ADDRESS) --near-token-account-id $(NEAR_TOKEN_ACCOUNT_ID) --token-amount $(TRANSFER_TOKEN_AMOUNT)
