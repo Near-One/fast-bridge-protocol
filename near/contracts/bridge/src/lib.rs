@@ -412,11 +412,12 @@ impl FastBridge {
         proof: near_sdk::json_types::Base64VecU8,
         recipient_id: Option<AccountId>,
     ) -> Promise {
+        let sender_id = env::predecessor_account_id();
         self.unlock(nonce, proof).then(
             ext_self::ext(current_account_id())
                 .with_static_gas(utils::tera_gas(75))
                 .with_attached_deposit(utils::NO_DEPOSIT)
-                .unlock_and_withdraw_callback(env::predecessor_account_id(), recipient_id, None),
+                .unlock_and_withdraw_callback(sender_id, recipient_id, None),
         )
     }
 
@@ -428,12 +429,13 @@ impl FastBridge {
         recipient_id: AccountId,
         aurora_native_token_account_id: AccountId,
     ) -> Promise {
+        let sender_id = env::predecessor_account_id();
         self.unlock(nonce, proof).then(
             ext_self::ext(current_account_id())
                 .with_static_gas(utils::tera_gas(75))
                 .with_attached_deposit(utils::NO_DEPOSIT)
                 .unlock_and_withdraw_callback(
-                    env::predecessor_account_id(),
+                    sender_id,
                     Some(recipient_id),
                     Some(aurora_native_token_account_id),
                 ),
