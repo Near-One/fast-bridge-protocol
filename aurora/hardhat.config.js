@@ -118,6 +118,19 @@ task('unlock', 'Unlock tokens on Near')
         await unlock(signer, config, taskArgs.fastBridgeAddress, taskArgs.ethFastBridgeAddress, taskArgs.nonce, taskArgs.ethTokenAddress, taskArgs.validTillBlockHeight, taskArgs.amount, recipient);
     });
 
+task('get_pending_transfers', 'Unlock tokens on Near')
+    .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
+        "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
+        "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
+    .addParam('nonce', 'Nonce of the Fast Bridge transfer')
+    .setAction(async taskArgs => {
+        const { get_pending_transfers } = require('./scripts/utils');
+        const [signer] = await hre.ethers.getSigners();
+        const config = require(`./configs/${taskArgs.auroraFastBridgeConfigName}.json`);
+
+        await get_pending_transfers(config, taskArgs.nonce);
+    });
+
 task('fast_bridge_withdraw_on_near', 'Withdraw tokens on Near side')
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +

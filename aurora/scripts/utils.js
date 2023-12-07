@@ -2,6 +2,7 @@ require('dotenv').config();
 const hre = require("hardhat");
 
 const {encodeInitMsgToBorsh} = require("../test/EncodeInitMsgToBorsh");
+const {getUnlockProof} = require("../test/UnlockProof");
 
 async function registerToken(signer, config, fastBridgeAddress, nearTokenAccountId) {
     const fastBridge = await getFastBridgeContract(signer, config, fastBridgeAddress);
@@ -168,6 +169,43 @@ async function forceIncreaseBalance(signer, config, fastBridgeAddress, token, re
   console.log("Transaction hash: ", receipt.hash);
 }
 
+async function get_pending_transfers(config, nonce) {
+    const nearAPI = require("near-api-js");
+
+    const { connect } = nearAPI;
+
+    let connectionConfig = {
+        networkId: "testnet",
+        nodeUrl: "https://rpc.testnet.near.org",
+        walletUrl: "https://testnet.mynearwallet.com/",
+        helperUrl: "https://helper.testnet.near.org",
+        explorerUrl: "https://explorer.testnet.near.org",
+    };
+
+    if (config.nearNetwork === "mainnet") {
+        connectionConfig = {
+            networkId: "mainnet",
+            nodeUrl: "https://rpc.mainnet.near.org",
+            walletUrl: "https://wallet.mainnet.near.org",
+            helperUrl: "https://helper.mainnet.near.org",
+            explorerUrl: "https://explorer.mainnet.near.org",
+        };
+    }
+
+    const nearConnection = await connect(connectionConfig);
+    const account = await nearConnection.account("example-account.testnet");
+
+    const { Contract } = nearAPI;
+
+    const contract = new Contract(account, config.nearFastBridgeAccountId, {
+        viewMethods: ["get_pending_transfer"],
+    });
+    const response = await contract.get_pending_transfer({id: nonce});
+
+    console.log(response);
+}
+
+
 exports.get_token_aurora_address = get_token_aurora_address;
 exports.get_implicit_near_account_id = get_implicit_near_account_id;
 exports.set_whitelist_mode_for_users = set_whitelist_mode_for_users;
@@ -182,3 +220,4 @@ exports.get_balance = get_balance;
 exports.deploySDK = deploySDK;
 exports.setNativeTokenAccountId = setNativeTokenAccountId;
 exports.forceIncreaseBalance = forceIncreaseBalance;
+exports.get_pending_transfers = get_pending_transfers;
