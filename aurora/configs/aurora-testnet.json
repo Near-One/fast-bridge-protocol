@@ -1,6 +1,7 @@
 {
   "nearFastBridgeAccountId": "fastbridge.testnet",
   "ethFastBridgeAddress": "0x00763f30eEB0eEF506907e18f2a6ceC2DAb30Df8",
+  "auroraFastBridgeAddress": "0xba120F3757a2C75eA4AcC3fC3c9819AC378A10E0",
   "auroraEngineAccountId": "aurora",
   "nativeTokenAccountId": "aurora",
   "auroraSdkAddress": "0x425cA8f218784ebE2df347E98c626094B63E7f30",
