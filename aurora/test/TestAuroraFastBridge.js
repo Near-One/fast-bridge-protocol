@@ -214,7 +214,9 @@ async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight,
         { token: "0x" + ETH_TOKEN_ADDRESS,
             recipient: deployerWallet.address,
             nonce: 1,
-            amount: 100}, validTillBlockHeight);
+            amount: 100},
+        validTillBlockHeight,
+        "https://ethereum-goerli-rpc.allthatnode.com");
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);

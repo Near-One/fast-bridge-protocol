@@ -14,5 +14,6 @@
     "walletUrl": "https://testnet.mynearwallet.com/",
     "helperUrl": "https://helper.testnet.near.org",
     "explorerUrl": "https://explorer.testnet.near.org"
-  }
+  },
+  "ethRpcEndpointURL": "https://ethereum-goerli-rpc.allthatnode.com"
 }

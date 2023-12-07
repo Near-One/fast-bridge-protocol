@@ -52,7 +52,9 @@ async function unlock(signer, config, nonce) {
         { token: transfer_message[1]["transfer"]["token_eth"],
             recipient: transfer_message[1]["recipient"],
             nonce,
-            amount: transfer_message[1]["transfer"]["amount"]}, transfer_message[1]["valid_till_block_height"]
+            amount: transfer_message[1]["transfer"]["amount"]},
+        transfer_message[1]["valid_till_block_height"],
+        config.ethRpcEndpointURL
     );
 
     console.log("proof: ",  proof);

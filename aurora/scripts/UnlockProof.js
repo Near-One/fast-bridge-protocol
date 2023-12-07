@@ -5,11 +5,6 @@ const {Header, Account} = require('eth-object');
 const _utils = require('ethereumjs-util');
 const borsh = require('borsh')
 
-const ETH_RPC_ENDPOINT_URL = 'https://ethereum-goerli-rpc.allthatnode.com';
-
-const provider = new ethers.getDefaultProvider(ETH_RPC_ENDPOINT_URL);
-const web3 = new Web3(ETH_RPC_ENDPOINT_URL);
-
 const mappingSlotNumber = 302;
 
 function hexToBytes(str) {
@@ -27,7 +22,7 @@ function getProcessedHashSlotKey(processedHash){
     return ethers.keccak256(paddedKey + paddedSlot.slice(2));
 }
 
-async function getProofOfData(contractAddress, slotKey, blockNumber) {
+async function getProofOfData(contractAddress, slotKey, blockNumber, web3) {
     return await web3.eth.getProof(contractAddress, [slotKey], blockNumber);
 }
 
@@ -47,7 +42,7 @@ async function getWithdrawalsRoot(blockNumber) {
     return (await response.json())["result"]["withdrawalsRoot"];
 }
 
-async function getBlockData(blockNumber) {
+async function getBlockData(blockNumber, web3) {
     let block = await web3.eth.getBlock(blockNumber);
     block.difficulty = web3.utils.toHex(block.difficulty);
     block.number = web3.utils.toHex(parseInt(block.number));
@@ -63,7 +58,7 @@ async function getBlockData(blockNumber) {
     return block;
 }
 
-async function generateUnlockProof(getProofResponse, block){
+async function generateUnlockProof(getProofResponse, block, web3){
     let headerRlp = (Header.fromRpc(block).serialize()).toString("hex");
     let accountProof = getProofResponse.accountProof.map((proof_data) => (hexToBytes(_utils.toBuffer(proof_data).toString('hex'))));  //converts to bytes array of account proof
 
@@ -93,12 +88,14 @@ class Assignable {
 
 class Test extends Assignable { }
 
-async function getUnlockProof(contractAddress, data, blockNumber) {
+async function getUnlockProof(contractAddress, data, blockNumber, ethRpcEndpointURL) {
+    const web3 = new Web3(ethRpcEndpointURL);
+
     let processHash = processedHash(data.token, data.recipient, data.nonce, data.amount);
     let slotKeyOfProcessedHash = getProcessedHashSlotKey(processHash);
-    let responseData = await getProofOfData(contractAddress, slotKeyOfProcessedHash, blockNumber);
-    let block = await getBlockData(blockNumber);
-    let unlockProof = await generateUnlockProof(responseData, block);
+    let responseData = await getProofOfData(contractAddress, slotKeyOfProcessedHash, blockNumber, web3);
+    let block = await getBlockData(blockNumber, web3);
+    let unlockProof = await generateUnlockProof(responseData, block, web3);
 
     let borshSer = borsh.serialize(
         new Map([[Test, {kind: 'struct',
