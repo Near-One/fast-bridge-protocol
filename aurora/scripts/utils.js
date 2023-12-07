@@ -45,7 +45,7 @@ async function initTokenTransfer(signer, config, nearTokenAccountId, auroraToken
 async function unlock(signer, config, nonce) {
     const fastBridge = await getFastBridgeContract(signer, config);
 
-    const transfer_message = await get_pending_transfers(config, nonce);
+    const transfer_message = await get_pending_transfer(config, nonce);
 
     const { getUnlockProof } = require('../test/UnlockProof');
     const proof = await getUnlockProof(config.ethFastBridgeAddress,
@@ -166,7 +166,7 @@ async function forceIncreaseBalance(signer, config, token, recipient, amount) {
   console.log("Transaction hash: ", receipt.hash);
 }
 
-async function get_pending_transfers(config, nonce) {
+async function get_pending_transfer(config, nonce) {
     const nearAPI = require("near-api-js");
 
     const { connect } = nearAPI;
@@ -219,4 +219,4 @@ exports.get_balance = get_balance;
 exports.deploySDK = deploySDK;
 exports.setNativeTokenAccountId = setNativeTokenAccountId;
 exports.forceIncreaseBalance = forceIncreaseBalance;
-exports.get_pending_transfers = get_pending_transfers;
+exports.get_pending_transfer = get_pending_transfer;

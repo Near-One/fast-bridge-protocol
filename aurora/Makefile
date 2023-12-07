@@ -56,8 +56,8 @@ disable_whitelist_mode:
 enable_whitelist_mode:
 	yarn hardhat set_whitelist_mode --network $(NETWORK) --aurora-fast-bridge-config-name $(CONFIG_NAME) --enabled true
 
-get_pending_transfers:
-	yarn hardhat get_pending_transfers --network $(NETWORK) --nonce $(NONCE) --aurora-fast-bridge-config-name $(CONFIG_NAME)
+get_pending_transfer:
+	yarn hardhat get_pending_transfer --network $(NETWORK) --nonce $(NONCE) --aurora-fast-bridge-config-name $(CONFIG_NAME)
 
 fmt:
 	yarn prettier contracts/src/AuroraErc20FastBridge.sol --write --plugin=prettier-plugin-solidity
