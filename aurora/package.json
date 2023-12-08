@@ -18,7 +18,7 @@
     "borsh": "^0.7.0",
     "chai": "^4.2.0",
     "dotenv": "^16.3.1",
-    "eth-object": "git://github.com/aurora-is-near/eth-object.git#a84d1420fdde87a768b96c6a3b3d0ee435998f72",
+    "eth-object": "https://github.com/aurora-is-near/eth-object#a84d1420fdde87a768b96c6a3b3d0ee435998f72",
     "ethereumjs-util": "^7.1.5",
     "ethers": "^6.6.0",
     "ethers-utils": "^2.1.11",

@@ -2234,9 +2234,8 @@
     "elliptic" "^6.4.0"
     "xhr-request-promise" "^0.1.2"
 
-"eth-object@git://github.com/aurora-is-near/eth-object.git#a84d1420fdde87a768b96c6a3b3d0ee435998f72":
-  "integrity" "sha512-rd8lSApwFamcShQ5DcHs1tKFp8pUlPxM/o8S31s1+5lgmLNNbv5XeCzu1wZavMw8FQ3QBt02CLof4bhXuoAB9Q=="
-  "resolved" "git+ssh://git@github.com/aurora-is-near/eth-object.git#a84d1420fdde87a768b96c6a3b3d0ee435998f72"
+"eth-object@https://github.com/aurora-is-near/eth-object#a84d1420fdde87a768b96c6a3b3d0ee435998f72":
+  "resolved" "https://github.com/aurora-is-near/eth-object#a84d1420fdde87a768b96c6a3b3d0ee435998f72"
   "version" "1.0.3"
   dependencies:
     "eth-util-lite" "near/eth-util-lite#master"
@@ -2244,7 +2243,7 @@
     "web3" "^1.2.9"
 
 "eth-util-lite@near/eth-util-lite#master":
-  "resolved" "git+ssh://git@github.com/near/eth-util-lite.git#ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"
+  "resolved" "https://codeload.github.com/near/eth-util-lite/tar.gz/ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"
   "version" "1.0.1"
   dependencies:
     "bn.js" "^4.11.8"
