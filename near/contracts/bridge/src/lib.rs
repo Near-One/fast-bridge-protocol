@@ -447,18 +447,23 @@ impl FastBridge {
         &mut self,
         #[callback]
         #[serializer(borsh)]
-        transfer_data: TransferMessage,
+        transfer_message: TransferMessage,
         #[serializer(borsh)] sender_id: AccountId,
         #[serializer(borsh)] recipient_id: Option<AccountId>,
         #[serializer(borsh)] aurora_native_token_account_id: Option<AccountId>,
     ) -> Promise {
+        require!(
+            transfer_message.fee.token == transfer_message.transfer.token_near,
+            "Withdrawing for two different tokens isn't allowed yet."
+        );
+
         let msg = match aurora_native_token_account_id {
             Some(native_token) => {
-                let aurora_sender = transfer_data
+                let aurora_sender = transfer_message
                     .aurora_sender
                     .unwrap_or_else(|| env::panic_str("Aurora sender can't be None"));
                 let aurora_sender_hex = hex::encode(aurora_sender.0);
-                if native_token == transfer_data.transfer.token_near {
+                if native_token == transfer_message.transfer.token_near {
                     Some(format!("fake.near:0000000000000000000000000000000000000000000000000000000000000000{}", aurora_sender_hex))
                 } else {
                     Some(aurora_sender_hex)
@@ -467,9 +472,10 @@ impl FastBridge {
             None => None,
         };
 
+        let amount = transfer_message.fee.amount.0 + transfer_message.transfer.amount.0;
         self.withdraw_internal(
-            transfer_data.transfer.token_near,
-            None,
+            transfer_message.transfer.token_near,
+            Some(amount.into()),
             sender_id,
             recipient_id,
             msg,
