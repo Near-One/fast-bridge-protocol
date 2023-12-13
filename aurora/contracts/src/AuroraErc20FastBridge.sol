@@ -418,14 +418,14 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     /**
-     * @dev Initiates the unlocking of tokens on the Fast Bridge on Near blockchain.
+     * @dev Initiates the unlock and withdraw of tokens on the Fast Bridge on Near blockchain.
      * @param nonce The nonce of the fast bridge token transfer on Near.
      * @param proof A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
      * Requirements:
      * - The method must be called by token transfer initiator
      * - The contract must not be paused to execute this function.
      * Effects:
-     * - Initiates the unlocking process by making a call to the Fast Bridge contract on Near blockchain.
+     * - Initiates the unlock and withdraw process by making a call to the Fast Bridge contract on Near blockchain.
      */
     function unlockAndWithdraw(uint128 nonce, string calldata proof) external whenNotPaused {
         PromiseCreateArgs memory callUnlock = near.call(

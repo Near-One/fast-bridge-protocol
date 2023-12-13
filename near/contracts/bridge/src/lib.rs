@@ -404,6 +404,19 @@ impl FastBridge {
         U128::from(0)
     }
 
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum and then withdraw the unlocked amount. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function could be executed successfully by any account that provides proof.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+    /// * `recipient_id` - The account ID that receive the unlocked tokens.
+    ///
     #[pause(except(roles(Role::UnrestrictedUnlockAndWithdraw)))]
     pub fn unlock_and_withdraw(
         &self,
@@ -422,7 +435,22 @@ impl FastBridge {
             )
     }
 
-    #[pause(except(roles(Role::UnrestrictedUnlock)))]
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum and then withdraw the unlocked amount to the aurora EVM. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function could be executed successfully by any account that provides proof.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+    /// * `recipient_id` - The aurora EVM account ID that receive the unlocked tokens.
+    /// * `aurora_native_token_account_id`- The native token that is used in the EVM, is needed to adjust the message format and will be removed
+    /// as soon as this fix goes live https://github.com/aurora-is-near/aurora-engine/pull/882
+    ///
+    #[pause(except(roles(Role::UnrestrictedUnlockAndWithdraw)))]
     pub fn unlock_and_withdraw_to_aurora_sender(
         &self,
         nonce: U128,
