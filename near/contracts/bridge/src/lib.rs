@@ -101,7 +101,6 @@ trait FastBridgeInterface {
         #[serializer(borsh)]
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
     );
     fn init_transfer_callback(
         &mut self,
@@ -413,12 +412,14 @@ impl FastBridge {
         recipient_id: Option<AccountId>,
     ) -> Promise {
         let sender_id = env::predecessor_account_id();
-        self.unlock(nonce, proof).then(
-            ext_self::ext(current_account_id())
-                .with_static_gas(utils::tera_gas(75))
-                .with_attached_deposit(utils::NO_DEPOSIT)
-                .unlock_and_withdraw_callback(sender_id, recipient_id, None),
-        )
+        let is_only_originator_can_unlock = true;
+        self.unlock_internal(nonce, proof, is_only_originator_can_unlock)
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(75))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_and_withdraw_callback(sender_id, recipient_id, None),
+            )
     }
 
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
@@ -430,16 +431,18 @@ impl FastBridge {
         aurora_native_token_account_id: AccountId,
     ) -> Promise {
         let sender_id = env::predecessor_account_id();
-        self.unlock(nonce, proof).then(
-            ext_self::ext(current_account_id())
-                .with_static_gas(utils::tera_gas(75))
-                .with_attached_deposit(utils::NO_DEPOSIT)
-                .unlock_and_withdraw_callback(
-                    sender_id,
-                    Some(recipient_id),
-                    Some(aurora_native_token_account_id),
-                ),
-        )
+        let is_only_originator_can_unlock = true;
+        self.unlock_internal(nonce, proof, is_only_originator_can_unlock)
+            .then(
+                ext_self::ext(current_account_id())
+                    .with_static_gas(utils::tera_gas(75))
+                    .with_attached_deposit(utils::NO_DEPOSIT)
+                    .unlock_and_withdraw_callback(
+                        sender_id,
+                        Some(recipient_id),
+                        Some(aurora_native_token_account_id),
+                    ),
+            )
     }
 
     #[private]
@@ -495,12 +498,34 @@ impl FastBridge {
     /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
     #[pause(except(roles(Role::UnrestrictedUnlock)))]
     pub fn unlock(&self, nonce: U128, proof: near_sdk::json_types::Base64VecU8) -> Promise {
+        let is_only_originator_can_unlock = false;
+        self.unlock_internal(nonce, proof, is_only_originator_can_unlock)
+    }
+
+    fn unlock_internal(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        is_only_originator_can_unlock: bool,
+    ) -> Promise {
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str("Invalid borsh format of the `UnlockProof`"));
 
-        let (_recipient_id, transfer_data) = self
+        let (originator_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+
+        let has_unlock_access =
+            if is_only_originator_can_unlock || transfer_data.aurora_sender.is_some() {
+                originator_id == env::predecessor_account_id()
+            } else {
+                true
+            };
+
+        require!(
+            has_unlock_access,
+            "Only the original creator of the transfer can perform the unlock"
+        );
 
         let storage_key_hash = utils::get_eth_storage_key_hash(
             transfer_data.transfer.token_eth,
@@ -530,7 +555,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(5))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id()),
+                    .unlock_callback(nonce),
             )
     }
 
@@ -561,16 +586,10 @@ impl FastBridge {
         #[serializer(borsh)]
         verification_result: bool,
         #[serializer(borsh)] nonce: U128,
-        #[serializer(borsh)] sender_id: AccountId,
     ) -> TransferMessage {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
-
-        require!(
-            transfer_data.aurora_sender.is_none() || recipient_id == sender_id,
-            "Only the original creator of the transfer can perform the unlock"
-        );
 
         require!(
             block_timestamp() > transfer_data.valid_till,
@@ -1951,7 +1970,7 @@ mod unit_tests {
         testing_env!(context);
         let nonce = U128(1);
 
-        contract.unlock_callback(true, nonce, signer_account_id());
+        contract.unlock_callback(true, nonce);
 
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
@@ -2006,7 +2025,7 @@ mod unit_tests {
         testing_env!(context);
 
         let nonce = U128(1);
-        contract.unlock_callback(true, nonce, signer_account_id());
+        contract.unlock_callback(true, nonce);
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
             .0;
@@ -2162,7 +2181,7 @@ mod unit_tests {
         let context = get_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(9);
-        contract.unlock_callback(true, nonce, signer_account_id());
+        contract.unlock_callback(true, nonce);
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
             .0;
@@ -2235,7 +2254,7 @@ mod unit_tests {
         let context = get_panic_context_for_unlock(false);
         testing_env!(context);
         let nonce = U128(1);
-        contract.unlock_callback(true, nonce, signer_account_id());
+        contract.unlock_callback(true, nonce);
         let transfer_token_amount = contract
             .get_user_balance(&transfer_account, &transfer_token)
             .0;
@@ -2294,7 +2313,12 @@ mod unit_tests {
         let mut contract = get_bridge_contract(None);
         let token_id: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
         let amount = 42;
-        contract.withdraw_callback(token_id, U128(amount), signer_account_id());
+        contract.withdraw_callback(
+            token_id,
+            U128(amount),
+            signer_account_id(),
+            signer_account_id(),
+        );
     }
 
     #[test]
