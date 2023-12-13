@@ -1030,6 +1030,7 @@ impl FastBridge {
             };
 
             Event::FastBridgeWithdrawEvent {
+                sender_id: Some(sender_id.clone()),
                 recipient_id,
                 token: token_id.clone(),
                 amount: transferred_amount,
