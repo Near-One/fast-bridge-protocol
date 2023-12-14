@@ -433,11 +433,12 @@ mod integration_tests {
         transfer_amount: u128,
         fee_amount: u128,
         aurora_sender: Option<EthAddress>,
+        duration_secs: u64,
     ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
         let valid_till = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
-            .add(std::time::Duration::from_secs(10))
+            .add(std::time::Duration::from_secs(duration_secs))
             .as_nanos()
             .try_into()
             .expect("Can't convert Duration to u64");
@@ -508,6 +509,7 @@ mod integration_tests {
         // Init token transfer twice
         let total_transfer_amount: u128 = 10;
         let total_fee_amount: u128 = 10;
+        let duration_secs = 5;
         let result = transfer_tokens(
             test_data.bridge.as_account(),
             alice,
@@ -515,6 +517,7 @@ mod integration_tests {
             total_transfer_amount / 2,
             total_fee_amount / 2,
             None,
+            duration_secs,
         )
         .await?;
         let result: U128 = result.json()?;
@@ -528,6 +531,7 @@ mod integration_tests {
             total_transfer_amount / 2,
             total_fee_amount / 2,
             None,
+            duration_secs,
         )
         .await?;
         let result: U128 = result.json()?;
@@ -668,6 +672,7 @@ mod integration_tests {
         // Init token transfer
         let total_transfer_amount: u128 = 10;
         let total_fee_amount: u128 = 10;
+        let duration_secs = 5;
         let result = transfer_tokens(
             test_data.bridge.as_account(),
             alice,
@@ -675,6 +680,7 @@ mod integration_tests {
             total_transfer_amount,
             total_fee_amount,
             aurora_sender,
+            duration_secs,
         )
         .await?;
         let result: U128 = result.json()?;
@@ -700,6 +706,7 @@ mod integration_tests {
         );
 
         // Call unlock and withdraw
+        tokio::time::sleep(std::time::Duration::from_secs(duration_secs)).await;
         let unlock_tokens_batch_size = 1u32;
         let result = if let Some(aurora_native_token_account_id) = aurora_native_token_account_id {
             unlock_and_withdraw_tokens_to_aurora_sender(
