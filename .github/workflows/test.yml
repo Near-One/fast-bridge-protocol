@@ -11,12 +11,15 @@ env:
 
 jobs:
   test-cargo:
-    runs-on: [self-hosted, light]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: webfactory/ssh-agent@v0.7.0
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          profile: minimal
+          toolchain: stable
+          override: true
       - run: cargo fmt --manifest-path ./near/contracts/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path ./near/contracts/Cargo.toml -- -A clippy::too-many-arguments -D warnings
       - run: cd near; mkdir -p res; ./build.sh
@@ -53,7 +56,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
-      - run: | 
+      - run: |
           cd eth
           npm install
           npm run flatten
@@ -77,12 +80,11 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-          override: true   
+          override: true
       - name: Clone the repository
         uses: actions/checkout@v3
-        with: 
+        with:
           submodules: recursive
       - name: Test
         run: |
           make test-aurora-fast-bridge
-  
