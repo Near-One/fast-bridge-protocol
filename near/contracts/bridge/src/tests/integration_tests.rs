@@ -76,7 +76,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = token
             .call("new")
@@ -93,7 +93,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let owner = worker.root_account()?;
         let alice = owner
@@ -112,7 +112,7 @@ mod integration_tests {
             .deposit(ONE_NEAR)
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = token
             .call("mint")
@@ -123,7 +123,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = client
             .call("set_last_block_number")
@@ -133,7 +133,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = prover
             .call("set_log_entry_verification_status")
@@ -143,7 +143,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = ft_receiver
             .call("new")
@@ -151,7 +151,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = token
             .call("storage_deposit")
@@ -162,7 +162,7 @@ mod integration_tests {
             .deposit(ONE_NEAR)
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         Ok(TestData {
             bridge,
@@ -406,7 +406,7 @@ mod integration_tests {
             withdrawals_batch_size,
         )
         .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
         assert_eq!(result.logs().len(), 2);
         assert!(result.logs()[1]
             .contains(r#"EVENT_JSON:{"data":{"amount":"10","recipient_id":"alice.test.near""#));
@@ -615,7 +615,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         common_test_unlock_and_withdraw(
             recipient_id,
@@ -722,7 +722,7 @@ mod integration_tests {
             .await?
         };
 
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         // Check balances after unlock and withdraw
         if let Some(recipient_id) = recipient_id {
