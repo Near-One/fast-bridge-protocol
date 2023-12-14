@@ -407,7 +407,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum and then withdraw the unlocked amount. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully by any account that provides proof.
+    /// The function can be called only by the originator account.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
     ///
@@ -438,7 +438,7 @@ impl FastBridge {
     /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
     /// of the transfer on Ethereum and then withdraw the unlocked amount to the aurora EVM. The unlock could be possible only if the transfer on Ethereum
     /// didn't happen and its validity time is already expired.
-    /// The function could be executed successfully by any account that provides proof.
+    /// The function can be called only by the originator account.
     ///
     /// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
     ///
