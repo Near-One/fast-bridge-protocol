@@ -3317,7 +3317,13 @@ trait NEP141Token {
         amount: U128,
         memo: Option<String>,
     );
-    fn ft_transfer_call(&mut self, receiver_id: AccountId, amount: U128, msg: String);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    );
 }
 pub mod ext_token {
     use super::*;
@@ -3447,6 +3453,7 @@ pub mod ext_token {
             self,
             receiver_id: AccountId,
             amount: U128,
+            memo: Option<String>,
             msg: String,
         ) -> near_sdk::Promise {
             let __args = {
@@ -3454,6 +3461,7 @@ pub mod ext_token {
                 struct Input<'nearinput> {
                     receiver_id: &'nearinput AccountId,
                     amount: &'nearinput U128,
+                    memo: &'nearinput Option<String>,
                     msg: &'nearinput String,
                 }
                 #[doc(hidden)]
@@ -3476,7 +3484,7 @@ pub mod ext_token {
                             let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
-                                false as usize + 1 + 1 + 1,
+                                false as usize + 1 + 1 + 1 + 1,
                             ) {
                                 _serde::__private::Ok(__val) => __val,
                                 _serde::__private::Err(__err) => {
@@ -3505,6 +3513,16 @@ pub mod ext_token {
                             };
                             match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
+                                "memo",
+                                &self.memo,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
+                                &mut __serde_state,
                                 "msg",
                                 &self.msg,
                             ) {
@@ -3520,6 +3538,7 @@ pub mod ext_token {
                 let __args = Input {
                     receiver_id: &receiver_id,
                     amount: &amount,
+                    memo: &memo,
                     msg: &msg,
                 };
                 near_sdk::serde_json::to_vec(&__args)
@@ -3541,6 +3560,7 @@ trait FastBridgeInterface {
         &mut self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     );
     fn verify_log_entry_callback(
@@ -3548,12 +3568,7 @@ trait FastBridgeInterface {
         verification_success: bool,
         proof: EthTransferEvent,
     ) -> Promise;
-    fn unlock_callback(
-        &mut self,
-        verification_result: bool,
-        nonce: U128,
-        sender_id: AccountId,
-    );
+    fn unlock_callback(&mut self, verification_result: bool, nonce: U128);
     fn init_transfer_callback(
         &mut self,
         transfer_message: TransferMessage,
@@ -3610,6 +3625,7 @@ pub mod ext_self {
             self,
             token_id: AccountId,
             amount: U128,
+            sender_id: AccountId,
             recipient_id: AccountId,
         ) -> near_sdk::Promise {
             let __args = {
@@ -3617,6 +3633,7 @@ pub mod ext_self {
                 struct Input<'nearinput> {
                     token_id: &'nearinput AccountId,
                     amount: &'nearinput U128,
+                    sender_id: &'nearinput AccountId,
                     recipient_id: &'nearinput AccountId,
                 }
                 #[doc(hidden)]
@@ -3639,7 +3656,7 @@ pub mod ext_self {
                             let mut __serde_state = match _serde::Serializer::serialize_struct(
                                 __serializer,
                                 "Input",
-                                false as usize + 1 + 1 + 1,
+                                false as usize + 1 + 1 + 1 + 1,
                             ) {
                                 _serde::__private::Ok(__val) => __val,
                                 _serde::__private::Err(__err) => {
@@ -3668,6 +3685,16 @@ pub mod ext_self {
                             };
                             match _serde::ser::SerializeStruct::serialize_field(
                                 &mut __serde_state,
+                                "sender_id",
+                                &self.sender_id,
+                            ) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            match _serde::ser::SerializeStruct::serialize_field(
+                                &mut __serde_state,
                                 "recipient_id",
                                 &self.recipient_id,
                             ) {
@@ -3683,6 +3710,7 @@ pub mod ext_self {
                 let __args = Input {
                     token_id: &token_id,
                     amount: &amount,
+                    sender_id: &sender_id,
                     recipient_id: &recipient_id,
                 };
                 near_sdk::serde_json::to_vec(&__args)
@@ -3730,34 +3758,24 @@ pub mod ext_self {
                     self.gas_weight,
                 )
         }
-        pub fn unlock_callback(
-            self,
-            nonce: U128,
-            sender_id: AccountId,
-        ) -> near_sdk::Promise {
+        pub fn unlock_callback(self, nonce: U128) -> near_sdk::Promise {
             let __args = {
                 struct Input<'nearinput> {
                     nonce: &'nearinput U128,
-                    sender_id: &'nearinput AccountId,
                 }
                 impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
                 where
                     &'nearinput U128: borsh::ser::BorshSerialize,
-                    &'nearinput AccountId: borsh::ser::BorshSerialize,
                 {
                     fn serialize<W: borsh::maybestd::io::Write>(
                         &self,
                         writer: &mut W,
                     ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                         borsh::BorshSerialize::serialize(&self.nonce, writer)?;
-                        borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
                         Ok(())
                     }
                 }
-                let __args = Input {
-                    nonce: &nonce,
-                    sender_id: &sender_id,
-                };
+                let __args = Input { nonce: &nonce };
                 near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                     .expect("Failed to serialize the cross contract args using Borsh.")
             };
@@ -5320,6 +5338,8 @@ pub enum Role {
     UnrestrictedLpUnlock,
     /// May call `withdraw` even when it is paused.
     UnrestrictedWithdraw,
+    /// May call `unlock_and_withdraw` even when it is paused.
+    UnrestrictedUnlockAndWithdraw,
     WhitelistManager,
     ConfigManager,
     UnlockManager,
@@ -5350,13 +5370,14 @@ impl From<Role> for u8 {
             Role::UnrestrictedUnlock => 1u8,
             Role::UnrestrictedLpUnlock => 2u8,
             Role::UnrestrictedWithdraw => 3u8,
-            Role::WhitelistManager => 4u8,
-            Role::ConfigManager => 5u8,
-            Role::UnlockManager => 6u8,
-            Role::DAO => 7u8,
-            Role::CodeStager => 8u8,
-            Role::CodeDeployer => 9u8,
-            Role::DurationManager => 10u8,
+            Role::UnrestrictedUnlockAndWithdraw => 4u8,
+            Role::WhitelistManager => 5u8,
+            Role::ConfigManager => 6u8,
+            Role::UnlockManager => 7u8,
+            Role::DAO => 8u8,
+            Role::CodeStager => 9u8,
+            Role::CodeDeployer => 10u8,
+            Role::DurationManager => 11u8,
         }
     }
 }
@@ -5368,13 +5389,14 @@ impl ::std::convert::TryFrom<u8> for Role {
             1u8 => Ok(Role::UnrestrictedUnlock),
             2u8 => Ok(Role::UnrestrictedLpUnlock),
             3u8 => Ok(Role::UnrestrictedWithdraw),
-            4u8 => Ok(Role::WhitelistManager),
-            5u8 => Ok(Role::ConfigManager),
-            6u8 => Ok(Role::UnlockManager),
-            7u8 => Ok(Role::DAO),
-            8u8 => Ok(Role::CodeStager),
-            9u8 => Ok(Role::CodeDeployer),
-            10u8 => Ok(Role::DurationManager),
+            4u8 => Ok(Role::UnrestrictedUnlockAndWithdraw),
+            5u8 => Ok(Role::WhitelistManager),
+            6u8 => Ok(Role::ConfigManager),
+            7u8 => Ok(Role::UnlockManager),
+            8u8 => Ok(Role::DAO),
+            9u8 => Ok(Role::CodeStager),
+            10u8 => Ok(Role::CodeDeployer),
+            11u8 => Ok(Role::DurationManager),
             _ => Err("Value does not correspond to a variant"),
         }
     }
@@ -5386,6 +5408,7 @@ impl From<Role> for &'static str {
             Role::UnrestrictedUnlock => "UnrestrictedUnlock",
             Role::UnrestrictedLpUnlock => "UnrestrictedLpUnlock",
             Role::UnrestrictedWithdraw => "UnrestrictedWithdraw",
+            Role::UnrestrictedUnlockAndWithdraw => "UnrestrictedUnlockAndWithdraw",
             Role::WhitelistManager => "WhitelistManager",
             Role::ConfigManager => "ConfigManager",
             Role::UnlockManager => "UnlockManager",
@@ -5403,6 +5426,9 @@ impl From<Role> for String {
             Role::UnrestrictedUnlock => "UnrestrictedUnlock".to_string(),
             Role::UnrestrictedLpUnlock => "UnrestrictedLpUnlock".to_string(),
             Role::UnrestrictedWithdraw => "UnrestrictedWithdraw".to_string(),
+            Role::UnrestrictedUnlockAndWithdraw => {
+                "UnrestrictedUnlockAndWithdraw".to_string()
+            }
             Role::WhitelistManager => "WhitelistManager".to_string(),
             Role::ConfigManager => "ConfigManager".to_string(),
             Role::UnlockManager => "UnlockManager".to_string(),
@@ -5421,6 +5447,7 @@ impl ::std::convert::TryFrom<&str> for Role {
             "UnrestrictedUnlock" => Ok(Role::UnrestrictedUnlock),
             "UnrestrictedLpUnlock" => Ok(Role::UnrestrictedLpUnlock),
             "UnrestrictedWithdraw" => Ok(Role::UnrestrictedWithdraw),
+            "UnrestrictedUnlockAndWithdraw" => Ok(Role::UnrestrictedUnlockAndWithdraw),
             "WhitelistManager" => Ok(Role::WhitelistManager),
             "ConfigManager" => Ok(Role::ConfigManager),
             "UnlockManager" => Ok(Role::UnlockManager),
@@ -5449,6 +5476,7 @@ impl AccessControlRole for Role {
                 "UnrestrictedUnlock",
                 "UnrestrictedLpUnlock",
                 "UnrestrictedWithdraw",
+                "UnrestrictedUnlockAndWithdraw",
                 "WhitelistManager",
                 "ConfigManager",
                 "UnlockManager",
@@ -5609,6 +5637,14 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
                 false
             }
             #[inline]
+            fn UNRESTRICTEDUNLOCKANDWITHDRAW(&self) -> bool {
+                false
+            }
+            #[inline]
+            fn UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN(&self) -> bool {
+                false
+            }
+            #[inline]
             fn WHITELISTMANAGER(&self) -> bool {
                 false
             }
@@ -5753,6 +5789,27 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
                 } else {
                     self.bits & Self::UNRESTRICTEDWITHDRAW_ADMIN.bits
                         == Self::UNRESTRICTEDWITHDRAW_ADMIN.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn UNRESTRICTEDUNLOCKANDWITHDRAW(&self) -> bool {
+                if Self::UNRESTRICTEDUNLOCKANDWITHDRAW.bits == 0 && self.bits != 0 {
+                    false
+                } else {
+                    self.bits & Self::UNRESTRICTEDUNLOCKANDWITHDRAW.bits
+                        == Self::UNRESTRICTEDUNLOCKANDWITHDRAW.bits
+                }
+            }
+            #[allow(deprecated)]
+            #[inline]
+            fn UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN(&self) -> bool {
+                if Self::UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN.bits == 0 && self.bits != 0
+                {
+                    false
+                } else {
+                    self.bits & Self::UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN.bits
+                        == Self::UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN.bits
                 }
             }
             #[allow(deprecated)]
@@ -5953,6 +6010,20 @@ impl ::bitflags::_core::fmt::Debug for RoleFlags {
             first = false;
             f.write_str("UNRESTRICTEDWITHDRAW_ADMIN")?;
         }
+        if <Self as __BitFlags>::UNRESTRICTEDUNLOCKANDWITHDRAW(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("UNRESTRICTEDUNLOCKANDWITHDRAW")?;
+        }
+        if <Self as __BitFlags>::UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN(self) {
+            if !first {
+                f.write_str(" | ")?;
+            }
+            first = false;
+            f.write_str("UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN")?;
+        }
         if <Self as __BitFlags>::WHITELISTMANAGER(self) {
             if !first {
                 f.write_str(" | ")?;
@@ -6109,20 +6180,22 @@ impl RoleFlags {
     pub const UNRESTRICTEDLPUNLOCK_ADMIN: Self = Self { bits: 1u128 << 6u8 };
     pub const UNRESTRICTEDWITHDRAW: Self = Self { bits: 1u128 << 7u8 };
     pub const UNRESTRICTEDWITHDRAW_ADMIN: Self = Self { bits: 1u128 << 8u8 };
-    pub const WHITELISTMANAGER: Self = Self { bits: 1u128 << 9u8 };
-    pub const WHITELISTMANAGER_ADMIN: Self = Self { bits: 1u128 << 10u8 };
-    pub const CONFIGMANAGER: Self = Self { bits: 1u128 << 11u8 };
-    pub const CONFIGMANAGER_ADMIN: Self = Self { bits: 1u128 << 12u8 };
-    pub const UNLOCKMANAGER: Self = Self { bits: 1u128 << 13u8 };
-    pub const UNLOCKMANAGER_ADMIN: Self = Self { bits: 1u128 << 14u8 };
-    pub const DAO: Self = Self { bits: 1u128 << 15u8 };
-    pub const DAO_ADMIN: Self = Self { bits: 1u128 << 16u8 };
-    pub const CODESTAGER: Self = Self { bits: 1u128 << 17u8 };
-    pub const CODESTAGER_ADMIN: Self = Self { bits: 1u128 << 18u8 };
-    pub const CODEDEPLOYER: Self = Self { bits: 1u128 << 19u8 };
-    pub const CODEDEPLOYER_ADMIN: Self = Self { bits: 1u128 << 20u8 };
-    pub const DURATIONMANAGER: Self = Self { bits: 1u128 << 21u8 };
-    pub const DURATIONMANAGER_ADMIN: Self = Self { bits: 1u128 << 22u8 };
+    pub const UNRESTRICTEDUNLOCKANDWITHDRAW: Self = Self { bits: 1u128 << 9u8 };
+    pub const UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN: Self = Self { bits: 1u128 << 10u8 };
+    pub const WHITELISTMANAGER: Self = Self { bits: 1u128 << 11u8 };
+    pub const WHITELISTMANAGER_ADMIN: Self = Self { bits: 1u128 << 12u8 };
+    pub const CONFIGMANAGER: Self = Self { bits: 1u128 << 13u8 };
+    pub const CONFIGMANAGER_ADMIN: Self = Self { bits: 1u128 << 14u8 };
+    pub const UNLOCKMANAGER: Self = Self { bits: 1u128 << 15u8 };
+    pub const UNLOCKMANAGER_ADMIN: Self = Self { bits: 1u128 << 16u8 };
+    pub const DAO: Self = Self { bits: 1u128 << 17u8 };
+    pub const DAO_ADMIN: Self = Self { bits: 1u128 << 18u8 };
+    pub const CODESTAGER: Self = Self { bits: 1u128 << 19u8 };
+    pub const CODESTAGER_ADMIN: Self = Self { bits: 1u128 << 20u8 };
+    pub const CODEDEPLOYER: Self = Self { bits: 1u128 << 21u8 };
+    pub const CODEDEPLOYER_ADMIN: Self = Self { bits: 1u128 << 22u8 };
+    pub const DURATIONMANAGER: Self = Self { bits: 1u128 << 23u8 };
+    pub const DURATIONMANAGER_ADMIN: Self = Self { bits: 1u128 << 24u8 };
     /// Returns an empty set of flags.
     #[inline]
     pub const fn empty() -> Self {
@@ -6142,6 +6215,8 @@ impl RoleFlags {
             const UNRESTRICTEDLPUNLOCK_ADMIN: u128 = 0;
             const UNRESTRICTEDWITHDRAW: u128 = 0;
             const UNRESTRICTEDWITHDRAW_ADMIN: u128 = 0;
+            const UNRESTRICTEDUNLOCKANDWITHDRAW: u128 = 0;
+            const UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN: u128 = 0;
             const WHITELISTMANAGER: u128 = 0;
             const WHITELISTMANAGER_ADMIN: u128 = 0;
             const CONFIGMANAGER: u128 = 0;
@@ -6178,6 +6253,12 @@ impl RoleFlags {
             const UNRESTRICTEDWITHDRAW: u128 = Self::UNRESTRICTEDWITHDRAW.bits;
             #[allow(deprecated)]
             const UNRESTRICTEDWITHDRAW_ADMIN: u128 = Self::UNRESTRICTEDWITHDRAW_ADMIN
+                .bits;
+            #[allow(deprecated)]
+            const UNRESTRICTEDUNLOCKANDWITHDRAW: u128 = Self::UNRESTRICTEDUNLOCKANDWITHDRAW
+                .bits;
+            #[allow(deprecated)]
+            const UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN: u128 = Self::UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN
                 .bits;
             #[allow(deprecated)]
             const WHITELISTMANAGER: u128 = Self::WHITELISTMANAGER.bits;
@@ -6218,6 +6299,8 @@ impl RoleFlags {
                 | <Self as __BitFlags>::UNRESTRICTEDLPUNLOCK_ADMIN
                 | <Self as __BitFlags>::UNRESTRICTEDWITHDRAW
                 | <Self as __BitFlags>::UNRESTRICTEDWITHDRAW_ADMIN
+                | <Self as __BitFlags>::UNRESTRICTEDUNLOCKANDWITHDRAW
+                | <Self as __BitFlags>::UNRESTRICTEDUNLOCKANDWITHDRAW_ADMIN
                 | <Self as __BitFlags>::WHITELISTMANAGER
                 | <Self as __BitFlags>::WHITELISTMANAGER_ADMIN
                 | <Self as __BitFlags>::CONFIGMANAGER
@@ -6531,6 +6614,7 @@ const _: () = {
                 __field8,
                 __field9,
                 __field10,
+                __field11,
             }
             #[doc(hidden)]
             struct __FieldVisitor;
@@ -6564,11 +6648,12 @@ const _: () = {
                         8u64 => _serde::__private::Ok(__Field::__field8),
                         9u64 => _serde::__private::Ok(__Field::__field9),
                         10u64 => _serde::__private::Ok(__Field::__field10),
+                        11u64 => _serde::__private::Ok(__Field::__field11),
                         _ => {
                             _serde::__private::Err(
                                 _serde::de::Error::invalid_value(
                                     _serde::de::Unexpected::Unsigned(__value),
-                                    &"variant index 0 <= i < 11",
+                                    &"variant index 0 <= i < 12",
                                 ),
                             )
                         }
@@ -6590,13 +6675,16 @@ const _: () = {
                         "UnrestrictedWithdraw" => {
                             _serde::__private::Ok(__Field::__field3)
                         }
-                        "WhitelistManager" => _serde::__private::Ok(__Field::__field4),
-                        "ConfigManager" => _serde::__private::Ok(__Field::__field5),
-                        "UnlockManager" => _serde::__private::Ok(__Field::__field6),
-                        "DAO" => _serde::__private::Ok(__Field::__field7),
-                        "CodeStager" => _serde::__private::Ok(__Field::__field8),
-                        "CodeDeployer" => _serde::__private::Ok(__Field::__field9),
-                        "DurationManager" => _serde::__private::Ok(__Field::__field10),
+                        "UnrestrictedUnlockAndWithdraw" => {
+                            _serde::__private::Ok(__Field::__field4)
+                        }
+                        "WhitelistManager" => _serde::__private::Ok(__Field::__field5),
+                        "ConfigManager" => _serde::__private::Ok(__Field::__field6),
+                        "UnlockManager" => _serde::__private::Ok(__Field::__field7),
+                        "DAO" => _serde::__private::Ok(__Field::__field8),
+                        "CodeStager" => _serde::__private::Ok(__Field::__field9),
+                        "CodeDeployer" => _serde::__private::Ok(__Field::__field10),
+                        "DurationManager" => _serde::__private::Ok(__Field::__field11),
                         _ => {
                             _serde::__private::Err(
                                 _serde::de::Error::unknown_variant(__value, VARIANTS),
@@ -6620,13 +6708,16 @@ const _: () = {
                         b"UnrestrictedWithdraw" => {
                             _serde::__private::Ok(__Field::__field3)
                         }
-                        b"WhitelistManager" => _serde::__private::Ok(__Field::__field4),
-                        b"ConfigManager" => _serde::__private::Ok(__Field::__field5),
-                        b"UnlockManager" => _serde::__private::Ok(__Field::__field6),
-                        b"DAO" => _serde::__private::Ok(__Field::__field7),
-                        b"CodeStager" => _serde::__private::Ok(__Field::__field8),
-                        b"CodeDeployer" => _serde::__private::Ok(__Field::__field9),
-                        b"DurationManager" => _serde::__private::Ok(__Field::__field10),
+                        b"UnrestrictedUnlockAndWithdraw" => {
+                            _serde::__private::Ok(__Field::__field4)
+                        }
+                        b"WhitelistManager" => _serde::__private::Ok(__Field::__field5),
+                        b"ConfigManager" => _serde::__private::Ok(__Field::__field6),
+                        b"UnlockManager" => _serde::__private::Ok(__Field::__field7),
+                        b"DAO" => _serde::__private::Ok(__Field::__field8),
+                        b"CodeStager" => _serde::__private::Ok(__Field::__field9),
+                        b"CodeDeployer" => _serde::__private::Ok(__Field::__field10),
+                        b"DurationManager" => _serde::__private::Ok(__Field::__field11),
                         _ => {
                             let __value = &_serde::__private::from_utf8_lossy(__value);
                             _serde::__private::Err(
@@ -6719,7 +6810,7 @@ const _: () = {
                                     return _serde::__private::Err(__err);
                                 }
                             };
-                            _serde::__private::Ok(Role::WhitelistManager)
+                            _serde::__private::Ok(Role::UnrestrictedUnlockAndWithdraw)
                         }
                         (__Field::__field5, __variant) => {
                             match _serde::de::VariantAccess::unit_variant(__variant) {
@@ -6728,7 +6819,7 @@ const _: () = {
                                     return _serde::__private::Err(__err);
                                 }
                             };
-                            _serde::__private::Ok(Role::ConfigManager)
+                            _serde::__private::Ok(Role::WhitelistManager)
                         }
                         (__Field::__field6, __variant) => {
                             match _serde::de::VariantAccess::unit_variant(__variant) {
@@ -6737,7 +6828,7 @@ const _: () = {
                                     return _serde::__private::Err(__err);
                                 }
                             };
-                            _serde::__private::Ok(Role::UnlockManager)
+                            _serde::__private::Ok(Role::ConfigManager)
                         }
                         (__Field::__field7, __variant) => {
                             match _serde::de::VariantAccess::unit_variant(__variant) {
@@ -6746,7 +6837,7 @@ const _: () = {
                                     return _serde::__private::Err(__err);
                                 }
                             };
-                            _serde::__private::Ok(Role::DAO)
+                            _serde::__private::Ok(Role::UnlockManager)
                         }
                         (__Field::__field8, __variant) => {
                             match _serde::de::VariantAccess::unit_variant(__variant) {
@@ -6755,7 +6846,7 @@ const _: () = {
                                     return _serde::__private::Err(__err);
                                 }
                             };
-                            _serde::__private::Ok(Role::CodeStager)
+                            _serde::__private::Ok(Role::DAO)
                         }
                         (__Field::__field9, __variant) => {
                             match _serde::de::VariantAccess::unit_variant(__variant) {
@@ -6764,9 +6855,18 @@ const _: () = {
                                     return _serde::__private::Err(__err);
                                 }
                             };
-                            _serde::__private::Ok(Role::CodeDeployer)
+                            _serde::__private::Ok(Role::CodeStager)
                         }
                         (__Field::__field10, __variant) => {
+                            match _serde::de::VariantAccess::unit_variant(__variant) {
+                                _serde::__private::Ok(__val) => __val,
+                                _serde::__private::Err(__err) => {
+                                    return _serde::__private::Err(__err);
+                                }
+                            };
+                            _serde::__private::Ok(Role::CodeDeployer)
+                        }
+                        (__Field::__field11, __variant) => {
                             match _serde::de::VariantAccess::unit_variant(__variant) {
                                 _serde::__private::Ok(__val) => __val,
                                 _serde::__private::Err(__err) => {
@@ -6784,6 +6884,7 @@ const _: () = {
                 "UnrestrictedUnlock",
                 "UnrestrictedLpUnlock",
                 "UnrestrictedWithdraw",
+                "UnrestrictedUnlockAndWithdraw",
                 "WhitelistManager",
                 "ConfigManager",
                 "UnlockManager",
@@ -6850,11 +6951,19 @@ const _: () = {
                         "UnrestrictedWithdraw",
                     )
                 }
-                Role::WhitelistManager => {
+                Role::UnrestrictedUnlockAndWithdraw => {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
                         4u32,
+                        "UnrestrictedUnlockAndWithdraw",
+                    )
+                }
+                Role::WhitelistManager => {
+                    _serde::Serializer::serialize_unit_variant(
+                        __serializer,
+                        "Role",
+                        5u32,
                         "WhitelistManager",
                     )
                 }
@@ -6862,7 +6971,7 @@ const _: () = {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
-                        5u32,
+                        6u32,
                         "ConfigManager",
                     )
                 }
@@ -6870,7 +6979,7 @@ const _: () = {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
-                        6u32,
+                        7u32,
                         "UnlockManager",
                     )
                 }
@@ -6878,7 +6987,7 @@ const _: () = {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
-                        7u32,
+                        8u32,
                         "DAO",
                     )
                 }
@@ -6886,7 +6995,7 @@ const _: () = {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
-                        8u32,
+                        9u32,
                         "CodeStager",
                     )
                 }
@@ -6894,7 +7003,7 @@ const _: () = {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
-                        9u32,
+                        10u32,
                         "CodeDeployer",
                     )
                 }
@@ -6902,7 +7011,7 @@ const _: () = {
                     _serde::Serializer::serialize_unit_variant(
                         __serializer,
                         "Role",
-                        10u32,
+                        11u32,
                         "DurationManager",
                     )
                 }
@@ -16568,34 +16677,24 @@ impl FastBridgeExt {
                 self.gas_weight,
             )
     }
-    pub fn unlock_callback(
-        self,
-        nonce: U128,
-        sender_id: AccountId,
-    ) -> near_sdk::Promise {
+    pub fn unlock_callback(self, nonce: U128) -> near_sdk::Promise {
         let __args = {
             struct Input<'nearinput> {
                 nonce: &'nearinput U128,
-                sender_id: &'nearinput AccountId,
             }
             impl<'nearinput> borsh::ser::BorshSerialize for Input<'nearinput>
             where
                 &'nearinput U128: borsh::ser::BorshSerialize,
-                &'nearinput AccountId: borsh::ser::BorshSerialize,
             {
                 fn serialize<W: borsh::maybestd::io::Write>(
                     &self,
                     writer: &mut W,
                 ) -> ::core::result::Result<(), borsh::maybestd::io::Error> {
                     borsh::BorshSerialize::serialize(&self.nonce, writer)?;
-                    borsh::BorshSerialize::serialize(&self.sender_id, writer)?;
                     Ok(())
                 }
             }
-            let __args = Input {
-                nonce: &nonce,
-                sender_id: &sender_id,
-            };
+            let __args = Input { nonce: &nonce };
             near_sdk::borsh::BorshSerialize::try_to_vec(&__args)
                 .expect("Failed to serialize the cross contract args using Borsh.")
         };
@@ -16949,6 +17048,7 @@ impl FastBridgeExt {
         self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     ) -> near_sdk::Promise {
         let __args = {
@@ -16956,6 +17056,7 @@ impl FastBridgeExt {
             struct Input<'nearinput> {
                 token_id: &'nearinput AccountId,
                 amount: &'nearinput U128,
+                sender_id: &'nearinput AccountId,
                 recipient_id: &'nearinput AccountId,
             }
             #[doc(hidden)]
@@ -16974,7 +17075,7 @@ impl FastBridgeExt {
                         let mut __serde_state = match _serde::Serializer::serialize_struct(
                             __serializer,
                             "Input",
-                            false as usize + 1 + 1 + 1,
+                            false as usize + 1 + 1 + 1 + 1,
                         ) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -17003,6 +17104,16 @@ impl FastBridgeExt {
                         };
                         match _serde::ser::SerializeStruct::serialize_field(
                             &mut __serde_state,
+                            "sender_id",
+                            &self.sender_id,
+                        ) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        };
+                        match _serde::ser::SerializeStruct::serialize_field(
+                            &mut __serde_state,
                             "recipient_id",
                             &self.recipient_id,
                         ) {
@@ -17018,6 +17129,7 @@ impl FastBridgeExt {
             let __args = Input {
                 token_id: &token_id,
                 amount: &amount,
+                sender_id: &sender_id,
                 recipient_id: &recipient_id,
             };
             near_sdk::serde_json::to_vec(&__args)
@@ -17719,6 +17831,19 @@ impl FastBridge {
             .emit();
         U128::from(0)
     }
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum and then withdraw the unlocked amount. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function can be called only by the originator account.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+    /// * `recipient_id` - The account ID that receive the unlocked tokens.
+    ///
     pub fn unlock_and_withdraw(
         &self,
         nonce: U128,
@@ -17728,7 +17853,7 @@ impl FastBridge {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::UnrestrictedUnlock.into()]),
+            ::alloc::boxed::Box::new([Role::UnrestrictedUnlockAndWithdraw.into()]),
         );
         let __except_roles: Vec<String> = __except_roles
             .iter()
@@ -17751,18 +17876,31 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        self.unlock(nonce, proof)
+        let sender_id = env::predecessor_account_id();
+        let is_only_originator_can_unlock = true;
+        self.unlock_internal(nonce, proof, is_only_originator_can_unlock)
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(75))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_and_withdraw_callback(
-                        env::predecessor_account_id(),
-                        recipient_id,
-                        None,
-                    ),
+                    .unlock_and_withdraw_callback(sender_id, recipient_id, None),
             )
     }
+    /// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+    /// of the transfer on Ethereum and then withdraw the unlocked amount to the aurora EVM. The unlock could be possible only if the transfer on Ethereum
+    /// didn't happen and its validity time is already expired.
+    /// The function can be called only by the originator account.
+    ///
+    /// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
+    ///
+    /// # Arguments
+    ///
+    /// * `nonce` - A unique identifier of the transfer.
+    /// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+    /// * `recipient_id` - The aurora EVM account ID that receive the unlocked tokens.
+    /// * `aurora_native_token_account_id`- The native token that is used in the EVM, is needed to adjust the message format and will be removed
+    /// as soon as this fix goes live https://github.com/aurora-is-near/aurora-engine/pull/882
+    ///
     pub fn unlock_and_withdraw_to_aurora_sender(
         &self,
         nonce: U128,
@@ -17773,7 +17911,7 @@ impl FastBridge {
         let mut __check_paused = true;
         let __except_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
-            ::alloc::boxed::Box::new([Role::UnrestrictedUnlock.into()]),
+            ::alloc::boxed::Box::new([Role::UnrestrictedUnlockAndWithdraw.into()]),
         );
         let __except_roles: Vec<String> = __except_roles
             .iter()
@@ -17800,13 +17938,15 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
-        self.unlock(nonce, proof)
+        let sender_id = env::predecessor_account_id();
+        let is_only_originator_can_unlock = true;
+        self.unlock_internal(nonce, proof, is_only_originator_can_unlock)
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(75))
                     .with_attached_deposit(utils::NO_DEPOSIT)
                     .unlock_and_withdraw_callback(
-                        env::predecessor_account_id(),
+                        sender_id,
                         Some(recipient_id),
                         Some(aurora_native_token_account_id),
                     ),
@@ -17814,18 +17954,30 @@ impl FastBridge {
     }
     pub fn unlock_and_withdraw_callback(
         &mut self,
-        transfer_data: TransferMessage,
+        transfer_message: TransferMessage,
         sender_id: AccountId,
         recipient_id: Option<AccountId>,
         aurora_native_token_account_id: Option<AccountId>,
     ) -> Promise {
+        if true {
+            let msg: &str = &"Withdrawing for two different tokens isn't allowed yet.";
+            if !(transfer_message.fee.token == transfer_message.transfer.token_near) {
+                {
+                    ::core::panicking::panic_display(&msg);
+                }
+            }
+        } else if !(transfer_message.fee.token == transfer_message.transfer.token_near) {
+            ::near_sdk::env::panic_str(
+                &"Withdrawing for two different tokens isn't allowed yet.",
+            )
+        }
         let msg = match aurora_native_token_account_id {
             Some(native_token) => {
-                let aurora_sender = transfer_data
+                let aurora_sender = transfer_message
                     .aurora_sender
                     .unwrap_or_else(|| env::panic_str("Aurora sender can't be None"));
                 let aurora_sender_hex = hex::encode(aurora_sender.0);
-                if native_token == transfer_data.transfer.token_near {
+                if native_token == transfer_message.transfer.token_near {
                     Some({
                         let res = ::alloc::fmt::format(
                             format_args!(
@@ -17841,9 +17993,10 @@ impl FastBridge {
             }
             None => None,
         };
+        let amount = transfer_message.fee.amount.0 + transfer_message.transfer.amount.0;
         self.withdraw_internal(
-            transfer_data.transfer.token_near,
-            None,
+            transfer_message.transfer.token_near,
+            Some(amount.into()),
             sender_id,
             recipient_id,
             msg,
@@ -17891,13 +18044,41 @@ impl FastBridge {
                 ::near_sdk::env::panic_str(&"Pausable: Method is paused")
             }
         }
+        let is_only_originator_can_unlock = false;
+        self.unlock_internal(nonce, proof, is_only_originator_can_unlock)
+    }
+    fn unlock_internal(
+        &self,
+        nonce: U128,
+        proof: near_sdk::json_types::Base64VecU8,
+        is_only_originator_can_unlock: bool,
+    ) -> Promise {
         let proof = UnlockProof::try_from_slice(&proof.0)
             .unwrap_or_else(|_| env::panic_str(
                 "Invalid borsh format of the `UnlockProof`",
             ));
-        let (_recipient_id, transfer_data) = self
+        let (originator_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
+        let has_unlock_access = if is_only_originator_can_unlock
+            || transfer_data.aurora_sender.is_some()
+        {
+            originator_id == env::predecessor_account_id()
+        } else {
+            true
+        };
+        if true {
+            let msg: &str = &"Only the original creator of the transfer can perform the unlock";
+            if !has_unlock_access {
+                {
+                    ::core::panicking::panic_display(&msg);
+                }
+            }
+        } else if !has_unlock_access {
+            ::near_sdk::env::panic_str(
+                &"Only the original creator of the transfer can perform the unlock",
+            )
+        }
         let storage_key_hash = utils::get_eth_storage_key_hash(
             transfer_data.transfer.token_eth,
             transfer_data.recipient,
@@ -17924,7 +18105,7 @@ impl FastBridge {
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(5))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .unlock_callback(nonce, env::predecessor_account_id()),
+                    .unlock_callback(nonce),
             )
     }
     /// This function finalizes the execution flow of the `unlock()` function. This function
@@ -17950,23 +18131,10 @@ impl FastBridge {
         &mut self,
         verification_result: bool,
         nonce: U128,
-        sender_id: AccountId,
     ) -> TransferMessage {
         let (recipient_id, transfer_data) = self
             .get_pending_transfer(nonce.0.to_string())
             .unwrap_or_else(|| near_sdk::env::panic_str("Transfer not found"));
-        if true {
-            let msg: &str = &"Only the original creator of the transfer can perform the unlock";
-            if !(transfer_data.aurora_sender.is_none() || recipient_id == sender_id) {
-                {
-                    ::core::panicking::panic_display(&msg);
-                }
-            }
-        } else if !(transfer_data.aurora_sender.is_none() || recipient_id == sender_id) {
-            ::near_sdk::env::panic_str(
-                &"Only the original creator of the transfer can perform the unlock",
-            )
-        }
         if true {
             let msg: &str = &"Valid time is not correct.";
             if !(block_timestamp() > transfer_data.valid_till) {
@@ -18567,59 +18735,50 @@ impl FastBridge {
             ::near_sdk::env::panic_str(&"Insufficient user balance")
         }
         self.decrease_balance(&sender_id, &token_id, &amount.0);
-        let recipient_id = recipient_id.unwrap_or(sender_id);
+        let recipient_id = recipient_id.unwrap_or_else(|| sender_id.clone());
         if let Some(msg) = msg {
-            self.call_ft_transfer_call(token_id, amount, recipient_id, msg)
+            self.call_ft_transfer_call(token_id, amount, sender_id, recipient_id, msg)
         } else {
-            self.call_ft_transfer(token_id, amount, recipient_id)
+            self.call_ft_transfer(token_id, amount, sender_id, recipient_id)
         }
     }
     fn call_ft_transfer_call(
         &self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
         msg: String,
     ) -> Promise {
+        let memo = None;
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(50))
             .with_attached_deposit(1)
-            .ft_transfer_call(recipient_id.clone(), amount, msg)
+            .ft_transfer_call(recipient_id.clone(), amount, memo, msg)
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(5))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, recipient_id),
+                    .withdraw_callback(token_id, amount, sender_id, recipient_id),
             )
     }
     fn call_ft_transfer(
         &self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     ) -> Promise {
+        let memo = None;
         ext_token::ext(token_id.clone())
             .with_static_gas(utils::tera_gas(5))
             .with_attached_deposit(1)
-            .ft_transfer(
-                recipient_id.clone(),
-                amount,
-                Some({
-                    let res = ::alloc::fmt::format(
-                        format_args!(
-                            "Withdraw from: {0} amount: {1}",
-                            current_account_id(),
-                            u128::try_from(amount).unwrap(),
-                        ),
-                    );
-                    res
-                }),
-            )
+            .ft_transfer(recipient_id.clone(), amount, memo)
             .then(
                 ext_self::ext(current_account_id())
                     .with_static_gas(utils::tera_gas(2))
                     .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, recipient_id),
+                    .withdraw_callback(token_id, amount, sender_id, recipient_id),
             )
     }
     /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
@@ -18642,6 +18801,7 @@ impl FastBridge {
         &mut self,
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     ) -> U128 {
         let mut transferred_amount = U128(0);
@@ -18652,7 +18812,8 @@ impl FastBridge {
                 near_sdk::serde_json::from_slice::<U128>(&result).unwrap()
             };
             Event::FastBridgeWithdrawEvent {
-                recipient_id: recipient_id.clone(),
+                sender_id: Some(sender_id.clone()),
+                recipient_id,
                 token: token_id.clone(),
                 amount: transferred_amount,
             }
@@ -18660,7 +18821,7 @@ impl FastBridge {
         }
         let refund_amount = amount.0 - transferred_amount.0;
         if refund_amount > 0 {
-            self.increase_balance(&recipient_id, &token_id, &refund_amount);
+            self.increase_balance(&sender_id, &token_id, &refund_amount);
         }
         transferred_amount
     }
@@ -19853,6 +20014,19 @@ pub extern "C" fn init_transfer_callback() {
     near_sdk::env::value_return(&result);
     near_sdk::env::state_write(&contract);
 }
+/// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+/// of the transfer on Ethereum and then withdraw the unlocked amount. The unlock could be possible only if the transfer on Ethereum
+/// didn't happen and its validity time is already expired.
+/// The function can be called only by the originator account.
+///
+/// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
+///
+/// # Arguments
+///
+/// * `nonce` - A unique identifier of the transfer.
+/// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+/// * `recipient_id` - The account ID that receive the unlocked tokens.
+///
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock_and_withdraw() {
@@ -20192,6 +20366,21 @@ pub extern "C" fn unlock_and_withdraw() {
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
 }
+/// Unlocks the transfer with the given `nonce`, using the provided `proof` of the non-existence
+/// of the transfer on Ethereum and then withdraw the unlocked amount to the aurora EVM. The unlock could be possible only if the transfer on Ethereum
+/// didn't happen and its validity time is already expired.
+/// The function can be called only by the originator account.
+///
+/// Note If the function is paused, only the account that has the `UnrestrictedUnlockAndWithdraw` role is allowed to perform an unlock and withdraw.
+///
+/// # Arguments
+///
+/// * `nonce` - A unique identifier of the transfer.
+/// * `proof` - A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
+/// * `recipient_id` - The aurora EVM account ID that receive the unlocked tokens.
+/// * `aurora_native_token_account_id`- The native token that is used in the EVM, is needed to adjust the message format and will be removed
+/// as soon as this fix goes live https://github.com/aurora-is-near/aurora-engine/pull/882
+///
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn unlock_and_withdraw_to_aurora_sender() {
@@ -20643,14 +20832,14 @@ pub extern "C" fn unlock_and_withdraw_callback() {
         near_sdk::PromiseResult::Successful(x) => x,
         _ => near_sdk::env::panic_str("Callback computation 0 was not successful"),
     };
-    let transfer_data: TransferMessage = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let transfer_message: TransferMessage = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &data,
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
     let result = contract
         .unlock_and_withdraw_callback(
-            transfer_data,
+            transfer_message,
             sender_id,
             recipient_id,
             aurora_native_token_account_id,
@@ -20981,23 +21170,20 @@ pub extern "C" fn unlock_callback() {
     }
     struct Input {
         nonce: U128,
-        sender_id: AccountId,
     }
     impl borsh::de::BorshDeserialize for Input
     where
         U128: borsh::BorshDeserialize,
-        AccountId: borsh::BorshDeserialize,
     {
         fn deserialize(
             buf: &mut &[u8],
         ) -> ::core::result::Result<Self, borsh::maybestd::io::Error> {
             Ok(Self {
                 nonce: borsh::BorshDeserialize::deserialize(buf)?,
-                sender_id: borsh::BorshDeserialize::deserialize(buf)?,
             })
         }
     }
-    let Input { nonce, sender_id }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
+    let Input { nonce }: Input = near_sdk::borsh::BorshDeserialize::try_from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from Borsh.");
@@ -21010,7 +21196,7 @@ pub extern "C" fn unlock_callback() {
         )
         .expect("Failed to deserialize callback using Borsh");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.unlock_callback(verification_result, nonce, sender_id);
+    let result = contract.unlock_callback(verification_result, nonce);
     let result = near_sdk::borsh::BorshSerialize::try_to_vec(&result)
         .expect("Failed to serialize the return value using Borsh.");
     near_sdk::env::value_return(&result);
@@ -22344,6 +22530,7 @@ pub extern "C" fn withdraw_callback() {
     struct Input {
         token_id: AccountId,
         amount: U128,
+        sender_id: AccountId,
         recipient_id: AccountId,
     }
     #[doc(hidden)]
@@ -22364,6 +22551,7 @@ pub extern "C" fn withdraw_callback() {
                     __field0,
                     __field1,
                     __field2,
+                    __field3,
                     __ignore,
                 }
                 #[doc(hidden)]
@@ -22390,6 +22578,7 @@ pub extern "C" fn withdraw_callback() {
                             0u64 => _serde::__private::Ok(__Field::__field0),
                             1u64 => _serde::__private::Ok(__Field::__field1),
                             2u64 => _serde::__private::Ok(__Field::__field2),
+                            3u64 => _serde::__private::Ok(__Field::__field3),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -22403,7 +22592,8 @@ pub extern "C" fn withdraw_callback() {
                         match __value {
                             "token_id" => _serde::__private::Ok(__Field::__field0),
                             "amount" => _serde::__private::Ok(__Field::__field1),
-                            "recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            "sender_id" => _serde::__private::Ok(__Field::__field2),
+                            "recipient_id" => _serde::__private::Ok(__Field::__field3),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -22417,7 +22607,8 @@ pub extern "C" fn withdraw_callback() {
                         match __value {
                             b"token_id" => _serde::__private::Ok(__Field::__field0),
                             b"amount" => _serde::__private::Ok(__Field::__field1),
-                            b"recipient_id" => _serde::__private::Ok(__Field::__field2),
+                            b"sender_id" => _serde::__private::Ok(__Field::__field2),
+                            b"recipient_id" => _serde::__private::Ok(__Field::__field3),
                             _ => _serde::__private::Ok(__Field::__ignore),
                         }
                     }
@@ -22473,7 +22664,7 @@ pub extern "C" fn withdraw_callback() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         0usize,
-                                        &"struct Input with 3 elements",
+                                        &"struct Input with 4 elements",
                                     ),
                                 );
                             }
@@ -22491,7 +22682,7 @@ pub extern "C" fn withdraw_callback() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         1usize,
-                                        &"struct Input with 3 elements",
+                                        &"struct Input with 4 elements",
                                     ),
                                 );
                             }
@@ -22509,7 +22700,25 @@ pub extern "C" fn withdraw_callback() {
                                 return _serde::__private::Err(
                                     _serde::de::Error::invalid_length(
                                         2usize,
-                                        &"struct Input with 3 elements",
+                                        &"struct Input with 4 elements",
+                                    ),
+                                );
+                            }
+                        };
+                        let __field3 = match match _serde::de::SeqAccess::next_element::<
+                            AccountId,
+                        >(&mut __seq) {
+                            _serde::__private::Ok(__val) => __val,
+                            _serde::__private::Err(__err) => {
+                                return _serde::__private::Err(__err);
+                            }
+                        } {
+                            _serde::__private::Some(__value) => __value,
+                            _serde::__private::None => {
+                                return _serde::__private::Err(
+                                    _serde::de::Error::invalid_length(
+                                        3usize,
+                                        &"struct Input with 4 elements",
                                     ),
                                 );
                             }
@@ -22517,7 +22726,8 @@ pub extern "C" fn withdraw_callback() {
                         _serde::__private::Ok(Input {
                             token_id: __field0,
                             amount: __field1,
-                            recipient_id: __field2,
+                            sender_id: __field2,
+                            recipient_id: __field3,
                         })
                     }
                     #[inline]
@@ -22531,6 +22741,7 @@ pub extern "C" fn withdraw_callback() {
                         let mut __field0: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<U128> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<AccountId> = _serde::__private::None;
+                        let mut __field3: _serde::__private::Option<AccountId> = _serde::__private::None;
                         while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
                         >(&mut __map) {
@@ -22580,11 +22791,30 @@ pub extern "C" fn withdraw_callback() {
                                     if _serde::__private::Option::is_some(&__field2) {
                                         return _serde::__private::Err(
                                             <__A::Error as _serde::de::Error>::duplicate_field(
-                                                "recipient_id",
+                                                "sender_id",
                                             ),
                                         );
                                     }
                                     __field2 = _serde::__private::Some(
+                                        match _serde::de::MapAccess::next_value::<
+                                            AccountId,
+                                        >(&mut __map) {
+                                            _serde::__private::Ok(__val) => __val,
+                                            _serde::__private::Err(__err) => {
+                                                return _serde::__private::Err(__err);
+                                            }
+                                        },
+                                    );
+                                }
+                                __Field::__field3 => {
+                                    if _serde::__private::Option::is_some(&__field3) {
+                                        return _serde::__private::Err(
+                                            <__A::Error as _serde::de::Error>::duplicate_field(
+                                                "recipient_id",
+                                            ),
+                                        );
+                                    }
+                                    __field3 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
                                             AccountId,
                                         >(&mut __map) {
@@ -22632,6 +22862,17 @@ pub extern "C" fn withdraw_callback() {
                         let __field2 = match __field2 {
                             _serde::__private::Some(__field2) => __field2,
                             _serde::__private::None => {
+                                match _serde::__private::de::missing_field("sender_id") {
+                                    _serde::__private::Ok(__val) => __val,
+                                    _serde::__private::Err(__err) => {
+                                        return _serde::__private::Err(__err);
+                                    }
+                                }
+                            }
+                        };
+                        let __field3 = match __field3 {
+                            _serde::__private::Some(__field3) => __field3,
+                            _serde::__private::None => {
                                 match _serde::__private::de::missing_field("recipient_id") {
                                     _serde::__private::Ok(__val) => __val,
                                     _serde::__private::Err(__err) => {
@@ -22643,7 +22884,8 @@ pub extern "C" fn withdraw_callback() {
                         _serde::__private::Ok(Input {
                             token_id: __field0,
                             amount: __field1,
-                            recipient_id: __field2,
+                            sender_id: __field2,
+                            recipient_id: __field3,
                         })
                     }
                 }
@@ -22651,6 +22893,7 @@ pub extern "C" fn withdraw_callback() {
                 const FIELDS: &'static [&'static str] = &[
                     "token_id",
                     "amount",
+                    "sender_id",
                     "recipient_id",
                 ];
                 _serde::Deserializer::deserialize_struct(
@@ -22665,12 +22908,12 @@ pub extern "C" fn withdraw_callback() {
             }
         }
     };
-    let Input { token_id, amount, recipient_id }: Input = near_sdk::serde_json::from_slice(
+    let Input { token_id, amount, sender_id, recipient_id }: Input = near_sdk::serde_json::from_slice(
             &near_sdk::env::input().expect("Expected input since method has arguments."),
         )
         .expect("Failed to deserialize input from JSON.");
     let mut contract: FastBridge = near_sdk::env::state_read().unwrap_or_default();
-    let result = contract.withdraw_callback(token_id, amount, recipient_id);
+    let result = contract.withdraw_callback(token_id, amount, sender_id, recipient_id);
     let result = near_sdk::serde_json::to_vec(&result)
         .expect("Failed to serialize the return value using JSON.");
     near_sdk::env::value_return(&result);
