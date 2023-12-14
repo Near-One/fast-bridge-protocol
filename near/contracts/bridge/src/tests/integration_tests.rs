@@ -3,7 +3,7 @@ mod integration_tests {
     use std::ops::Add;
     use std::time::SystemTime;
 
-    use fast_bridge_common::{TransferDataEthereum, TransferDataNear, TransferMessage};
+    use fast_bridge_common::{EthAddress, TransferDataEthereum, TransferDataNear, TransferMessage};
     use near_sdk::borsh::BorshSerialize;
     use near_sdk::json_types::U128;
     use near_sdk::serde_json::json;
@@ -22,6 +22,9 @@ mod integration_tests {
     const MOCK_TOKEN_WASM_FILEPATH: &str =
         "../target/wasm32-unknown-unknown/release/mock_token.wasm";
 
+    const MOCK_FT_RECEIVER_WASM_FILEPATH: &str =
+        "../target/wasm32-unknown-unknown/release/mock_ft_receiver.wasm";
+
     #[derive(serde::Serialize)]
     struct InitArgs {
         eth_bridge_contract: String,
@@ -37,6 +40,7 @@ mod integration_tests {
     struct TestData {
         bridge: Contract,
         token: Contract,
+        ft_receiver: Contract,
         accounts: Vec<Account>,
     }
 
@@ -51,6 +55,9 @@ mod integration_tests {
             .await?;
         let token = worker
             .dev_deploy(&std::fs::read(MOCK_TOKEN_WASM_FILEPATH)?)
+            .await?;
+        let ft_receiver = worker
+            .dev_deploy(&std::fs::read(MOCK_FT_RECEIVER_WASM_FILEPATH)?)
             .await?;
 
         init_input.eth_client_account = Some(
@@ -69,7 +76,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = token
             .call("new")
@@ -86,7 +93,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let owner = worker.root_account()?;
         let alice = owner
@@ -105,7 +112,7 @@ mod integration_tests {
             .deposit(ONE_NEAR)
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = token
             .call("mint")
@@ -116,7 +123,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = client
             .call("set_last_block_number")
@@ -126,7 +133,7 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
 
         let result = prover
             .call("set_log_entry_verification_status")
@@ -136,11 +143,31 @@ mod integration_tests {
             .max_gas()
             .transact()
             .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
+
+        let result = ft_receiver
+            .call("new")
+            .args_json(json!({}))
+            .max_gas()
+            .transact()
+            .await?;
+        assert!(result.is_success(), "{:?}", result);
+
+        let result = token
+            .call("storage_deposit")
+            .args_json(json!({
+                "account_id": ft_receiver.id(),
+            }))
+            .max_gas()
+            .deposit(ONE_NEAR)
+            .transact()
+            .await?;
+        assert!(result.is_success(), "{:?}", result);
 
         Ok(TestData {
             bridge,
             token,
+            ft_receiver,
             accounts: [alice].to_vec(),
         })
     }
@@ -212,6 +239,68 @@ mod integration_tests {
                     .args_json(json!({
                         "nonce": nonce.to_string(),
                         "proof": proof,
+                    }))
+                    .gas(150 * near_sdk::Gas::ONE_TERA.0),
+            );
+        }
+
+        transaction.transact().await
+    }
+
+    async fn unlock_and_withdraw_tokens(
+        bridge_id: &AccountId,
+        account: &Account,
+        nonce: u128,
+        recipient_id: &Option<AccountId>,
+        batch_size: u32,
+    ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
+        let proof = UnlockProof {
+            header_data: vec![],
+            account_proof: vec![],
+            account_data: vec![],
+            storage_proof: vec![],
+        };
+        let proof = near_sdk::base64::encode(proof.try_to_vec().unwrap());
+        let mut transaction = account.batch(bridge_id);
+        for _i in 0..batch_size {
+            transaction = transaction.call(
+                Function::new("unlock_and_withdraw")
+                    .args_json(json!({
+                        "nonce": nonce.to_string(),
+                        "proof": proof,
+                        "recipient_id": recipient_id,
+                    }))
+                    .gas(150 * near_sdk::Gas::ONE_TERA.0),
+            );
+        }
+
+        transaction.transact().await
+    }
+
+    async fn unlock_and_withdraw_tokens_to_aurora_sender(
+        bridge_id: &AccountId,
+        account: &Account,
+        nonce: u128,
+        recipient_id: &AccountId,
+        aurora_native_token_account_id: &AccountId,
+        batch_size: u32,
+    ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
+        let proof = UnlockProof {
+            header_data: vec![],
+            account_proof: vec![],
+            account_data: vec![],
+            storage_proof: vec![],
+        };
+        let proof = near_sdk::base64::encode(proof.try_to_vec().unwrap());
+        let mut transaction = account.batch(bridge_id);
+        for _i in 0..batch_size {
+            transaction = transaction.call(
+                Function::new("unlock_and_withdraw_to_aurora_sender")
+                    .args_json(json!({
+                        "nonce": nonce.to_string(),
+                        "proof": proof,
+                        "recipient_id": recipient_id,
+                        "aurora_native_token_account_id":  aurora_native_token_account_id,
                     }))
                     .gas(150 * near_sdk::Gas::ONE_TERA.0),
             );
@@ -317,7 +406,7 @@ mod integration_tests {
             withdrawals_batch_size,
         )
         .await?;
-        assert!(result.is_success());
+        assert!(result.is_success(), "{:?}", result);
         assert_eq!(result.logs().len(), 2);
         assert!(result.logs()[1]
             .contains(r#"EVENT_JSON:{"data":{"amount":"10","recipient_id":"alice.test.near""#));
@@ -343,11 +432,13 @@ mod integration_tests {
         token: &Account,
         transfer_amount: u128,
         fee_amount: u128,
+        aurora_sender: Option<EthAddress>,
+        duration_secs: u64,
     ) -> Result<workspaces::result::ExecutionFinalResult, workspaces::error::Error> {
         let valid_till = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
-            .add(std::time::Duration::from_secs(10))
+            .add(std::time::Duration::from_secs(duration_secs))
             .as_nanos()
             .try_into()
             .expect("Can't convert Duration to u64");
@@ -364,7 +455,7 @@ mod integration_tests {
             },
             recipient: fast_bridge_common::EthAddress([1; 20]),
             valid_till_block_height: None,
-            aurora_sender: None,
+            aurora_sender,
         };
         let msg = near_sdk::base64::encode(msg.try_to_vec().unwrap());
 
@@ -418,12 +509,15 @@ mod integration_tests {
         // Init token transfer twice
         let total_transfer_amount: u128 = 10;
         let total_fee_amount: u128 = 10;
+        let duration_secs = 5;
         let result = transfer_tokens(
             test_data.bridge.as_account(),
             alice,
             test_data.token.as_account(),
             total_transfer_amount / 2,
             total_fee_amount / 2,
+            None,
+            duration_secs,
         )
         .await?;
         let result: U128 = result.json()?;
@@ -436,6 +530,8 @@ mod integration_tests {
             test_data.token.as_account(),
             total_transfer_amount / 2,
             total_fee_amount / 2,
+            None,
+            duration_secs,
         )
         .await?;
         let result: U128 = result.json()?;
@@ -472,6 +568,193 @@ mod integration_tests {
         assert_eq!(
             get_token_balance(&test_data.token, alice.id()).await?.0,
             alice_token_balance - total_transfer_amount - total_fee_amount
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_unlock_and_withdraw_to_self() -> anyhow::Result<()> {
+        let test_data = common_test_unlock_and_withdraw_data().await?;
+        let recipient_id = None;
+        let aurora_sender = None;
+        let aurora_native_token_account_id = None;
+        common_test_unlock_and_withdraw(
+            recipient_id,
+            aurora_sender,
+            aurora_native_token_account_id,
+            test_data,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn test_unlock_and_withdraw_to_recipient() -> anyhow::Result<()> {
+        let test_data = common_test_unlock_and_withdraw_data().await?;
+        let recipient_id = Some(test_data.ft_receiver.id().clone());
+        let aurora_sender = None;
+        let aurora_native_token_account_id = None;
+        common_test_unlock_and_withdraw(
+            recipient_id,
+            aurora_sender,
+            aurora_native_token_account_id,
+            test_data,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn test_unlock_and_withdraw_to_aurora_sender() -> anyhow::Result<()> {
+        let test_data = common_test_unlock_and_withdraw_data().await?;
+        let recipient_id = Some(test_data.ft_receiver.id().clone());
+        let aurora_sender = Some(fast_bridge_common::EthAddress([8; 20]));
+        let aurora_native_token_account_id = Some("aurora".parse().unwrap());
+
+        let result = test_data
+            .ft_receiver
+            .call("set_config")
+            .args_json(json!({
+                "expected_msg": aurora_sender,
+            }))
+            .max_gas()
+            .transact()
+            .await?;
+        assert!(result.is_success(), "{:?}", result);
+
+        common_test_unlock_and_withdraw(
+            recipient_id,
+            aurora_sender,
+            aurora_native_token_account_id,
+            test_data,
+        )
+        .await
+    }
+
+    async fn common_test_unlock_and_withdraw_data() -> anyhow::Result<TestData> {
+        deploy_bridge(
+            InitArgs {
+                eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
+                prover_account: None,
+                eth_client_account: None,
+                lock_time_min: "1ms".to_owned(),
+                lock_time_max: "10h".to_owned(),
+                eth_block_time: 12000000000,
+                whitelist_mode: false,
+                start_nonce: U128(0),
+            },
+            BRIDGE_WASM_FILEPATH,
+        )
+        .await
+    }
+
+    async fn common_test_unlock_and_withdraw(
+        recipient_id: Option<AccountId>,
+        aurora_sender: Option<EthAddress>,
+        aurora_native_token_account_id: Option<AccountId>,
+        test_data: TestData,
+    ) -> anyhow::Result<()> {
+        // Check init balances
+        let alice = &test_data.accounts[0];
+        let alice_token_balance = get_token_balance(&test_data.token, alice.id()).await?.0;
+        let bridge_balance = get_token_balance(&test_data.token, test_data.bridge.id())
+            .await?
+            .0;
+        assert_eq!(bridge_balance, 1000);
+        assert_eq!(alice_token_balance, 1000);
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
+                .await
+                .unwrap_or(U128(0))
+                .0,
+            0
+        );
+
+        // Init token transfer
+        let total_transfer_amount: u128 = 10;
+        let total_fee_amount: u128 = 10;
+        let duration_secs = 5;
+        let result = transfer_tokens(
+            test_data.bridge.as_account(),
+            alice,
+            test_data.token.as_account(),
+            total_transfer_amount,
+            total_fee_amount,
+            aurora_sender,
+            duration_secs,
+        )
+        .await?;
+        let result: U128 = result.json()?;
+
+        assert_eq!(result.0, total_transfer_amount + total_fee_amount);
+
+        // Check balances after the transfer
+        assert_eq!(
+            get_token_balance(&test_data.token, alice.id()).await?.0,
+            alice_token_balance - total_transfer_amount - total_fee_amount
+        );
+        assert_eq!(
+            get_token_balance(&test_data.token, &test_data.bridge.id())
+                .await?
+                .0,
+            bridge_balance + total_transfer_amount + total_fee_amount
+        );
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
+                .await?
+                .0,
+            0
+        );
+
+        // Call unlock and withdraw
+        tokio::time::sleep(std::time::Duration::from_secs(duration_secs)).await;
+        let unlock_tokens_batch_size = 1u32;
+        let result = if let Some(aurora_native_token_account_id) = aurora_native_token_account_id {
+            unlock_and_withdraw_tokens_to_aurora_sender(
+                test_data.bridge.id(),
+                alice,
+                1,
+                recipient_id.as_ref().unwrap(),
+                &aurora_native_token_account_id,
+                unlock_tokens_batch_size,
+            )
+            .await?
+        } else {
+            unlock_and_withdraw_tokens(
+                test_data.bridge.id(),
+                alice,
+                1,
+                &recipient_id,
+                unlock_tokens_batch_size,
+            )
+            .await?
+        };
+
+        assert!(result.is_success(), "{:?}", result);
+
+        // Check balances after unlock and withdraw
+        if let Some(recipient_id) = recipient_id {
+            assert_eq!(
+                get_token_balance(&test_data.token, &recipient_id).await?.0,
+                total_transfer_amount + total_fee_amount
+            );
+        } else {
+            assert_eq!(
+                get_token_balance(&test_data.token, alice.id()).await?.0,
+                alice_token_balance
+            );
+        }
+
+        assert_eq!(
+            get_token_balance(&test_data.token, &test_data.bridge.id())
+                .await?
+                .0,
+            bridge_balance
+        );
+        assert_eq!(
+            get_bridge_balance(&test_data.bridge, alice.id(), test_data.token.id())
+                .await?
+                .0,
+            0,
         );
 
         Ok(())

@@ -57,14 +57,7 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     mapping(string => mapping(address => uint128)) balance;
     string public nativeTokenAccountIdOnNear;
 
-    event Unlock(
-        uint128 indexed nonce,
-        address indexed sender,
-        string transferToken,
-        uint128 transferAmount,
-        string feeToken,
-        uint128 feeAmount
-    );
+    event Unlock(uint128 indexed nonce);
     event SetWhitelistModeForUsers(address[] users, bool[] states);
     event SetWhitelistMode(bool);
     event TokenRegistered(address tokenAuroraAddress, string tokenNearAccountId);
@@ -425,24 +418,36 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
     }
 
     /**
-     * @dev Initiates the unlocking of tokens on the Fast Bridge on Near blockchain.
+     * @dev Initiates the unlock and withdraw of tokens on the Fast Bridge on Near blockchain.
      * @param nonce The nonce of the fast bridge token transfer on Near.
      * @param proof A Base64-encoded proof of the non-existence of the transfer on Ethereum after the `valid_till` timestamp is passed.
      * Requirements:
      * - The method must be called by token transfer initiator
      * - The contract must not be paused to execute this function.
      * Effects:
-     * - Initiates the unlocking process by making a call to the Fast Bridge contract on Near blockchain.
+     * - Initiates the unlock and withdraw process by making a call to the Fast Bridge contract on Near blockchain.
      */
-    function unlock(uint128 nonce, string calldata proof) external whenNotPaused {
+    function unlockAndWithdraw(uint128 nonce, string calldata proof) external whenNotPaused {
         PromiseCreateArgs memory callUnlock = near.call(
             fastBridgeAccountIdOnNear,
-            "unlock",
-            bytes(string.concat('{"nonce": "', Strings.toString(nonce), '", "proof": "', proof, '"}')),
+            "unlock_and_withdraw_to_aurora_sender",
+            bytes(
+                string.concat(
+                    '{"nonce": "',
+                    Strings.toString(nonce),
+                    '", "proof": "',
+                    proof,
+                    '", "recipient_id": "',
+                    auroraEngineAccountIdOnNear,
+                    '", "aurora_native_token_account_id": "',
+                    nativeTokenAccountIdOnNear,
+                    '"}'
+                )
+            ),
             NO_DEPOSIT,
             UNLOCK_NEAR_GAS
         );
-        bytes memory callbackArg = abi.encodeWithSelector(this.unlockCallback.selector, nonce);
+        bytes memory callbackArg = abi.encodeWithSelector(this.unlockAndWithdrawCallback.selector, nonce);
         PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
 
         callUnlock.then(callback).transact();
@@ -459,76 +464,10 @@ contract AuroraErc20FastBridge is Initializable, UUPSUpgradeable, AccessControlU
      * - Updates the balances of the Aurora sender for the transferred and fee tokens.
      * - Emits an 'Unlock' event to signal the completion of the token unlocking.
      */
-    function unlockCallback(uint128 nonce) external onlyRole(CALLBACK_ROLE) {
+    function unlockAndWithdrawCallback(uint128 nonce) external onlyRole(CALLBACK_ROLE) {
         require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The `Unlock` XCC failed");
 
-        TransferMessage memory transferMessage = _decodeTransferMessageFromBorsh(AuroraSdk.promiseResult(0).output);
-
-        balance[transferMessage.transferTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
-            .transferTokenAmount;
-
-        balance[transferMessage.feeTokenAccountIdOnNear][transferMessage.auroraSender] += transferMessage
-            .feeTokenAmount;
-
-        emit Unlock(
-            nonce,
-            transferMessage.auroraSender,
-            transferMessage.transferTokenAccountIdOnNear,
-            transferMessage.transferTokenAmount,
-            transferMessage.feeTokenAccountIdOnNear,
-            transferMessage.feeTokenAmount
-        );
-    }
-
-    /**
-     * @dev Initiates a fast bridge withdrawal of tokens on the NEAR blockchain.
-     * @param tokenId The Account Id of the token to be withdrawn.
-     * @param amount The amount of tokens to withdraw.
-     * Requirements:
-     * - The contract must not be paused to execute this function.
-     * - The contract must have a sufficient wNEAR balance for processing.
-     * Effects:
-     * - Initiates the fast bridge withdrawal process by making a cross-contract call to the NEAR blockchain.
-     */
-    function fastBridgeWithdrawOnNear(string calldata tokenId, uint128 amount) external whenNotPaused {
-        require(near.wNEAR.balanceOf(address(this)) >= ONE_YOCTO, "Not enough wNEAR balance");
-
-        PromiseCreateArgs memory callWithdraw = UtilsFastBridge.callWithoutTransferWNear(
-            near,
-            fastBridgeAccountIdOnNear,
-            "withdraw",
-            bytes(string.concat('{"token_id": "', tokenId, '", "amount": "', Strings.toString(amount), '"}')),
-            ONE_YOCTO,
-            WITHDRAW_NEAR_GAS
-        );
-
-        bytes memory callbackArg = abi.encodeWithSelector(
-            this.fastBridgeWithdrawOnNearCallback.selector,
-            tokenId,
-            amount
-        );
-        PromiseCreateArgs memory callback = near.auroraCall(address(this), callbackArg, NO_DEPOSIT, BASE_NEAR_GAS);
-
-        callWithdraw.then(callback).transact();
-    }
-
-    /**
-     * @dev The callback for a fastBridgeWithdrawOnNear method.
-     * @param tokenId The Account Is of the token that was withdrawn on NEAR Fast Bridge to implicit account.
-     * @param amount The amount of tokens that were withdrawn.
-     * Requirements:
-     * - Caller must have the 'CALLBACK_ROLE' to execute this function.
-     * Effects:
-     * - Checks if the 'Withdraw' cross-contract call (XCC) was successful.
-     * - Emits a 'FastBridgeWithdrawOnNear' event to signal the completion of the withdrawal.
-     */
-    function fastBridgeWithdrawOnNearCallback(
-        string calldata tokenId,
-        uint128 amount
-    ) external onlyRole(CALLBACK_ROLE) {
-        require(AuroraSdk.promiseResult(0).status == PromiseResultStatus.Successful, "ERROR: The XCC is fail");
-
-        emit FastBridgeWithdrawOnNear(tokenId, amount);
+        emit Unlock(nonce);
     }
 
     /**

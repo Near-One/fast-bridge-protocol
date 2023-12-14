@@ -902,7 +902,7 @@ dependencies = [
 [[package]]
 name = "fast-bridge-common"
 version = "1.0.0"
-source = "git+https://github.com/aurora-is-near/fast-bridge-common.git?tag=0.2.1#d564009a75b374386d66cd0f5b8b78ea227e7800"
+source = "git+https://github.com/aurora-is-near/fast-bridge-common.git?tag=0.2.2#441d37c2161e15b5f39a9d520428cc0e0f176899"
 dependencies = [
  "assert-json-diff",
  "hex 0.4.3",
@@ -1581,6 +1581,14 @@ dependencies = [
 name = "mock_eth_prover"
 version = "0.1.0"
 dependencies = [
+ "near-sdk",
+]
+
+[[package]]
+name = "mock_ft_receiver"
+version = "0.0.1"
+dependencies = [
+ "near-contract-standards",
  "near-sdk",
 ]
 
