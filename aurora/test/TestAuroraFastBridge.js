@@ -4,7 +4,6 @@ const { execSync } = require("child_process");
 const { expect } = require("chai");
 const { keyStores, connect, KeyPair, Contract} = require("near-api-js");
 const fs = require('fs');
-const {getUnlockProof} = require("./UnlockProof");
 const {encodeInitMsgToBorsh} = require("./EncodeInitMsgToBorsh");
 const borsh = require("borsh");
 
@@ -210,12 +209,14 @@ async function auroraUnlockTokens(auroraFastBridgeAddress, validTillBlockHeight,
 
     const fastbridge = await AuroraErc20FastBridge.attach(auroraFastBridgeAddress);
 
-    const { getUnlockProof } = require('./UnlockProof');
+    const { getUnlockProof } = require('../scripts/UnlockProof');
     const proof = await getUnlockProof("0xDBE11ADC5F9c821341A837f4810123f495fBFd44",
         { token: "0x" + ETH_TOKEN_ADDRESS,
             recipient: deployerWallet.address,
             nonce: 1,
-            amount: 100}, validTillBlockHeight);
+            amount: 100},
+        validTillBlockHeight,
+        "https://ethereum-goerli-rpc.allthatnode.com");
 
     console.log("proof: ",  proof);
     console.log("proof len: ", proof.length);
