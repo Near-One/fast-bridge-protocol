@@ -2,6 +2,7 @@ use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FungibleTokenMetadataProvider, FT_METADATA_SPEC,
 };
 use near_contract_standards::fungible_token::FungibleToken;
+use near_sdk::assert_one_yocto;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
 use near_sdk::json_types::U128;
@@ -66,6 +67,14 @@ impl Contract {
 
     pub fn burn(&mut self, account_id: AccountId, amount: U128) {
         self.token.internal_withdraw(&account_id, amount.into());
+    }
+
+    #[payable]
+    pub fn withdraw(&mut self, amount: U128, #[allow(unused_variables)] recipient: String) {
+        assert_one_yocto();
+
+        self.token
+            .internal_withdraw(&env::predecessor_account_id(), amount.into());
     }
 }
 
