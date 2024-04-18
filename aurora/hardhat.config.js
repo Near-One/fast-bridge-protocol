@@ -67,7 +67,6 @@ task('storage_deposit', 'Puts a storage deposit in "nearTokenAccountId" for the 
     .addParam("auroraFastBridgeConfigName", "File name without extension for the config " +
         "with dependencies' accounts and addresses used in Aurora Fast Bridge. " +
         "If the CONFIG_NAME is provided, the config with path ./configs/CONFIG_NAME.json will be used.")
-    .addParam('fastBridgeAddress', 'Aurora Fast Bridge address')
     .addParam('nearTokenAccountId', "Token account id on Near")
     .setAction(async taskArgs => {
         const { storageDeposit } = require('./scripts/utils');
