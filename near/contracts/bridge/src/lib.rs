@@ -17,8 +17,6 @@ use near_sdk::{
 };
 use whitelist::WhitelistMode;
 
-pub use crate::ft::*;
-
 mod ft;
 mod lp_relayer;
 mod utils;
@@ -67,7 +65,7 @@ pub trait EthClient {
 }
 
 #[ext_contract(ext_token)]
-trait NEP141Token {
+pub trait NEP141Token {
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
     fn ft_transfer_call(
         &mut self,
@@ -79,7 +77,7 @@ trait NEP141Token {
 }
 
 #[ext_contract(ext_self)]
-trait FastBridgeInterface {
+pub trait FastBridgeInterface {
     fn withdraw_callback(
         &mut self,
         token_id: AccountId,
