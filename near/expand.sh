@@ -1,4 +1,4 @@
-RUST_VERSION=1.71.0
+RUST_VERSION=1.74.0
 rustup install $RUST_VERSION
 cargo +$RUST_VERSION install cargo-expand
 rustup target add wasm32-unknown-unknown --toolchain $RUST_VERSION

@@ -20,9 +20,7 @@ use near_sdk::{
     env, ext_contract, near_bindgen, promise_result_as_success, require, AccountId,
     BorshStorageKey, Duration, PanicOnDefault, PromiseOrValue,
 };
-use parse_duration::parse;
 use whitelist::WhitelistMode;
-pub use crate::ft::*;
 mod ft {
     use crate::*;
     use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
@@ -663,14 +661,13 @@ mod lp_relayer {
             let recipient = log.params[3].value.clone().to_address().unwrap().0;
             let amount = log.params[4].value.clone().to_uint().unwrap().as_u128();
             let unlock_recipient = log.params[5].value.clone().to_string().unwrap();
-            let transfer_id: H256 = log
+            let transfer_id = log
                 .params[6]
                 .value
                 .clone()
                 .to_fixed_bytes()
                 .unwrap()
-                .try_into()
-                .unwrap();
+                .into();
             Self {
                 eth_bridge_contract: EthAddress(locker_address),
                 nonce,
@@ -3310,7 +3307,7 @@ pub mod ext_eth_client {
         }
     }
 }
-trait NEP141Token {
+pub trait NEP141Token {
     fn ft_transfer(
         &mut self,
         receiver_id: AccountId,
@@ -3555,7 +3552,7 @@ pub mod ext_token {
         }
     }
 }
-trait FastBridgeInterface {
+pub trait FastBridgeInterface {
     fn withdraw_callback(
         &mut self,
         token_id: AccountId,
@@ -3951,6 +3948,7 @@ pub mod ext_self {
         }
     }
 }
+#[serde(crate = "near_sdk::serde")]
 pub struct UnlockProof {
     header_data: Vec<u8>,
     account_proof: Vec<Vec<u8>>,
@@ -4037,16 +4035,15 @@ impl ::core::clone::Clone for UnlockProof {
 #[doc(hidden)]
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
 const _: () = {
-    #[allow(unused_extern_crates, clippy::useless_attribute)]
-    extern crate serde as _serde;
+    use near_sdk::serde as _serde;
     #[automatically_derived]
-    impl _serde::Serialize for UnlockProof {
+    impl near_sdk::serde::Serialize for UnlockProof {
         fn serialize<__S>(
             &self,
             __serializer: __S,
-        ) -> _serde::__private::Result<__S::Ok, __S::Error>
+        ) -> near_sdk::serde::__private::Result<__S::Ok, __S::Error>
         where
-            __S: _serde::Serializer,
+            __S: near_sdk::serde::Serializer,
         {
             let mut __serde_state = match _serde::Serializer::serialize_struct(
                 __serializer,
@@ -4105,15 +4102,14 @@ const _: () = {
 #[doc(hidden)]
 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
 const _: () = {
-    #[allow(unused_extern_crates, clippy::useless_attribute)]
-    extern crate serde as _serde;
+    use near_sdk::serde as _serde;
     #[automatically_derived]
-    impl<'de> _serde::Deserialize<'de> for UnlockProof {
+    impl<'de> near_sdk::serde::Deserialize<'de> for UnlockProof {
         fn deserialize<__D>(
             __deserializer: __D,
-        ) -> _serde::__private::Result<Self, __D::Error>
+        ) -> near_sdk::serde::__private::Result<Self, __D::Error>
         where
-            __D: _serde::Deserializer<'de>,
+            __D: near_sdk::serde::Deserializer<'de>,
         {
             #[allow(non_camel_case_types)]
             #[doc(hidden)]
@@ -5524,7 +5520,7 @@ impl ::core::marker::StructuralEq for RoleFlags {}
 impl ::core::cmp::Eq for RoleFlags {
     #[inline]
     #[doc(hidden)]
-    #[no_coverage]
+    #[coverage(off)]
     fn assert_receiver_is_total_eq(&self) -> () {
         let _: ::core::cmp::AssertParamIsEq<u128>;
     }
@@ -5556,6 +5552,7 @@ impl ::core::cmp::Ord for RoleFlags {
 }
 #[automatically_derived]
 impl ::core::hash::Hash for RoleFlags {
+    #[inline]
     fn hash<__H: ::core::hash::Hasher>(&self, state: &mut __H) -> () {
         ::core::hash::Hash::hash(&self.bits, state)
     }
@@ -16117,8 +16114,8 @@ impl FastBridgeExt {
         eth_bridge_contract: String,
         prover_account: AccountId,
         eth_client_account: AccountId,
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: Duration,
+        lock_time_max: Duration,
         eth_block_time: Duration,
         whitelist_mode: bool,
         start_nonce: U128,
@@ -16129,8 +16126,8 @@ impl FastBridgeExt {
                 eth_bridge_contract: &'nearinput String,
                 prover_account: &'nearinput AccountId,
                 eth_client_account: &'nearinput AccountId,
-                lock_time_min: &'nearinput String,
-                lock_time_max: &'nearinput String,
+                lock_time_min: &'nearinput Duration,
+                lock_time_max: &'nearinput Duration,
                 eth_block_time: &'nearinput Duration,
                 whitelist_mode: &'nearinput bool,
                 start_nonce: &'nearinput U128,
@@ -17513,14 +17510,14 @@ impl FastBridgeExt {
     }
     pub fn set_lock_time(
         self,
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: Duration,
+        lock_time_max: Duration,
     ) -> near_sdk::Promise {
         let __args = {
             #[serde(crate = "near_sdk::serde")]
             struct Input<'nearinput> {
-                lock_time_min: &'nearinput String,
-                lock_time_max: &'nearinput String,
+                lock_time_min: &'nearinput Duration,
+                lock_time_max: &'nearinput Duration,
             }
             #[doc(hidden)]
             #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -17591,22 +17588,12 @@ impl FastBridge {
         eth_bridge_contract: String,
         prover_account: AccountId,
         eth_client_account: AccountId,
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: Duration,
+        lock_time_max: Duration,
         eth_block_time: Duration,
         whitelist_mode: bool,
         start_nonce: U128,
     ) -> Self {
-        let lock_time_min: u64 = parse(lock_time_min.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
-        let lock_time_max: u64 = parse(lock_time_max.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
         if true {
             let msg: &str = &"Error initialize: lock_time_min must be less than lock_time_max";
             if !(lock_time_max > lock_time_min) {
@@ -17773,8 +17760,7 @@ impl FastBridge {
         }
         let mut transfer_message = transfer_message;
         let lock_period = transfer_message.valid_till - block_timestamp();
-        transfer_message
-            .valid_till_block_height = Some(
+        transfer_message.valid_till_block_height = Some(
             last_block_height + lock_period / self.eth_block_time,
         );
         self.validate_transfer_message(&transfer_message, &sender_id);
@@ -18978,14 +18964,14 @@ impl FastBridge {
     ///
     /// # Arguments
     ///
-    /// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
-    /// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    /// * `lock_time_min` - A u64 representing the minimum lock time duration in nanoseconds.
+    /// * `lock_time_max` - A u64 representing the maximum lock time duration in nanoseconds.
     ///
     /// # Panics
     ///
     /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
     ///
-    pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
+    pub fn set_lock_time(&mut self, lock_time_min: Duration, lock_time_max: Duration) {
         let __acl_any_roles: Vec<&str> = <[_]>::into_vec(
             #[rustc_box]
             ::alloc::boxed::Box::new([Role::ConfigManager.into(), Role::DAO.into()]),
@@ -19008,16 +18994,6 @@ impl FastBridge {
             };
             near_sdk::env::panic_str(&message);
         }
-        let lock_time_min: u64 = parse(lock_time_min.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
-        let lock_time_max: u64 = parse(lock_time_max.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
         if true {
             let msg: &str = &"Error initialize: lock_time_min must be less than lock_time_max";
             if !(lock_time_max > lock_time_min) {
@@ -19030,8 +19006,7 @@ impl FastBridge {
                 &"Error initialize: lock_time_min must be less than lock_time_max",
             )
         }
-        self
-            .lock_duration = LockDuration {
+        self.lock_duration = LockDuration {
             lock_time_min,
             lock_time_max,
         };
@@ -19052,8 +19027,8 @@ pub extern "C" fn new() {
         eth_bridge_contract: String,
         prover_account: AccountId,
         eth_client_account: AccountId,
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: Duration,
+        lock_time_max: Duration,
         eth_block_time: Duration,
         whitelist_mode: bool,
         start_nonce: U128,
@@ -19255,7 +19230,7 @@ pub extern "C" fn new() {
                             }
                         };
                         let __field3 = match match _serde::de::SeqAccess::next_element::<
-                            String,
+                            Duration,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -19273,7 +19248,7 @@ pub extern "C" fn new() {
                             }
                         };
                         let __field4 = match match _serde::de::SeqAccess::next_element::<
-                            String,
+                            Duration,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -19366,8 +19341,8 @@ pub extern "C" fn new() {
                         let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
                         let mut __field1: _serde::__private::Option<AccountId> = _serde::__private::None;
                         let mut __field2: _serde::__private::Option<AccountId> = _serde::__private::None;
-                        let mut __field3: _serde::__private::Option<String> = _serde::__private::None;
-                        let mut __field4: _serde::__private::Option<String> = _serde::__private::None;
+                        let mut __field3: _serde::__private::Option<Duration> = _serde::__private::None;
+                        let mut __field4: _serde::__private::Option<Duration> = _serde::__private::None;
                         let mut __field5: _serde::__private::Option<Duration> = _serde::__private::None;
                         let mut __field6: _serde::__private::Option<bool> = _serde::__private::None;
                         let mut __field7: _serde::__private::Option<U128> = _serde::__private::None;
@@ -19447,7 +19422,7 @@ pub extern "C" fn new() {
                                     }
                                     __field3 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            String,
+                                            Duration,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -19466,7 +19441,7 @@ pub extern "C" fn new() {
                                     }
                                     __field4 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            String,
+                                            Duration,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -24377,8 +24352,8 @@ pub extern "C" fn get_pending_transfer() {
 ///
 /// # Arguments
 ///
-/// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
-/// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+/// * `lock_time_min` - A u64 representing the minimum lock time duration in nanoseconds.
+/// * `lock_time_max` - A u64 representing the maximum lock time duration in nanoseconds.
 ///
 /// # Panics
 ///
@@ -24393,8 +24368,8 @@ pub extern "C" fn set_lock_time() {
     }
     #[serde(crate = "near_sdk::serde")]
     struct Input {
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: Duration,
+        lock_time_max: Duration,
     }
     #[doc(hidden)]
     #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
@@ -24507,7 +24482,7 @@ pub extern "C" fn set_lock_time() {
                         __A: _serde::de::SeqAccess<'de>,
                     {
                         let __field0 = match match _serde::de::SeqAccess::next_element::<
-                            String,
+                            Duration,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -24525,7 +24500,7 @@ pub extern "C" fn set_lock_time() {
                             }
                         };
                         let __field1 = match match _serde::de::SeqAccess::next_element::<
-                            String,
+                            Duration,
                         >(&mut __seq) {
                             _serde::__private::Ok(__val) => __val,
                             _serde::__private::Err(__err) => {
@@ -24555,8 +24530,8 @@ pub extern "C" fn set_lock_time() {
                     where
                         __A: _serde::de::MapAccess<'de>,
                     {
-                        let mut __field0: _serde::__private::Option<String> = _serde::__private::None;
-                        let mut __field1: _serde::__private::Option<String> = _serde::__private::None;
+                        let mut __field0: _serde::__private::Option<Duration> = _serde::__private::None;
+                        let mut __field1: _serde::__private::Option<Duration> = _serde::__private::None;
                         while let _serde::__private::Some(__key) = match _serde::de::MapAccess::next_key::<
                             __Field,
                         >(&mut __map) {
@@ -24576,7 +24551,7 @@ pub extern "C" fn set_lock_time() {
                                     }
                                     __field0 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            String,
+                                            Duration,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
@@ -24595,7 +24570,7 @@ pub extern "C" fn set_lock_time() {
                                     }
                                     __field1 = _serde::__private::Some(
                                         match _serde::de::MapAccess::next_value::<
-                                            String,
+                                            Duration,
                                         >(&mut __map) {
                                             _serde::__private::Ok(__val) => __val,
                                             _serde::__private::Err(__err) => {
