@@ -6,6 +6,7 @@ mod integration_tests {
     use fast_bridge_common::{EthAddress, TransferDataEthereum, TransferDataNear, TransferMessage};
     use near_sdk::borsh::BorshSerialize;
     use near_sdk::json_types::U128;
+    use near_sdk::serde::Serialize;
     use near_sdk::serde_json::json;
     use near_sdk::{ONE_NEAR, ONE_YOCTO};
     use workspaces::operations::Function;
@@ -25,7 +26,8 @@ mod integration_tests {
     const MOCK_FT_RECEIVER_WASM_FILEPATH: &str =
         "../target/wasm32-unknown-unknown/release/mock_ft_receiver.wasm";
 
-    #[derive(serde::Serialize)]
+    #[derive(Serialize)]
+    #[serde(crate = "near_sdk::serde")]
     struct InitArgs {
         eth_bridge_contract: String,
         prover_account: Option<String>,

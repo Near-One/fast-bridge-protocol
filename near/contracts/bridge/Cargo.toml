@@ -11,11 +11,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 near-sdk = "4.1.1"
 near-contract-standards = "4.1.1"
-serde = { version = "1.0" }
 hex = { version = "0.4.3", features = ["serde"] }
 ethabi = "12.0.0"
 rlp = "0.5.2"
-parse_duration = "2.1.1"
 eth-types =  { git = "https://github.com/aurora-is-near/rainbow-bridge", tag = "eth2-client-0.3.1", default-features = false }
 fast-bridge-common = { git = "https://github.com/aurora-is-near/fast-bridge-common.git", tag = "0.2.2" }
 near-plugins = { git = "https://github.com/aurora-is-near/near-plugins", tag = "v0.1.0" }
@@ -26,6 +24,7 @@ tiny-keccak = "1.4.0"
 workspaces = "0.7"
 anyhow = "^1.0"
 tokio = { version = "^1.19.0", features = ["full"] }
+parse_duration = "2.1.1"
 
 [features]
 default = ["disable_different_fee_token"]
