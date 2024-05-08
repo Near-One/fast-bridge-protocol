@@ -965,15 +965,15 @@ impl FastBridge {
 
         let memo = None;
         if let Some(msg) = msg {
-            ext_token::ext(token_id.clone())
+            ext_token::ext(token_id)
                 .with_static_gas(utils::tera_gas(50))
                 .with_attached_deposit(1)
-                .ft_transfer_call(recipient_id.clone(), amount, memo, msg)
+                .ft_transfer_call(recipient_id, amount, memo, msg)
         } else {
-            ext_token::ext(token_id.clone())
+            ext_token::ext(token_id)
                 .with_static_gas(utils::tera_gas(5))
                 .with_attached_deposit(1)
-                .ft_transfer(recipient_id.clone(), amount, memo)
+                .ft_transfer(recipient_id, amount, memo)
         }
     }
 
