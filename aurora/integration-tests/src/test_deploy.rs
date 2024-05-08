@@ -19,6 +19,14 @@ pub mod test_deploy {
         process::require_success(&output).unwrap();
     }
 
+    fn parse_duration(time: &str) -> near_sdk::Duration {
+        parse_duration::parse(time)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap()
+    }
+
     pub async fn deploy_mock_token(
         worker: &workspaces::Worker<workspaces::network::Sandbox>,
         owner_account_id: &str,
@@ -96,8 +104,8 @@ pub mod test_deploy {
                 "eth_bridge_contract": Address::from_array([1u8;20]).encode(),
                 "prover_account": mock_eth_prover_account_id,
                 "eth_client_account": mock_eth_client_account_id,
-                "lock_time_min": "1s",
-                "lock_time_max": "24h",
+                "lock_time_min": parse_duration("1s"),
+                "lock_time_max": parse_duration("24h"),
                 "eth_block_time": 12000000000u128,
                 "whitelist_mode": true,
                 "start_nonce": "0",

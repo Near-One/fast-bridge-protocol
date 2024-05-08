@@ -67,13 +67,7 @@ impl EthTransferEvent {
         let recipient = log.params[3].value.clone().to_address().unwrap().0;
         let amount = log.params[4].value.clone().to_uint().unwrap().as_u128();
         let unlock_recipient = log.params[5].value.clone().to_string().unwrap();
-        let transfer_id: H256 = log.params[6]
-            .value
-            .clone()
-            .to_fixed_bytes()
-            .unwrap()
-            .try_into()
-            .unwrap();
+        let transfer_id = log.params[6].value.clone().to_fixed_bytes().unwrap().into();
 
         Self {
             eth_bridge_contract: EthAddress(locker_address),

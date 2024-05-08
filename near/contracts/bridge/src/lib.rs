@@ -15,10 +15,7 @@ use near_sdk::{
     env, ext_contract, near_bindgen, promise_result_as_success, require, AccountId,
     BorshStorageKey, Duration, PanicOnDefault, PromiseOrValue,
 };
-use parse_duration::parse;
 use whitelist::WhitelistMode;
-
-pub use crate::ft::*;
 
 mod ft;
 mod lp_relayer;
@@ -68,7 +65,7 @@ pub trait EthClient {
 }
 
 #[ext_contract(ext_token)]
-trait NEP141Token {
+pub trait NEP141Token {
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
     fn ft_transfer_call(
         &mut self,
@@ -80,7 +77,7 @@ trait NEP141Token {
 }
 
 #[ext_contract(ext_self)]
-trait FastBridgeInterface {
+pub trait FastBridgeInterface {
     fn withdraw_callback(
         &mut self,
         token_id: AccountId,
@@ -128,6 +125,7 @@ trait FastBridgeInterface {
 #[derive(
     Default, BorshDeserialize, BorshSerialize, Debug, Clone, Serialize, Deserialize, PartialEq,
 )]
+#[serde(crate = "near_sdk::serde")]
 pub struct UnlockProof {
     header_data: Vec<u8>,
     account_proof: Vec<Vec<u8>>,
@@ -219,23 +217,12 @@ impl FastBridge {
         eth_bridge_contract: String,
         prover_account: AccountId,
         eth_client_account: AccountId,
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: Duration,
+        lock_time_max: Duration,
         eth_block_time: Duration,
         whitelist_mode: bool,
         start_nonce: U128,
     ) -> Self {
-        let lock_time_min: u64 = parse(lock_time_min.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
-        let lock_time_max: u64 = parse(lock_time_max.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
-
         require!(
             lock_time_max > lock_time_min,
             "Error initialize: lock_time_min must be less than lock_time_max"
@@ -1172,26 +1159,15 @@ impl FastBridge {
     ///
     /// # Arguments
     ///
-    /// * `lock_time_min` - A string representing the minimum lock time duration. Uses `parse_duration` crate suffixes for the durations.
-    /// * `lock_time_max` - A string representing the maximum lock time duration. Uses `parse_duration` crate suffixes for the durations.
+    /// * `lock_time_min` - A u64 representing the minimum lock time duration in nanoseconds.
+    /// * `lock_time_max` - A u64 representing the maximum lock time duration in nanoseconds.
     ///
     /// # Panics
     ///
     /// Panics if `lock_time_min` is greater than or equal to `lock_time_max`.
     ///
     #[access_control_any(roles(Role::ConfigManager, Role::DAO))]
-    pub fn set_lock_time(&mut self, lock_time_min: String, lock_time_max: String) {
-        let lock_time_min: u64 = parse(lock_time_min.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
-        let lock_time_max: u64 = parse(lock_time_max.as_str())
-            .unwrap()
-            .as_nanos()
-            .try_into()
-            .unwrap();
-
+    pub fn set_lock_time(&mut self, lock_time_min: Duration, lock_time_max: Duration) {
         require!(
             lock_time_max > lock_time_min,
             "Error initialize: lock_time_min must be less than lock_time_max"
@@ -1365,6 +1341,14 @@ mod unit_tests {
         ]
     }
 
+    fn parse_duration(time: &str) -> Duration {
+        parse_duration::parse(time)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap()
+    }
+
     fn get_bridge_contract(config: Option<BridgeInitArgs>) -> FastBridge {
         let config = config.unwrap_or(BridgeInitArgs {
             eth_bridge_contract: None,
@@ -1381,8 +1365,8 @@ mod unit_tests {
                 .unwrap_or_else(eth_bridge_address),
             config.prover_account.unwrap_or_else(prover),
             config.eth_client_account.unwrap_or_else(eth_client),
-            config.lock_time_min.unwrap_or_else(|| "1h".to_string()),
-            config.lock_time_max.unwrap_or_else(|| "24h".to_string()),
+            parse_duration(&config.lock_time_min.unwrap_or_else(|| "1h".to_string())),
+            parse_duration(&config.lock_time_max.unwrap_or_else(|| "24h".to_string())),
             12_000_000_000,
             true,
             U128(0),
@@ -2379,8 +2363,8 @@ mod unit_tests {
         let context = get_context(false);
         testing_env!(context);
         let mut contract = get_bridge_contract(None);
-        let lock_time_min = "42h".to_string();
-        let lock_time_max = "420h".to_string();
+        let lock_time_min = parse_duration("42h");
+        let lock_time_max = parse_duration("420h");
         let convert_nano = 36 * u64::pow(10, 11);
         contract.acl_grant_role("ConfigManager".to_string(), "token_near".parse().unwrap());
         contract.set_lock_time(lock_time_min, lock_time_max);

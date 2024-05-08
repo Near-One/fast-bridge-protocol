@@ -6,6 +6,7 @@ mod integration_tests {
     use fast_bridge_common::{EthAddress, TransferDataEthereum, TransferDataNear, TransferMessage};
     use near_sdk::borsh::BorshSerialize;
     use near_sdk::json_types::U128;
+    use near_sdk::serde::Serialize;
     use near_sdk::serde_json::json;
     use near_sdk::{ONE_NEAR, ONE_YOCTO};
     use workspaces::operations::Function;
@@ -25,13 +26,14 @@ mod integration_tests {
     const MOCK_FT_RECEIVER_WASM_FILEPATH: &str =
         "../target/wasm32-unknown-unknown/release/mock_ft_receiver.wasm";
 
-    #[derive(serde::Serialize)]
+    #[derive(Serialize)]
+    #[serde(crate = "near_sdk::serde")]
     struct InitArgs {
         eth_bridge_contract: String,
         prover_account: Option<String>,
         eth_client_account: Option<String>,
-        lock_time_min: String,
-        lock_time_max: String,
+        lock_time_min: near_sdk::Duration,
+        lock_time_max: near_sdk::Duration,
         eth_block_time: near_sdk::Duration,
         whitelist_mode: bool,
         start_nonce: U128,
@@ -42,6 +44,14 @@ mod integration_tests {
         token: Contract,
         ft_receiver: Contract,
         accounts: Vec<Account>,
+    }
+
+    fn parse_duration(time: &str) -> near_sdk::Duration {
+        parse_duration::parse(time)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap()
     }
 
     async fn deploy_bridge(mut init_input: InitArgs, file_path: &str) -> anyhow::Result<TestData> {
@@ -316,8 +326,8 @@ mod integration_tests {
                 eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
                 prover_account: None,
                 eth_client_account: None,
-                lock_time_min: "1ms".to_owned(),
-                lock_time_max: "10h".to_owned(),
+                lock_time_min: parse_duration("1ms"),
+                lock_time_max: parse_duration("10h"),
                 eth_block_time: 0,
                 whitelist_mode: false,
                 start_nonce: U128(0),
@@ -480,8 +490,8 @@ mod integration_tests {
                 eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
                 prover_account: None,
                 eth_client_account: None,
-                lock_time_min: "1ms".to_owned(),
-                lock_time_max: "10h".to_owned(),
+                lock_time_min: parse_duration("1ms"),
+                lock_time_max: parse_duration("10h"),
                 eth_block_time: 12000000000,
                 whitelist_mode: false,
                 start_nonce: U128(0),
@@ -636,8 +646,8 @@ mod integration_tests {
                 eth_bridge_contract: ETH_BRIDGE_ADDRESS.to_owned(),
                 prover_account: None,
                 eth_client_account: None,
-                lock_time_min: "1ms".to_owned(),
-                lock_time_max: "10h".to_owned(),
+                lock_time_min: parse_duration("1ms"),
+                lock_time_max: parse_duration("10h"),
                 eth_block_time: 12000000000,
                 whitelist_mode: false,
                 start_nonce: U128(0),

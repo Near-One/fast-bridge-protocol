@@ -363,10 +363,11 @@ dependencies = [
  "aurora-engine-types 1.0.0 (git+https://github.com/aurora-is-near/aurora-engine.git?tag=3.0.0)",
  "aurora-sdk-integration-tests",
  "borsh 0.10.3",
- "fast-bridge-common",
+ "fast-bridge-common 1.0.0 (git+https://github.com/aurora-is-near/fast-bridge-common.git?tag=0.2.1)",
  "fastbridge",
  "hex 0.4.3",
  "near-sdk",
+ "parse_duration",
  "rlp 0.5.2",
  "serde",
  "serde_json",
@@ -1366,19 +1367,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "fast-bridge-common"
+version = "1.0.0"
+source = "git+https://github.com/aurora-is-near/fast-bridge-common.git?tag=0.2.2#441d37c2161e15b5f39a9d520428cc0e0f176899"
+dependencies = [
+ "assert-json-diff",
+ "hex 0.4.3",
+ "near-sdk",
+ "serde",
+]
+
+[[package]]
 name = "fastbridge"
 version = "0.1.0"
 dependencies = [
  "eth-types",
  "ethabi 12.0.0",
- "fast-bridge-common",
+ "fast-bridge-common 1.0.0 (git+https://github.com/aurora-is-near/fast-bridge-common.git?tag=0.2.2)",
  "hex 0.4.3",
  "near-contract-standards",
  "near-plugins",
  "near-sdk",
- "parse_duration",
  "rlp 0.5.2",
- "serde",
 ]
 
 [[package]]

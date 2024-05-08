@@ -15,3 +15,4 @@ borsh = "0.10.3"
 aurora-engine-types = { git = "https://github.com/aurora-is-near/aurora-engine.git", tag = "3.0.0", default-features = false, features = ["contracts-std", "impl-serde", "borsh-compat"] }
 aurora-engine_v3 = { package = "aurora-engine", git = "https://github.com/aurora-is-near/aurora-engine.git", tag = "3.0.0", default-features = false, features = ["std"] }
 rlp = "0.5.2"
+parse_duration = "2.1.1"
