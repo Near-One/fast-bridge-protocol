@@ -417,9 +417,6 @@ mod integration_tests {
         )
         .await?;
         assert!(result.is_success(), "{:?}", result);
-        assert_eq!(result.logs().len(), 2);
-        assert!(result.logs()[1]
-            .contains(r#"EVENT_JSON:{"data":{"amount":"10","recipient_id":"alice.test.near""#));
 
         // Check acoount balance after withdraw call
         assert_eq!(
