@@ -12,8 +12,8 @@ use near_sdk::serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use near_sdk::Promise;
 use near_sdk::{
-    env, ext_contract, near_bindgen, promise_result_as_success, require, AccountId,
-    BorshStorageKey, Duration, PanicOnDefault, PromiseOrValue,
+    env, ext_contract, near_bindgen, require, AccountId, BorshStorageKey, Duration, PanicOnDefault,
+    PromiseOrValue,
 };
 use whitelist::WhitelistMode;
 
@@ -963,102 +963,18 @@ impl FastBridge {
         self.decrease_balance(&sender_id, &token_id, &amount.0);
         let recipient_id = recipient_id.unwrap_or_else(|| sender_id.clone());
 
+        let memo = None;
         if let Some(msg) = msg {
-            self.call_ft_transfer_call(token_id, amount, sender_id, recipient_id, msg)
+            ext_token::ext(token_id)
+                .with_static_gas(utils::tera_gas(50))
+                .with_attached_deposit(1)
+                .ft_transfer_call(recipient_id, amount, memo, msg)
         } else {
-            self.call_ft_transfer(token_id, amount, sender_id, recipient_id)
+            ext_token::ext(token_id)
+                .with_static_gas(utils::tera_gas(5))
+                .with_attached_deposit(1)
+                .ft_transfer(recipient_id, amount, memo)
         }
-    }
-
-    fn call_ft_transfer_call(
-        &self,
-        token_id: AccountId,
-        amount: U128,
-        sender_id: AccountId,
-        recipient_id: AccountId,
-        msg: String,
-    ) -> Promise {
-        let memo = None;
-        ext_token::ext(token_id.clone())
-            .with_static_gas(utils::tera_gas(50))
-            .with_attached_deposit(1)
-            .ft_transfer_call(recipient_id.clone(), amount, memo, msg)
-            .then(
-                ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(5))
-                    .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, sender_id, recipient_id),
-            )
-    }
-
-    fn call_ft_transfer(
-        &self,
-        token_id: AccountId,
-        amount: U128,
-        sender_id: AccountId,
-        recipient_id: AccountId,
-    ) -> Promise {
-        let memo = None;
-        ext_token::ext(token_id.clone())
-            .with_static_gas(utils::tera_gas(5))
-            .with_attached_deposit(1)
-            .ft_transfer(recipient_id.clone(), amount, memo)
-            .then(
-                ext_self::ext(current_account_id())
-                    .with_static_gas(utils::tera_gas(2))
-                    .with_attached_deposit(utils::NO_DEPOSIT)
-                    .withdraw_callback(token_id, amount, sender_id, recipient_id),
-            )
-    }
-
-    /// This function finalizes the execution flow of the `withdraw()` function. This private function is called after
-    /// the `ft_transfer` promise made in the `withdraw` function is resolved. It checks whether the promise was
-    /// successful or not, and emits an event if it was. If the promise was not successful, the amount is returned
-    /// to the user's balance. This function is only intended for internal use and should not be called directly by
-    /// external accounts.
-    ///
-    /// # Arguments
-    ///
-    /// * `token_id`: An `AccountId` representing the token being withdrawn.
-    /// * `amount`: A `U128` value representing the amount being withdrawn.
-    /// * `recipient_id`: An `AccountId` representing the account that will receive the withdrawn funds.
-    ///
-    /// # Returns
-    ///
-    /// * A `U128` value representing the amount that was withdrawn, or `0` if the promise was not
-    ///   successful and the funds were returned to the user's balance.
-    #[private]
-    pub fn withdraw_callback(
-        &mut self,
-        token_id: AccountId,
-        amount: U128,
-        sender_id: AccountId,
-        recipient_id: AccountId,
-    ) -> U128 {
-        let mut transferred_amount = U128(0);
-
-        if let Some(result) = promise_result_as_success() {
-            transferred_amount = if result.is_empty() {
-                amount
-            } else {
-                near_sdk::serde_json::from_slice::<U128>(&result).unwrap()
-            };
-
-            Event::FastBridgeWithdrawEvent {
-                sender_id: Some(sender_id.clone()),
-                recipient_id,
-                token: token_id.clone(),
-                amount: transferred_amount,
-            }
-            .emit();
-        }
-
-        let refund_amount = amount.0 - transferred_amount.0;
-        if refund_amount > 0 {
-            self.increase_balance(&sender_id, &token_id, &refund_amount);
-        }
-
-        transferred_amount
     }
 
     /// Sets the prover account. `EthProver` is a contract that checks the correctness of Ethereum proofs.
@@ -2316,22 +2232,6 @@ mod unit_tests {
         let context = get_context(false);
         testing_env!(context);
         contract.withdraw(transfer_token, Some(U128(amount + 1)), None, None);
-    }
-
-    #[test]
-    #[should_panic(expected = r#"Contract expected a result on the callback"#)]
-    fn test_withdraw_callback() {
-        let context = get_context(false);
-        testing_env!(context);
-        let mut contract = get_bridge_contract(None);
-        let token_id: AccountId = AccountId::try_from("token_near".to_string()).unwrap();
-        let amount = 42;
-        contract.withdraw_callback(
-            token_id,
-            U128(amount),
-            signer_account_id(),
-            signer_account_id(),
-        );
     }
 
     #[test]
