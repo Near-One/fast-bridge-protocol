@@ -13,7 +13,6 @@ const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/Et
 require('hardhat-storage-layout');
 
 
-const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
 
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
@@ -77,20 +76,16 @@ module.exports = {
             }
         },
         mainnet: {
-            url: process.env.MAINNET_URL || "",
-            accounts: [...PRIVATE_KEYS]
+            url: INFURA_API_KEY
+                ? `https://mainnet.infura.io/v3/${INFURA_API_KEY}`
+                : `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
+            accounts: [`${PRIVATE_KEY}`]
         },
-        rinkeby: {
-            url: process.env.RINKEBY_URL || "",
-            accounts: [...PRIVATE_KEYS]
-        },
-        ropsten: {
-            url: process.env.ROPSTEN_URL || "",
-            accounts: [...PRIVATE_KEYS]
-        },
-        kovan: {
-            url: process.env.KOVAN_URL || "",
-            accounts: [...PRIVATE_KEYS]
+        sepolia: {
+            url: INFURA_API_KEY
+                ? `https://sepolia.infura.io/v3/${INFURA_API_KEY}`
+                : `https://eth-sepolia.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
+            accounts: [`${PRIVATE_KEY}`]
         },
         goerli: {
             url: INFURA_API_KEY
