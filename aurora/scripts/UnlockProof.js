@@ -26,7 +26,7 @@ async function getProofOfData(contractAddress, slotKey, blockNumber, web3) {
     return await web3.eth.getProof(contractAddress, [slotKey], blockNumber);
 }
 
-async function getWithdrawalsRoot(blockNumber, ethRpcEndpointURL) {
+async function getBlockData(blockNumber, ethRpcEndpointURL) {
     const response = await fetch(ethRpcEndpointURL, {
         method: 'POST',
         headers: {
@@ -39,23 +39,7 @@ async function getWithdrawalsRoot(blockNumber, ethRpcEndpointURL) {
             id: 0
         })
     });
-    return (await response.json())["result"]["withdrawalsRoot"];
-}
-
-async function getBlockData(blockNumber, web3, ethRpcEndpointURL) {
-    let block = await web3.eth.getBlock(blockNumber);
-    block.difficulty = web3.utils.toHex(block.difficulty);
-    block.number = web3.utils.toHex(parseInt(block.number));
-    block.nonce = "0x" + parseInt(block.nonce).toString(16).padStart(16, '0');
-    block.baseFeePerGas = web3.utils.toHex(parseInt(block.baseFeePerGas));
-    block.gasLimit = web3.utils.toHex(parseInt(block.gasLimit));
-    block.gasUsed = web3.utils.toHex(parseInt(block.gasUsed));
-    block.size = web3.utils.toHex(parseInt(block.size));
-    block.timestamp = web3.utils.toHex(parseInt(block.timestamp));
-    block.totalDifficulty = web3.utils.toHex(block.totalDifficulty);
-    block.withdrawalsRoot = await getWithdrawalsRoot(blockNumber, ethRpcEndpointURL);
-
-    return block;
+    return (await response.json())["result"];
 }
 
 async function generateUnlockProof(getProofResponse, block, web3){
@@ -94,7 +78,7 @@ async function getUnlockProof(contractAddress, data, blockNumber, ethRpcEndpoint
     let processHash = processedHash(data.token, data.recipient, data.nonce, data.amount);
     let slotKeyOfProcessedHash = getProcessedHashSlotKey(processHash);
     let responseData = await getProofOfData(contractAddress, slotKeyOfProcessedHash, blockNumber, web3);
-    let block = await getBlockData(blockNumber, web3, ethRpcEndpointURL);
+    let block = await getBlockData(blockNumber, ethRpcEndpointURL);
     let unlockProof = await generateUnlockProof(responseData, block, web3);
 
     let borshSer = borsh.serialize(
