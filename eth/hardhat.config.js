@@ -6,12 +6,8 @@ require("@nomicfoundation/hardhat-network-helpers");
 require("hardhat-contract-sizer");
 require("hardhat-abi-exporter");
 require("@openzeppelin/hardhat-upgrades");
-const { ethers } = require("ethers");
-const { task } = require("hardhat/config");
-const deploymentAddress = require("./scripts/deployment/deploymentAddresses.json");
-const bridgeArtifacts = require("./artifacts/contracts/EthErc20FastBridge.sol/EthErc20FastBridge.json");
-require('hardhat-storage-layout');
-
+require("./scripts/EthErc20FastBridge/tasks.js");
+require("hardhat-storage-layout");
 
 const PRIVATE_KEYS = process.env.PRIVATE_KEYS ? process.env.PRIVATE_KEYS.split(",") : [];
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "11".repeat(32);
@@ -22,35 +18,6 @@ const INFURA_API_KEY = process.env.INFURA_API_KEY;
 const FORKING = true;
 const ENABLED_OPTIMIZER = true;
 const OPTIMIZER_RUNS = 200;
-
-task("method", "Execute Fastbridge methods")
-    .addParam("jsonstring", "JSON string with function signature and arguments")
-    .setAction(async (taskArgs) => {
-        const network = (await ethers.getDefaultProvider().getNetwork()).name;
-        const bridgeAddress = deploymentAddress[network].new.bridge;
-        const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_TASK);
-        const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-
-        const jsonString = taskArgs.jsonstring;
-        const json = JSON.parse(jsonString);
-        const arg = json.arguments;
-        const functionSignature = json.signature;
-        console.log(arg);
-        const functionArguments = Object.values(arg);
-        console.log(functionSignature, functionArguments);
-        const iface = new ethers.utils.Interface(bridgeArtifacts.abi);
-        // Send the transaction
-        const txdata = iface.encodeFunctionData(functionSignature, functionArguments);
-        const tx = await signer.sendTransaction({
-            to: bridgeAddress,
-            data: txdata,
-            gasLimit: 999999
-        });
-        console.log(tx);
-        await tx.wait();
-
-        console.log("Transaction mined!");
-    });
 
 module.exports = {
     solidity: {
@@ -97,6 +64,12 @@ module.exports = {
                 ? `https://goerli.infura.io/v3/${INFURA_API_KEY}`
                 : `https://eth-goerli.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
             accounts: [`${PRIVATE_KEY}`]
+        },
+        mumbai: {
+            url: INFURA_API_KEY
+                ? `https://mumbai.infura.io/v3/${INFURA_API_KEY}`
+                : `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+            accounts: [`${PRIVATE_KEY}`]
         }
     },
     gasReporter: {
@@ -120,5 +93,4 @@ module.exports = {
 if (process.env.FORKING_BLOCK_NUMBER)
     module.exports.networks.hardhat.forking.blockNumber = +process.env.FORKING_BLOCK_NUMBER;
 
-if (process.env.HARDFORK)
-    module.exports.networks.hardhat.hardfork = process.env.HARDFORK;
+if (process.env.HARDFORK) module.exports.networks.hardhat.hardfork = process.env.HARDFORK;

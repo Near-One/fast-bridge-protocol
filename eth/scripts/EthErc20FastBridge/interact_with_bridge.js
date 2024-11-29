@@ -28,7 +28,7 @@ async function main() {
             console.log("to execute bulkWhitelistStatusUpdate(tokensArray, statusArray, signer)");
             const inputTokens = prompt("please enter space separated token addresses : ");
             let addressArray = inputTokens.trim().split(" ");
-            const inputStatuses = prompt("please enter space separated token addresses : ");
+            const inputStatuses = prompt("please enter space separated token whitelists status in bool : ");
             let statusArray = inputStatuses.trim().split(" ");
             console.log(addressArray);
 
