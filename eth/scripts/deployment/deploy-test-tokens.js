@@ -1,5 +1,5 @@
 const { ethers, upgrades } = require("hardhat");
-const { verify, getAddressSaver } = require("./utilities/helpers");
+const { getAddressSaver } = require("../utilities/helpers");
 const path = require("path");
 const { test } = require("mocha");
 
@@ -31,3 +31,5 @@ main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
+
+exports.deployTestToken = main
